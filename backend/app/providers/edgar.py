@@ -89,12 +89,13 @@ TAG_PREFERENCES: dict[str, list[str]] = {
 }
 _ABS_VALUE_TAGS = {"InterestIncomeExpenseNet"}
 
-TOTAL_DEBT_COMPONENT_TAGS = [
-    "LongTermDebtNoncurrent",
-    "LongTermDebtCurrent",
-    "DebtCurrent",
-    "ShortTermBorrowings",
-]
+# total_debt (spec §5): LongTermDebtNoncurrent + a current component, where the
+# current component is DebtCurrent when present, ELSE LongTermDebtCurrent +
+# ShortTermBorrowings — DebtCurrent already includes the other two for filers
+# that report both, so summing all tags would double-count.
+TOTAL_DEBT_NONCURRENT_TAG = "LongTermDebtNoncurrent"
+TOTAL_DEBT_CURRENT_TAG = "DebtCurrent"
+TOTAL_DEBT_CURRENT_COMPONENT_TAGS = ["LongTermDebtCurrent", "ShortTermBorrowings"]
 TOTAL_DEBT_FALLBACK_TAG = "LongTermDebt"
 SHARES_TAG = "EntityCommonStockSharesOutstanding"  # dei taxonomy, latest value
 
@@ -287,18 +288,32 @@ class SecEdgarProvider(DataProvider):
     def _total_debt_values(
         self, gaap: dict[str, Any], warnings: list[str]
     ) -> dict[str, float]:
-        component_maps = [
-            _select_annual_values(gaap[tag], tag)
-            for tag in TOTAL_DEBT_COMPONENT_TAGS
-            if gaap.get(tag)
-        ]
-        component_maps = [m for m in component_maps if m]
-        if component_maps:
-            ends = {end for values in component_maps for end in values}
-            return {
-                end: sum(values[end] for values in component_maps if end in values)
-                for end in ends
-            }
+        """Per-period total debt with the §5 non-double-counting current rule."""
+
+        def _values(tag: str) -> dict[str, float]:
+            payload = gaap.get(tag)
+            return _select_annual_values(payload, tag) if payload else {}
+
+        noncurrent = _values(TOTAL_DEBT_NONCURRENT_TAG)
+        debt_current = _values(TOTAL_DEBT_CURRENT_TAG)
+        current_components = [_values(tag) for tag in TOTAL_DEBT_CURRENT_COMPONENT_TAGS]
+
+        ends = set(noncurrent) | set(debt_current)
+        ends.update(end for values in current_components for end in values)
+        if ends:
+            totals: dict[str, float] = {}
+            for end in ends:
+                parts: list[float] = []
+                if end in noncurrent:
+                    parts.append(noncurrent[end])
+                if end in debt_current:
+                    # DebtCurrent supersedes LongTermDebtCurrent + ShortTermBorrowings.
+                    parts.append(debt_current[end])
+                else:
+                    parts.extend(m[end] for m in current_components if end in m)
+                totals[end] = sum(parts)
+            return totals
+
         fallback = gaap.get(TOTAL_DEBT_FALLBACK_TAG)
         if fallback:
             values = _select_annual_values(fallback, TOTAL_DEBT_FALLBACK_TAG)

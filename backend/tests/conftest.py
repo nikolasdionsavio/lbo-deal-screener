@@ -63,6 +63,9 @@ def client_factory() -> Iterator[Callable[[], TestClient]]:
 
         app.dependency_overrides[get_db] = override_get_db
         client = TestClient(app)
+        # Expose the per-client sessionmaker so tests can inspect rows (e.g.
+        # asserting lbo_outputs snapshots were appended).
+        client.session_factory = TestingSessionLocal  # type: ignore[attr-defined]
         clients.append(client)
         return client
 

@@ -165,7 +165,9 @@ def test_edgar_maps_tags_derives_fields_and_warns_on_missing(tmp_path: Path) -> 
     assert fy2024.current_assets == pytest.approx(120e6, rel=REL_TOL)
     assert fy2024.current_liabilities == pytest.approx(60e6, rel=REL_TOL)
     assert fy2024.total_equity == pytest.approx(250e6, rel=REL_TOL)
-    # total_debt = sum of present components: 150m noncurrent + 20m current.
+    # total_debt = 150m LongTermDebtNoncurrent + 20m DebtCurrent. The fixture
+    # also carries LongTermDebtCurrent (18m) which DebtCurrent already includes;
+    # it must NOT be added on top (spec §5 non-double-counting rule).
     assert fy2024.total_debt == pytest.approx(170e6, rel=REL_TOL)
     # dei shares: latest entry (2025-01-31) lands on the latest fiscal year.
     assert fy2024.shares_outstanding == pytest.approx(50e6, rel=REL_TOL)
@@ -231,6 +233,63 @@ def test_edgar_http_error_maps_to_provider_error(tmp_path: Path) -> None:
         provider.get_company("FIXT")
     assert "HTTP 500" in str(excinfo.value)
     assert "SEC EDGAR" in str(excinfo.value)
+
+
+def _debt_fact(end: str, val: float) -> dict[str, Any]:
+    return {
+        "end": end,
+        "val": val,
+        "fy": int(end[:4]),
+        "fp": "FY",
+        "form": "10-K",
+        "filed": f"{int(end[:4]) + 1}-02-15",
+    }
+
+
+def _debt_tag(*facts: dict[str, Any]) -> dict[str, Any]:
+    return {"units": {"USD": list(facts)}}
+
+
+def test_edgar_total_debt_ignores_ltd_current_when_debt_current_present(
+    tmp_path: Path,
+) -> None:
+    """Fixture has BOTH DebtCurrent and LongTermDebtCurrent for each year; the
+    current component must be DebtCurrent alone (no double count)."""
+    provider = _make_edgar(tmp_path / "cache", _edgar_handler())
+    fy2023, fy2024 = provider.get_company("FIXT").financials
+    # 160m + 15m (NOT + 14m LongTermDebtCurrent) and 150m + 20m (NOT + 18m).
+    assert fy2023.total_debt == pytest.approx(175e6, rel=REL_TOL)
+    assert fy2024.total_debt == pytest.approx(170e6, rel=REL_TOL)
+
+
+def test_edgar_total_debt_current_component_rule(tmp_path: Path) -> None:
+    """§5 rule on synthetic tag maps: DebtCurrent when present, else
+    LongTermDebtCurrent + ShortTermBorrowings; fallback LongTermDebt alone."""
+    provider = _make_edgar(tmp_path / "cache", _edgar_handler())
+    end = "2024-12-31"
+
+    # ELSE branch: no DebtCurrent -> LongTermDebtCurrent + ShortTermBorrowings.
+    gaap = {
+        "LongTermDebtNoncurrent": _debt_tag(_debt_fact(end, 100e6)),
+        "LongTermDebtCurrent": _debt_tag(_debt_fact(end, 10e6)),
+        "ShortTermBorrowings": _debt_tag(_debt_fact(end, 5e6)),
+    }
+    assert provider._total_debt_values(gaap, []) == {end: pytest.approx(115e6)}
+
+    # Both present: DebtCurrent (12m) supersedes the 10m + 5m components.
+    gaap["DebtCurrent"] = _debt_tag(_debt_fact(end, 12e6))
+    assert provider._total_debt_values(gaap, []) == {end: pytest.approx(112e6)}
+
+    # Fallback: no component tags at all -> LongTermDebt alone.
+    fallback_only = {"LongTermDebt": _debt_tag(_debt_fact(end, 90e6))}
+    assert provider._total_debt_values(fallback_only, []) == {
+        end: pytest.approx(90e6)
+    }
+
+    # Nothing present -> empty map + warning.
+    warnings: list[str] = []
+    assert provider._total_debt_values({}, warnings) == {}
+    assert "total_debt unavailable from SEC EDGAR" in warnings
 
 
 def test_edgar_search_uses_ticker_file(tmp_path: Path) -> None:
