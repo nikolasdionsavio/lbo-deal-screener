@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import AssumptionsPanel from "@/components/lbo/AssumptionsPanel";
+import DebtPaydownChart from "@/components/lbo/DebtPaydownChart";
+import ValueCreationBridge from "@/components/lbo/ValueCreationBridge";
 import SensitivityTable from "@/components/charts/SensitivityTable";
 import Card from "@/components/ui/Card";
 import DataTable, { type Column } from "@/components/ui/DataTable";
@@ -253,6 +255,22 @@ export default function LboPage() {
                     rowKey={(row) => row.year}
                   />
                 </Card>
+                {lbo.entry.opening_debt !== null && lbo.years.length > 0 && (
+                  <Card className="mt-5">
+                    <h3 className="text-sm font-semibold text-ink">
+                      Debt paydown
+                    </h3>
+                    <p className="mb-3 mt-0.5 text-xs text-slate-500">
+                      Ending debt and ending cash by year; year 0 is the
+                      opening debt at entry.
+                    </p>
+                    <DebtPaydownChart
+                      openingDebt={lbo.entry.opening_debt}
+                      years={lbo.years}
+                      currency={currency}
+                    />
+                  </Card>
+                )}
               </section>
 
               <section>
@@ -298,6 +316,8 @@ export default function LboPage() {
                   />
                 </div>
               </section>
+
+              <ValueCreationBridge lbo={lbo} currency={currency} />
 
               <section>
                 <SectionHeader

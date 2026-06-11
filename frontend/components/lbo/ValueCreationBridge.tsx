@@ -1,0 +1,207 @@
+"use client";
+
+// Value creation bridge (BUILD_SPEC section 19.6): waterfall from entry
+// equity to exit equity with the exact decomposition
+//   EBITDA growth effect = entry multiple x (exit EBITDA - entry EBITDA)
+//   multiple effect      = (exit multiple - entry multiple) x exit EBITDA
+//   deleveraging         = (opening debt - exit ending debt) + exit ending cash
+// The four pieces sum exactly to exit equity; this is verified with a tiny
+// epsilon and the chart renders nothing on a mismatch rather than showing a
+// wrong bridge. Floating bars are drawn as stacked bars over a transparent
+// base series.
+
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import Card from "@/components/ui/Card";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { fmtCurrency } from "@/lib/format";
+import type { LboResponse } from "@/lib/types";
+
+const BRAND = "#1e3a5f";
+const ACCENT = "#0d9488";
+const NEGATIVE = "#b91c1c";
+
+type RowKind = "total" | "increase" | "decrease";
+
+interface BridgeRow {
+  label: string;
+  /** Invisible offset under the floating bar. */
+  base: number;
+  /** Rendered (always non-negative) bar height. */
+  size: number;
+  /** Signed delta for steps, absolute amount for endpoints. */
+  display: number;
+  kind: RowKind;
+}
+
+function rowColor(kind: RowKind): string {
+  if (kind === "total") return BRAND;
+  return kind === "increase" ? ACCENT : NEGATIVE;
+}
+
+function totalRow(label: string, value: number): BridgeRow {
+  return {
+    label,
+    base: Math.min(0, value),
+    size: Math.abs(value),
+    display: value,
+    kind: "total",
+  };
+}
+
+function stepRow(label: string, start: number, delta: number): BridgeRow {
+  const end = start + delta;
+  return {
+    label,
+    base: Math.min(start, end),
+    size: Math.abs(delta),
+    display: delta,
+    kind: delta < 0 ? "decrease" : "increase",
+  };
+}
+
+interface BridgeTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: BridgeRow }>;
+  currency: string | null;
+}
+
+function BridgeTooltip({ active, payload, currency }: BridgeTooltipProps) {
+  if (!active || payload === undefined || payload.length === 0) return null;
+  const row = payload[0].payload;
+  const signed =
+    row.kind !== "total" && row.display > 0
+      ? `+${fmtCurrency(row.display, currency)}`
+      : fmtCurrency(row.display, currency);
+  return (
+    <div className="rounded border border-slate-200 bg-surface px-3 py-2 text-xs shadow-sm">
+      <div className="font-medium text-ink">{row.label}</div>
+      <div className="mt-0.5 tabular-nums text-slate-600">{signed}</div>
+    </div>
+  );
+}
+
+interface ValueCreationBridgeProps {
+  lbo: LboResponse;
+  /** Reporting currency code; null means USD. */
+  currency?: string | null;
+  height?: number;
+}
+
+export default function ValueCreationBridge({
+  lbo,
+  currency = null,
+  height = 280,
+}: ValueCreationBridgeProps) {
+  const { entry, exit, assumptions } = lbo;
+
+  const entryEquity = entry.sponsor_equity;
+  const entryEbitda = entry.entry_ebitda;
+  const openingDebt = entry.opening_debt;
+  const exitEquity = exit.exit_equity;
+  const exitEbitda = exit.exit_ebitda;
+  const endingDebt = exit.ending_debt;
+  const endingCash = exit.ending_cash;
+
+  // Hidden when any decomposition input is missing.
+  if (
+    entryEquity === null ||
+    entryEbitda === null ||
+    openingDebt === null ||
+    exitEquity === null ||
+    exitEbitda === null ||
+    endingDebt === null ||
+    endingCash === null
+  ) {
+    return null;
+  }
+
+  const ebitdaGrowthEffect =
+    assumptions.entry_multiple * (exitEbitda - entryEbitda);
+  const multipleEffect =
+    (assumptions.exit_multiple - assumptions.entry_multiple) * exitEbitda;
+  const deleveraging = openingDebt - endingDebt + endingCash;
+
+  // The decomposition is algebraically exact: entry equity plus the three
+  // effects must reproduce exit equity. If it does not (within a tiny
+  // epsilon), render nothing rather than a wrong chart.
+  const reconstructed =
+    entryEquity + ebitdaGrowthEffect + multipleEffect + deleveraging;
+  const epsilon = 1e-6 * Math.max(1, Math.abs(exitEquity));
+  if (!Number.isFinite(reconstructed) || Math.abs(reconstructed - exitEquity) > epsilon) {
+    return null;
+  }
+
+  const afterGrowth = entryEquity + ebitdaGrowthEffect;
+  const afterMultiple = afterGrowth + multipleEffect;
+
+  const rows: BridgeRow[] = [
+    totalRow("Entry equity", entryEquity),
+    stepRow("EBITDA growth", entryEquity, ebitdaGrowthEffect),
+    stepRow("Multiple effect", afterGrowth, multipleEffect),
+    stepRow("Deleveraging", afterMultiple, deleveraging),
+    totalRow("Exit equity", exitEquity),
+  ];
+
+  return (
+    <section>
+      <SectionHeader
+        title="Value creation"
+        subtitle="Decomposition of the change in sponsor equity from entry to exit"
+      />
+      <Card>
+        <div style={{ width: "100%", height }}>
+          <ResponsiveContainer>
+            <BarChart
+              data={rows}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e2e8f0"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                stroke="#64748b"
+                fontSize={11}
+                tickLine={false}
+                interval={0}
+              />
+              <YAxis
+                stroke="#64748b"
+                fontSize={12}
+                tickLine={false}
+                width={72}
+                tickFormatter={(v: number) => fmtCurrency(v, currency)}
+              />
+              <Tooltip
+                content={<BridgeTooltip currency={currency} />}
+                cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+              />
+              <Bar dataKey="base" stackId="bridge" fill="transparent" />
+              <Bar dataKey="size" stackId="bridge" radius={[2, 2, 0, 0]}>
+                {rows.map((row) => (
+                  <Cell key={row.label} fill={rowColor(row.kind)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+          Exit equity = entry equity + entry multiple × (exit EBITDA − entry
+          EBITDA) + (exit multiple − entry multiple) × exit EBITDA + (debt
+          repaid + ending cash).
+        </p>
+      </Card>
+    </section>
+  );
+}

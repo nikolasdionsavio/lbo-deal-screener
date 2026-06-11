@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import TradingViewChart from "@/components/company/TradingViewChart";
+import FinancialTrendChart from "@/components/charts/FinancialTrendChart";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import LoadingState from "@/components/ui/LoadingState";
@@ -237,6 +238,8 @@ export default function DashboardPage() {
           <StatCard label="Latest fiscal year" value={fiscalYearLabel} />
         </div>
       </section>
+
+      <FinancialTrendChart ticker={profile.ticker} currency={currency} />
 
       <section className="mt-8">
         <SectionHeader

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
+import FootballFieldChart from "@/components/charts/FootballFieldChart";
 import AssumptionField from "@/components/ui/AssumptionField";
 import Card from "@/components/ui/Card";
 import DataTable, { type Column } from "@/components/ui/DataTable";
@@ -180,6 +181,24 @@ export default function ValuationPage() {
                 <LoadingState lines={3} />
               )}
             </div>
+            {data && data.range.some((row) => row.implied_ev !== null) && (
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <h3 className="text-sm font-semibold text-ink">
+                  Football field
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Implied enterprise value by case. The dashed line marks the
+                  current enterprise value.
+                </p>
+                <div className="mt-3">
+                  <FootballFieldChart
+                    range={data.range}
+                    currentEv={profile.enterprise_value}
+                    currency={currency}
+                  />
+                </div>
+              </div>
+            )}
           </Card>
         </section>
       )}

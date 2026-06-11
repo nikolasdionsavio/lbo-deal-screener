@@ -13,6 +13,7 @@ const COMPANY_PAGES = [
   { slug: "lbo", label: "LBO Model" },
   { slug: "score", label: "Deal Score" },
   { slug: "memo", label: "Memo" },
+  { slug: "news", label: "News" },
 ];
 
 function linkClass(active: boolean): string {
