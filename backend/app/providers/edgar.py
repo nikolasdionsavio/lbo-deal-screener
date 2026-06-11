@@ -81,6 +81,21 @@ TAG_PREFERENCES: dict[str, list[str]] = {
         "PaymentsToAcquirePropertyPlantAndEquipment",
         "PaymentsToAcquireProductiveAssets",
     ],
+    # Cash outflows reported positive in companyfacts; stored positive (§19.1).
+    "dividends_paid": [
+        "PaymentsOfDividends",
+        "PaymentsOfDividendsCommonStock",
+    ],
+    "share_buybacks": ["PaymentsForRepurchaseOfCommonStock"],
+    "receivables": [
+        "AccountsReceivableNetCurrent",
+        "ReceivablesNetCurrent",
+    ],
+    "inventory": ["InventoryNet"],
+    "accounts_payable": [
+        "AccountsPayableCurrent",
+        "AccountsPayableAndAccruedLiabilitiesCurrent",
+    ],
     "cash_and_equivalents": [
         "CashAndCashEquivalentsAtCarryingValue",
         "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",

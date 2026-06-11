@@ -75,6 +75,9 @@ CASHFLOW_ROW_PREFERENCES: dict[str, list[str]] = {
         "Cash Flow From Continuing Operating Activities",
     ],
     "capex": ["Capital Expenditure"],  # stored positive (abs)
+    # Cash outflows reported negative by Yahoo; stored positive (abs, §19.1).
+    "dividends_paid": ["Cash Dividends Paid", "Common Stock Dividend Paid"],
+    "share_buybacks": ["Repurchase Of Capital Stock"],
 }
 BALANCE_ROW_PREFERENCES: dict[str, list[str]] = {
     "cash_and_equivalents": [
@@ -83,9 +86,12 @@ BALANCE_ROW_PREFERENCES: dict[str, list[str]] = {
     ],
     "current_assets": ["Current Assets"],
     "current_liabilities": ["Current Liabilities"],
+    "receivables": ["Accounts Receivable"],
+    "inventory": ["Inventory"],
+    "accounts_payable": ["Accounts Payable"],
     "total_equity": ["Stockholders Equity", "Common Stock Equity"],
 }
-_ABS_VALUE_FIELDS = {"capex", "interest_expense"}
+_ABS_VALUE_FIELDS = {"capex", "interest_expense", "dividends_paid", "share_buybacks"}
 
 TOTAL_DEBT_ROW = "Total Debt"
 TOTAL_DEBT_COMPONENT_ROWS = ["Long Term Debt", "Current Debt"]

@@ -12,7 +12,8 @@ export type TracedUnit =
   | "ratio"
   | "multiple"
   | "currency"
-  | "per_share";
+  | "per_share"
+  | "days";
 
 export interface TracedInput {
   field: string;
@@ -77,6 +78,12 @@ export interface FiscalYearFinancials {
   current_liabilities: number | null;
   total_equity: number | null;
   shares_outstanding: number | null;
+  // Section 19.1 additions — optional so older cached payloads remain valid.
+  dividends_paid?: number | null;
+  share_buybacks?: number | null;
+  receivables?: number | null;
+  inventory?: number | null;
+  accounts_payable?: number | null;
   derived_fields: string[];
 }
 
@@ -159,6 +166,66 @@ export interface KpiResponse {
   data_source: string;
   kpis: TracedValue[];
   series: Record<string, SeriesPoint[]>;
+  /** PE diagnostics (section 19.1) — optional so older payloads remain valid. */
+  diagnostics?: TracedValue[];
+}
+
+// ---------------------------------------------------------------------------
+// Peer comparables (section 19.2)
+// ---------------------------------------------------------------------------
+
+export interface PeerRow {
+  ticker: string;
+  name: string;
+  market_cap: number | null;
+  enterprise_value: number | null;
+  ev_ebitda: number | null;
+  ev_revenue: number | null;
+  pe: number | null;
+  ebitda_margin: number | null;
+  revenue_growth_yoy: number | null;
+  currency: string | null;
+  warnings: string[];
+}
+
+export interface PeerStats {
+  min: number | null;
+  q1: number | null;
+  median: number | null;
+  q3: number | null;
+  max: number | null;
+}
+
+export interface PeersResponse {
+  ticker: string;
+  as_of: string;
+  peer_source: string;
+  target: PeerRow;
+  peers: PeerRow[];
+  /** Quartile stats keyed by metric: ev_ebitda, ev_revenue, pe, ebitda_margin. */
+  stats: Record<string, PeerStats>;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Filings intelligence (section 19.3)
+// ---------------------------------------------------------------------------
+
+export interface Filing {
+  form: string;
+  filed: string;
+  report_date: string | null;
+  accession: string;
+  primary_document: string;
+  url: string;
+}
+
+export interface FilingsResponse {
+  ticker: string;
+  cik: string | null;
+  filings: Filing[];
+  source: string;
+  warnings: string[];
 }
 
 // ---------------------------------------------------------------------------

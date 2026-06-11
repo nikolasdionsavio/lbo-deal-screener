@@ -699,3 +699,35 @@ cards, EV/EBITDA bar chart with target in accent color (`components/peers/`), lo
 copy noting the first load can take ~30s. Dashboard: "Recent SEC filings" card (form
 badge, date, external link). MemoRenderer gains `[text](url)` link support
 (target=_blank, rel=noopener). lib/types.ts + lib/api.ts additions (getPeers, getFilings).
+
+### 19.6 News, description, charts pack (added at user request)
+
+- **News** (backend owner: agent B; page: agent E): GET `/api/companies/{ticker}/news` →
+  `{ticker, items: list[{title, url, source, published_at (ISO), summary: str | None}]
+  (≤12, newest first), provider: str, warnings}`. `services/news_service.py` chain:
+  (1) FMP GET `/stable/news/stock?symbols=&limit=` when fmp_api_key set — the free plan
+  returns a "Restricted Endpoint" body: detect it (and 402/403) → warning + fall
+  through, never error; (2) yfinance `Ticker(t).news` (keyless; items arrive under a
+  `content` dict: title, `canonicalUrl.url` or `clickThroughUrl.url`, `provider.
+  displayName`, `pubDate`, `summary`), provider label "Yahoo Finance (unofficial
+  endpoints, via yfinance)"; (3) mock/unavailable → 200, empty items, warning
+  "News is available in live mode only." New page `/company/[ticker]/news` + sidebar
+  item "News" after Memo: headline list (title links target=_blank rel=noopener,
+  source, relative+absolute date, summary line clamped), provider + warnings shown,
+  Disclaimer.
+- **Dashboard description** (agent D): `profile.description` rendered under the Company
+  section as prose in a Card; collapsed to ~4 lines with a "Show more"/"Show less"
+  toggle when long; hidden when null.
+- **Charts pack** (agent E, all client-computed from existing endpoints, Recharts,
+  currency-aware, hidden when inputs missing):
+  - Valuation `components/charts/FootballFieldChart.tsx`: horizontal bars for low/base/
+    high implied enterprise value with a reference line at current EV.
+  - LBO `components/lbo/DebtPaydownChart.tsx`: years 0..N, ending debt bars + ending
+    cash line (year 0 = opening debt / zero cash).
+  - LBO `components/lbo/ValueCreationBridge.tsx`: waterfall entry equity → EBITDA
+    growth effect `M_in×(E_out−E_in)` → multiple effect `(M_out−M_in)×E_out` →
+    deleveraging `(D_in−D_out)+C_out` → exit equity (exact decomposition; floating
+    bars via a transparent stacked base; formula stated in the sub line).
+  - Dashboard `components/charts/FinancialTrendChart.tsx`: revenue bars + EBITDA-margin
+    line (ComposedChart) from GET /financials, placed between Financials and Price
+    chart sections.

@@ -23,10 +23,15 @@ class FiscalYearFinancials(BaseModel):
     operating_cash_flow: float | None = None
     capex: float | None = None  # stored positive
     free_cash_flow: float | None = None
+    dividends_paid: float | None = None  # cash outflow, stored positive
+    share_buybacks: float | None = None  # cash outflow, stored positive
     cash_and_equivalents: float | None = None
     total_debt: float | None = None
     current_assets: float | None = None
     current_liabilities: float | None = None
+    receivables: float | None = None
+    inventory: float | None = None
+    accounts_payable: float | None = None
     total_equity: float | None = None
     shares_outstanding: float | None = None
 

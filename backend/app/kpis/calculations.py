@@ -36,6 +36,11 @@ _FIELD_LABELS: dict[str, str] = {
     "current_assets": "Current assets",
     "current_liabilities": "Current liabilities",
     "total_equity": "Total equity",
+    "dividends_paid": "Dividends paid",
+    "share_buybacks": "Share buybacks",
+    "receivables": "Receivables",
+    "inventory": "Inventory",
+    "accounts_payable": "Accounts payable",
 }
 
 # Effective-tax clamp bounds and fallback (spec §6, roic row).

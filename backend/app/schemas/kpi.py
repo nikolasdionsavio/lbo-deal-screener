@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Unit = Literal["percent", "ratio", "multiple", "currency", "per_share"]
+Unit = Literal["percent", "ratio", "multiple", "currency", "per_share", "days"]
 
 
 class TracedInput(BaseModel):
@@ -36,4 +36,5 @@ class KpiResponse(BaseModel):
     as_of: str
     data_source: str
     kpis: list[TracedValue]
+    diagnostics: list[TracedValue] = Field(default_factory=list)
     series: dict[str, list[SeriesPoint]] = Field(default_factory=dict)
