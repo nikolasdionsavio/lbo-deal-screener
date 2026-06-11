@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic>=2.7
+pydantic-settings
+sqlalchemy>=2.0
+httpx
+bcrypt
+PyJWT
+python-dotenv
+numpy
+pandas
+psycopg2-binary
+pytest

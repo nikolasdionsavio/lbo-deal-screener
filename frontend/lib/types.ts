@@ -1,0 +1,370 @@
+// TypeScript interfaces for the LBO Deal Screener API.
+// Mirrors docs/BUILD_SPEC.md sections 4-12. Field names match the API exactly.
+
+// ---------------------------------------------------------------------------
+// Shared primitives
+// ---------------------------------------------------------------------------
+
+export type Rating = "Attractive" | "Watchlist" | "Pass";
+
+export type TracedUnit =
+  | "percent"
+  | "ratio"
+  | "multiple"
+  | "currency"
+  | "per_share";
+
+export interface TracedInput {
+  field: string;
+  value: number | null;
+  period: string;
+}
+
+export interface TracedValue {
+  key: string;
+  label: string;
+  value: number | null;
+  unit: TracedUnit;
+  period: string;
+  formula: string;
+  inputs: TracedInput[];
+  warnings: string[];
+}
+
+export interface SeriesPoint {
+  fiscal_year: number;
+  value: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Health and search (section 12)
+// ---------------------------------------------------------------------------
+
+export interface HealthResponse {
+  status: string;
+  provider: string;
+}
+
+export interface SearchResult {
+  ticker: string;
+  name: string;
+  exchange: string | null;
+  source: string;
+}
+
+// ---------------------------------------------------------------------------
+// Canonical financial data model (section 4)
+// ---------------------------------------------------------------------------
+
+export interface FiscalYearFinancials {
+  fiscal_year: number;
+  period_end: string | null;
+  revenue: number | null;
+  cost_of_revenue: number | null;
+  gross_profit: number | null;
+  operating_income: number | null;
+  depreciation_amortization: number | null;
+  ebitda: number | null;
+  interest_expense: number | null;
+  tax_expense: number | null;
+  net_income: number | null;
+  operating_cash_flow: number | null;
+  capex: number | null;
+  free_cash_flow: number | null;
+  cash_and_equivalents: number | null;
+  total_debt: number | null;
+  current_assets: number | null;
+  current_liabilities: number | null;
+  total_equity: number | null;
+  shares_outstanding: number | null;
+  derived_fields: string[];
+}
+
+export interface CompanyInfo {
+  ticker: string;
+  name: string;
+  sector: string | null;
+  industry: string | null;
+  exchange: string | null;
+  description: string | null;
+  cik: string | null;
+}
+
+export interface MarketData {
+  share_price: number | null;
+  market_cap: number | null;
+  shares_outstanding: number | null;
+  as_of: string;
+  source: string;
+}
+
+export interface CompanyDataBundle {
+  info: CompanyInfo;
+  market: MarketData | null;
+  financials: FiscalYearFinancials[];
+  data_source: string;
+  fetched_at: string;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Company endpoints (section 12)
+// ---------------------------------------------------------------------------
+
+export interface CompanyProfile {
+  ticker: string;
+  name: string;
+  sector: string | null;
+  industry: string | null;
+  exchange: string | null;
+  description: string | null;
+  share_price: number | null;
+  market_cap: number | null;
+  enterprise_value: number | null;
+  shares_outstanding: number | null;
+  latest_fiscal_year: number | null;
+  revenue: number | null;
+  ebitda: number | null;
+  net_income: number | null;
+  free_cash_flow: number | null;
+  cash: number | null;
+  total_debt: number | null;
+  net_debt: number | null;
+  data_source: string;
+  data_as_of: string | null;
+  warnings: string[];
+}
+
+export interface FinancialsResponse {
+  ticker: string;
+  years: FiscalYearFinancials[];
+  data_source: string;
+  fetched_at: string;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// KPIs (section 6)
+// ---------------------------------------------------------------------------
+
+export interface KpiResponse {
+  ticker: string;
+  as_of: string;
+  data_source: string;
+  kpis: TracedValue[];
+  series: Record<string, SeriesPoint[]>;
+}
+
+// ---------------------------------------------------------------------------
+// Valuation (section 7)
+// ---------------------------------------------------------------------------
+
+export interface ValuationRequest {
+  low?: number;
+  base?: number;
+  high?: number;
+}
+
+export interface ValuationAssumptions {
+  low: number;
+  base: number;
+  high: number;
+}
+
+export interface ValuationCase {
+  case: string;
+  multiple: number;
+  implied_ev: number | null;
+  implied_equity: number | null;
+  implied_share_price: number | null;
+  premium_vs_current: number | null;
+}
+
+export interface ValuationResponse {
+  ticker: string;
+  as_of: string;
+  multiples: TracedValue[];
+  assumptions: ValuationAssumptions;
+  range: ValuationCase[];
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// LBO model (section 8)
+// ---------------------------------------------------------------------------
+
+export interface LboAssumptions {
+  entry_multiple: number;
+  debt_multiple: number;
+  revenue_growth: number[];
+  ebitda_margin: number[];
+  capex_pct_revenue: number;
+  nwc_pct_revenue: number;
+  tax_rate: number;
+  interest_rate: number;
+  mandatory_repayment_pct: number;
+  exit_multiple: number;
+  holding_period: number;
+}
+
+export interface LboDefaultsResponse {
+  assumptions: LboAssumptions;
+  basis: Record<string, string>;
+}
+
+export interface LboEntry {
+  entry_ebitda: number | null;
+  entry_revenue: number | null;
+  entry_ev: number | null;
+  opening_debt: number | null;
+  sponsor_equity: number | null;
+  equity_pct: number | null;
+}
+
+export interface LboYear {
+  year: number;
+  revenue: number;
+  ebitda: number;
+  capex: number;
+  delta_nwc: number;
+  interest: number;
+  taxes: number;
+  fcf: number;
+  debt_repaid: number;
+  ending_debt: number;
+  ending_cash: number;
+}
+
+export interface LboExit {
+  exit_ebitda: number | null;
+  exit_ev: number | null;
+  ending_debt: number | null;
+  ending_cash: number | null;
+  exit_equity: number | null;
+  mom: number | null;
+  irr: number | null;
+}
+
+export interface SensitivityGrid {
+  row_label: string;
+  col_label: string;
+  rows: number[];
+  cols: number[];
+  values: (number | null)[][];
+}
+
+export interface LboSensitivities {
+  irr_exit_vs_growth: SensitivityGrid;
+  irr_entry_vs_exit: SensitivityGrid;
+  mom_exit_vs_margin: SensitivityGrid;
+}
+
+export interface LboResponse {
+  ticker: string;
+  entry: LboEntry;
+  years: LboYear[];
+  exit: LboExit;
+  sensitivities: LboSensitivities;
+  assumptions: LboAssumptions;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Deal score (section 9)
+// ---------------------------------------------------------------------------
+
+export interface ScoreComponent {
+  key: string;
+  label: string;
+  weight: number;
+  effective_weight: number;
+  score: number | null;
+  weighted_points: number | null;
+  reason: string;
+  inputs: TracedValue[];
+  warnings: string[];
+}
+
+export interface ScoreResponse {
+  ticker: string;
+  as_of: string;
+  total: number;
+  rating: Rating;
+  components: ScoreComponent[];
+  disclaimer: string;
+}
+
+// ---------------------------------------------------------------------------
+// Investment memo (section 10)
+// ---------------------------------------------------------------------------
+
+export interface MemoRequest {
+  lbo_assumptions: LboAssumptions | null;
+}
+
+export interface MemoSection {
+  key: string;
+  title: string;
+  content: string;
+}
+
+export interface MemoResponse {
+  ticker: string;
+  generated_at: string;
+  rating: Rating;
+  sections: MemoSection[];
+  data_gaps: string[];
+  disclaimer: string;
+}
+
+// ---------------------------------------------------------------------------
+// Auth (section 12)
+// ---------------------------------------------------------------------------
+
+export interface AuthCredentials {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface User {
+  id: number;
+  email: string;
+}
+
+// ---------------------------------------------------------------------------
+// Saved deals (section 12)
+// ---------------------------------------------------------------------------
+
+export interface SavedDeal {
+  id: number;
+  ticker: string;
+  company_name: string;
+  score: number | null;
+  rating: Rating | null;
+  created_at: string;
+  updated_at: string;
+  lbo_assumptions: LboAssumptions | null;
+  memo: MemoResponse | null;
+}
+
+export interface SaveDealRequest {
+  ticker: string;
+  lbo_assumptions: LboAssumptions | null;
+}
+
+export interface UpdateDealAssumptionsRequest {
+  lbo_assumptions: LboAssumptions;
+}
+
+// ---------------------------------------------------------------------------
+// Errors
+// ---------------------------------------------------------------------------
+
+export interface ApiErrorBody {
+  detail: string;
+}
