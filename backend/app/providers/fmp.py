@@ -111,20 +111,25 @@ class FmpProvider:
         q = query.strip()
         if not q:
             return []
-        data = self._request_json(
-            "/stable/search-name",
-            {"query": q, "limit": "20"},
-            what=f"FMP search for '{q}'",
-        )
-        if not isinstance(data, list):
-            return []
+        # Query symbols and names separately — the stable API split them, so a
+        # ticker like "nvda" never matches search-name. Symbol hits rank first.
+        records: list[dict[str, Any]] = []
+        for path in ("/stable/search-symbol", "/stable/search-name"):
+            data = self._request_json(
+                path, {"query": q, "limit": "20"}, what=f"FMP search for '{q}'"
+            )
+            if isinstance(data, list):
+                records.extend(r for r in data if isinstance(r, dict))
+
         results: list[SearchResult] = []
-        for record in data:
+        seen: set[str] = set()
+        for record in records:
             symbol = record.get("symbol")
             # The stable search has no server-side venue filter; keep US listings
             # only (product scope) and drop suffixed cross-listings like HD.SW.
-            if not symbol or record.get("exchange") not in US_EXCHANGES:
+            if not symbol or symbol in seen or record.get("exchange") not in US_EXCHANGES:
                 continue
+            seen.add(symbol)
             results.append(
                 SearchResult(
                     ticker=str(symbol),

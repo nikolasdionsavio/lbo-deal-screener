@@ -576,3 +576,60 @@ def test_edgar_da_component_fallback_sums_split_tags(tmp_path) -> None:
         {"AmortizationOfIntangibleAssets": gaap["AmortizationOfIntangibleAssets"]},
         ["Depreciation", "AmortizationOfIntangibleAssets"], anchor="Depreciation",
     ) == {}
+
+
+def test_edgar_merges_partial_history_across_preference_tags(tmp_path) -> None:
+    """A preferred tag with stale partial history must not shadow later tags
+    for the periods it misses (e.g. MSFT CostOfRevenue vs CostOfGoodsAndServicesSold)."""
+    entry = lambda end, val: {  # noqa: E731
+        "form": "10-K", "fp": "FY", "start": str(int(end[:4]) - 1) + end[4:],
+        "end": end, "val": val, "filed": end,
+    }
+    facts = {
+        "facts": {
+            "us-gaap": {
+                "Revenues": {"units": {"USD": [entry("2024-06-30", 100.0), entry("2025-06-30", 120.0)]}},
+                # Preferred cost tag stops in 2024; the fallback covers 2025.
+                "CostOfRevenue": {"units": {"USD": [entry("2024-06-30", 60.0)]}},
+                "CostOfGoodsAndServicesSold": {"units": {"USD": [entry("2024-06-30", 999.0), entry("2025-06-30", 70.0)]}},
+            },
+            "dei": {},
+        },
+        "entityName": "Merge Test Corp",
+    }
+    tickmap = {"0": {"cik_str": 1, "ticker": "MRG", "title": "Merge Test Corp"}}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "company_tickers" in str(request.url):
+            return httpx.Response(200, json=tickmap)
+        return httpx.Response(200, json=facts)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
+    bundle = provider.get_company("MRG")
+    by_year = {y.fiscal_year: y for y in bundle.financials}
+    assert by_year[2024].cost_of_revenue == 60.0   # preferred tag wins where present
+    assert by_year[2025].cost_of_revenue == 70.0   # fallback fills the gap
+    assert any("assembled from multiple SEC tags" in w for w in bundle.warnings)
+
+
+def test_fmp_search_finds_ticker_via_symbol_endpoint() -> None:
+    """'nvda'-style ticker queries must hit search-symbol, not just search-name."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params.get("apikey") == "test-key"
+        if request.url.path == "/stable/search-symbol":
+            return httpx.Response(200, json=[{
+                "symbol": "NVDA", "name": "NVIDIA Corporation",
+                "exchange": "NASDAQ", "exchangeFullName": "NASDAQ Global Select",
+            }])
+        if request.url.path == "/stable/search-name":
+            return httpx.Response(200, json=[
+                {"symbol": "NVDA", "name": "NVIDIA Corporation",
+                 "exchange": "NASDAQ", "exchangeFullName": "NASDAQ Global Select"},
+                {"symbol": "NVD", "name": "Other Corp", "exchange": "NYSE",
+                 "exchangeFullName": "New York Stock Exchange"},
+            ])
+        return httpx.Response(200, json=[])
+
+    results = _make_fmp(handler).search("nvda")
+    assert [r.ticker for r in results] == ["NVDA", "NVD"]  # deduped, symbol hit first

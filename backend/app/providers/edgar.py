@@ -56,6 +56,7 @@ TAG_PREFERENCES: dict[str, list[str]] = {
         "CostOfGoodsAndServicesSold",
         "CostOfGoodsSold",
     ],
+    "gross_profit": ["GrossProfit"],
     "operating_income": ["OperatingIncomeLoss"],
     "depreciation_amortization": [
         "DepreciationDepletionAndAmortization",
@@ -66,7 +67,10 @@ TAG_PREFERENCES: dict[str, list[str]] = {
     "interest_expense": [
         "InterestExpense",
         "InterestExpenseDebt",
+        "InterestAndDebtExpense",
+        "InterestExpenseNonoperating",
         "InterestIncomeExpenseNet",  # taken as absolute value
+        "InterestPaid",  # cash-flow proxy; last resort for filers with no IS tag
     ],
     "tax_expense": ["IncomeTaxExpenseBenefit"],
     "operating_cash_flow": [
@@ -256,14 +260,27 @@ class SecEdgarProvider(DataProvider):
 
         field_maps: dict[str, dict[str, float]] = {}
         for field, tags in TAG_PREFERENCES.items():
+            # Merge per period across the preference list: earlier tags win for
+            # any period they cover, later tags only fill periods the earlier
+            # ones miss. A single first-tag-wins rule fails on filers whose
+            # preferred tag has stale partial history (e.g. Microsoft's
+            # CostOfRevenue stops years before CostOfGoodsAndServicesSold).
             values: dict[str, float] = {}
+            contributing: list[str] = []
             for tag in tags:
                 payload = gaap.get(tag)
                 if not payload:
                     continue
-                values = _select_annual_values(payload, tag)
-                if values:
-                    break
+                tag_values = _select_annual_values(payload, tag)
+                added = {end: v for end, v in tag_values.items() if end not in values}
+                if added:
+                    values.update(added)
+                    contributing.append(tag)
+            if len(contributing) > 1:
+                warnings.append(
+                    f"{field} assembled from multiple SEC tags "
+                    f"({', '.join(contributing)}); periods may not be like-for-like."
+                )
             if not values and field == "depreciation_amortization":
                 # Some filers (e.g. Microsoft) report no combined D&A tag and
                 # split it across components instead; sum them per year when
