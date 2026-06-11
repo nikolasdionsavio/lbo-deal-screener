@@ -182,7 +182,10 @@ class DataProvider(ABC):
   - cost_of_revenue: `CostOfRevenue`, `CostOfGoodsAndServicesSold`, `CostOfGoodsSold`
   - operating_income: `OperatingIncomeLoss`
   - depreciation_amortization: `DepreciationDepletionAndAmortization`,
-    `DepreciationAmortizationAndAccretionNet`, `DepreciationAndAmortization`
+    `DepreciationAmortizationAndAccretionNet`, `DepreciationAndAmortization`;
+    when no combined tag is filed (e.g. Microsoft), fall back to the per-year sum
+    of `Depreciation` (required anchor) + `AmortizationOfIntangibleAssets` +
+    `FinanceLeaseRightOfUseAssetAmortization`
   - net_income: `NetIncomeLoss`
   - interest_expense: `InterestExpense`, `InterestExpenseDebt`, `InterestIncomeExpenseNet`(abs)
   - tax_expense: `IncomeTaxExpenseBenefit`

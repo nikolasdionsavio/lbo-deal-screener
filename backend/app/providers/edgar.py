@@ -100,6 +100,14 @@ TOTAL_DEBT_CURRENT_COMPONENT_TAGS = ["LongTermDebtCurrent", "ShortTermBorrowings
 TOTAL_DEBT_FALLBACK_TAG = "LongTermDebt"
 SHARES_TAG = "EntityCommonStockSharesOutstanding"  # dei taxonomy, latest value
 
+# D&A component fallback when no combined tag is filed (e.g. Microsoft):
+# Depreciation is the required anchor; amortization components add when present.
+DA_COMPONENT_TAGS = [
+    "Depreciation",
+    "AmortizationOfIntangibleAssets",
+    "FinanceLeaseRightOfUseAssetAmortization",
+]
+
 
 def _select_annual_values(tag_payload: dict[str, Any], tag: str) -> dict[str, float]:
     """Return {period_end: value} for 10-K FY facts, deduped preferring latest filed."""
@@ -256,6 +264,11 @@ class SecEdgarProvider(DataProvider):
                 values = _select_annual_values(payload, tag)
                 if values:
                     break
+            if not values and field == "depreciation_amortization":
+                # Some filers (e.g. Microsoft) report no combined D&A tag and
+                # split it across components instead; sum them per year when
+                # the depreciation component exists.
+                values = self._sum_component_values(gaap, DA_COMPONENT_TAGS, anchor=DA_COMPONENT_TAGS[0])
             if not values:
                 warnings.append(f"{field} unavailable from SEC EDGAR")
             field_maps[field] = values
@@ -300,6 +313,25 @@ class SecEdgarProvider(DataProvider):
         )
 
     # ----- field helpers -----
+
+    def _sum_component_values(
+        self, gaap: dict[str, Any], tags: list[str], *, anchor: str
+    ) -> dict[str, float]:
+        """Per-period sum of component tags; empty unless the anchor tag has data.
+
+        Used for D&A when no combined tag is filed: the depreciation component
+        must exist for a period to count, amortization components are additive.
+        """
+        component_values = {
+            tag: _select_annual_values(gaap[tag], tag) for tag in tags if gaap.get(tag)
+        }
+        anchor_values = component_values.get(anchor, {})
+        if not anchor_values:
+            return {}
+        return {
+            end: sum(values[end] for values in component_values.values() if end in values)
+            for end in anchor_values
+        }
 
     def _total_debt_values(
         self, gaap: dict[str, Any], warnings: list[str]

@@ -550,3 +550,29 @@ def test_edgar_retries_transient_429(monkeypatch, tmp_path) -> None:
     provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
     assert provider._ticker_map()["0"]["ticker"] == "X"
     assert calls["n"] == 3
+
+
+def test_edgar_da_component_fallback_sums_split_tags(tmp_path) -> None:
+    """Filers with no combined D&A tag (e.g. MSFT) get components summed per year."""
+    entry = lambda end, val: {  # noqa: E731 - terse fixture builder
+        "form": "10-K", "fp": "FY", "start": str(int(end[:4]) - 1) + end[4:],
+        "end": end, "val": val, "filed": end,
+    }
+    gaap = {
+        "Depreciation": {"units": {"USD": [entry("2025-06-30", 22.0e9), entry("2024-06-30", 15.2e9)]}},
+        "AmortizationOfIntangibleAssets": {"units": {"USD": [entry("2025-06-30", 6.0e9)]}},
+        "FinanceLeaseRightOfUseAssetAmortization": {"units": {"USD": [entry("2025-06-30", 3.408e9)]}},
+    }
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(404)))
+    provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
+    values = provider._sum_component_values(
+        gaap, ["Depreciation", "AmortizationOfIntangibleAssets", "FinanceLeaseRightOfUseAssetAmortization"],
+        anchor="Depreciation",
+    )
+    assert values["2025-06-30"] == pytest.approx(31.408e9)
+    assert values["2024-06-30"] == pytest.approx(15.2e9)  # missing components just absent
+    # no anchor -> empty
+    assert provider._sum_component_values(
+        {"AmortizationOfIntangibleAssets": gaap["AmortizationOfIntangibleAssets"]},
+        ["Depreciation", "AmortizationOfIntangibleAssets"], anchor="Depreciation",
+    ) == {}
