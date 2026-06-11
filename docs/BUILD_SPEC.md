@@ -166,8 +166,10 @@ class DataProvider(ABC):
     `PaymentsToAcquireProductiveAssets` (store positive)
   - cash: `CashAndCashEquivalentsAtCarryingValue`,
     `CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents`
-  - total_debt: sum of present among `LongTermDebtNoncurrent`, `LongTermDebtCurrent`,
-    `DebtCurrent`, `ShortTermBorrowings`, fallback `LongTermDebt`; if none, `None` + warning
+  - total_debt: `LongTermDebtNoncurrent` + current component, where the current
+    component is `DebtCurrent` when present, else `LongTermDebtCurrent` +
+    `ShortTermBorrowings` (avoids double-counting filers that report both);
+    fallback `LongTermDebt` alone; if none present, `None` + warning
   - current_assets: `AssetsCurrent`; current_liabilities: `LiabilitiesCurrent`
   - total_equity: `StockholdersEquity`,
     `StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest`
