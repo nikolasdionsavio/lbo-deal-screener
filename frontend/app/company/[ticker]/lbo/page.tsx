@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import AssumptionsPanel from "@/components/lbo/AssumptionsPanel";
-import HighlightedSensitivityTable from "@/components/lbo/HighlightedSensitivityTable";
+import SensitivityTable from "@/components/charts/SensitivityTable";
 import Card from "@/components/ui/Card";
 import DataTable, { type Column } from "@/components/ui/DataTable";
 import Disclaimer from "@/components/ui/Disclaimer";
@@ -297,9 +297,11 @@ export default function LboPage() {
                     <h3 className="mb-3 text-sm font-semibold text-ink">
                       IRR: exit multiple vs revenue growth shift
                     </h3>
-                    <HighlightedSensitivityTable
+                    <SensitivityTable
                       grid={lbo.sensitivities.irr_exit_vs_growth}
                       format="percent"
+                      rowFormat="multiple"
+                      colFormat="shift"
                       baseRow={lbo.assumptions.exit_multiple}
                       baseCol={0}
                     />
@@ -308,9 +310,11 @@ export default function LboPage() {
                     <h3 className="mb-3 text-sm font-semibold text-ink">
                       IRR: entry multiple vs exit multiple
                     </h3>
-                    <HighlightedSensitivityTable
+                    <SensitivityTable
                       grid={lbo.sensitivities.irr_entry_vs_exit}
                       format="percent"
+                      rowFormat="multiple"
+                      colFormat="multiple"
                       baseRow={lbo.assumptions.entry_multiple}
                       baseCol={lbo.assumptions.exit_multiple}
                     />
@@ -319,9 +323,11 @@ export default function LboPage() {
                     <h3 className="mb-3 text-sm font-semibold text-ink">
                       MoM: exit multiple vs EBITDA margin shift
                     </h3>
-                    <HighlightedSensitivityTable
+                    <SensitivityTable
                       grid={lbo.sensitivities.mom_exit_vs_margin}
                       format="multiple"
+                      rowFormat="multiple"
+                      colFormat="shift"
                       baseRow={lbo.assumptions.exit_multiple}
                       baseCol={0}
                     />

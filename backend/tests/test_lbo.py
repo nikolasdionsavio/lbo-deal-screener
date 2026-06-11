@@ -83,7 +83,15 @@ def test_full_run_against_independent_loop(
         interest = a.interest_rate * debt
         taxes = max(0.0, ebitda - capex - interest) * a.tax_rate
         fcf = ebitda - capex - delta_nwc - interest - taxes
-        repaid = min(debt, max(0.0, fcf))
+        # Spec §8 literal piecewise repayment, kept deliberately distinct from
+        # the engine's algebraic reduction so this loop is a truly independent
+        # check: mandatory + sweep, but only max(0, fcf) when FCF falls short
+        # of the mandatory amount (no new borrowing).
+        mandatory = a.mandatory_repayment_pct * opening_debt
+        if fcf < mandatory:
+            repaid = min(debt, max(0.0, fcf))
+        else:
+            repaid = min(debt, mandatory + max(0.0, fcf - mandatory))
         cash += max(0.0, fcf - repaid)
         debt -= repaid
 

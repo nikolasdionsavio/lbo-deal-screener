@@ -1,9 +1,19 @@
 import { fmtMultiple, fmtPercent } from "@/lib/format";
 import type { SensitivityGrid } from "@/lib/types";
 
+type AxisFormat = "multiple" | "shift" | "raw";
+
 interface SensitivityTableProps {
   grid: SensitivityGrid;
   format: "percent" | "multiple";
+  /** How to format row axis values (e.g. "multiple" for EV/EBITDA rows). */
+  rowFormat?: AxisFormat;
+  /** How to format column axis values ("shift" renders -0.04 as "-4 pp"). */
+  colFormat?: AxisFormat;
+  /** Axis value (not index) of the base-case row; omitted = no highlight. */
+  baseRow?: number;
+  /** Axis value (not index) of the base-case column; omitted = no highlight. */
+  baseCol?: number;
   className?: string;
 }
 
@@ -27,14 +37,32 @@ function cellBackground(
   return `rgba(${rgb}, ${(steps * ALPHA_STEP).toFixed(2)})`;
 }
 
-function fmtAxisValue(v: number): string {
+function fmtAxisValue(v: number, axisFormat: AxisFormat): string {
+  if (axisFormat === "multiple") return fmtMultiple(v);
+  if (axisFormat === "shift") {
+    const pp = v * 100;
+    const rounded = Math.round(pp * 10) / 10;
+    const text = Number.isInteger(rounded)
+      ? rounded.toFixed(0)
+      : rounded.toFixed(1);
+    return `${rounded > 0 ? "+" : ""}${text} pp`;
+  }
   if (Number.isInteger(v)) return v.toString();
   return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function axisIndex(axis: number[], target: number | undefined): number {
+  if (target === undefined) return -1;
+  return axis.findIndex((v) => Math.abs(v - target) < 1e-6);
 }
 
 export default function SensitivityTable({
   grid,
   format,
+  rowFormat = "raw",
+  colFormat = "raw",
+  baseRow,
+  baseCol,
   className = "",
 }: SensitivityTableProps) {
   const fmtCell = format === "percent" ? fmtPercent : fmtMultiple;
@@ -44,6 +72,9 @@ export default function SensitivityTable({
     .filter((v): v is number => v !== null && Number.isFinite(v));
   const min = flat.length > 0 ? Math.min(...flat) : 0;
   const max = flat.length > 0 ? Math.max(...flat) : 0;
+
+  const baseRowIndex = axisIndex(grid.rows, baseRow);
+  const baseColIndex = axisIndex(grid.cols, baseCol);
 
   return (
     <div className={`overflow-x-auto ${className}`}>
@@ -62,7 +93,7 @@ export default function SensitivityTable({
                 scope="col"
                 className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-slate-500"
               >
-                {fmtAxisValue(col)}
+                {fmtAxisValue(col, colFormat)}
               </th>
             ))}
           </tr>
@@ -74,14 +105,19 @@ export default function SensitivityTable({
                 scope="row"
                 className="px-3 py-2 text-left text-xs font-semibold tabular-nums text-slate-600"
               >
-                {fmtAxisValue(row)}
+                {fmtAxisValue(row, rowFormat)}
               </th>
               {grid.cols.map((_, j) => {
                 const value = grid.values[i]?.[j] ?? null;
+                const isBase = i === baseRowIndex && j === baseColIndex;
                 return (
                   <td
                     key={j}
-                    className="px-3 py-2 text-right tabular-nums"
+                    className={`px-3 py-2 text-right tabular-nums ${
+                      isBase
+                        ? "font-semibold outline outline-2 -outline-offset-2 outline-brand"
+                        : ""
+                    }`}
                     style={{ backgroundColor: cellBackground(value, min, max) }}
                   >
                     {value === null ? "—" : fmtCell(value)}

@@ -4,16 +4,16 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class LboAssumptions(BaseModel):
-    entry_multiple: float  # EV / entry EBITDA
-    debt_multiple: float  # opening debt / entry EBITDA (validated < entry_multiple)
-    revenue_growth: list[float]  # length == holding_period
+    entry_multiple: float = Field(gt=0)  # EV / entry EBITDA
+    debt_multiple: float = Field(ge=0)  # opening debt / entry EBITDA (< entry_multiple)
+    revenue_growth: list[float]  # length == holding_period; each entry > -100%
     ebitda_margin: list[float]  # length == holding_period
-    capex_pct_revenue: float
-    nwc_pct_revenue: float  # ΔNWC = this × Δrevenue (spec §2.9)
-    tax_rate: float
-    interest_rate: float  # cash interest on beginning-of-year debt
-    mandatory_repayment_pct: float  # % of ORIGINAL opening debt repaid per year
-    exit_multiple: float
+    capex_pct_revenue: float = Field(ge=0)
+    nwc_pct_revenue: float = Field(ge=0)  # ΔNWC = this × Δrevenue (spec §2.9)
+    tax_rate: float = Field(ge=0, le=1)
+    interest_rate: float = Field(ge=0)  # cash interest on beginning-of-year debt
+    mandatory_repayment_pct: float = Field(ge=0)  # % of ORIGINAL opening debt per year
+    exit_multiple: float = Field(gt=0)
     holding_period: int = Field(default=5, ge=1, le=7)
 
     @model_validator(mode="after")
@@ -33,6 +33,8 @@ class LboAssumptions(BaseModel):
                 "debt_multiple must be strictly less than entry_multiple "
                 f"({self.debt_multiple} >= {self.entry_multiple})"
             )
+        if any(g <= -1.0 for g in self.revenue_growth):
+            raise ValueError("revenue_growth entries must be greater than -100%")
         return self
 
 

@@ -15,7 +15,7 @@ from app.db.models import Company, FinancialStatement
 from app.schemas.company import CompanyDataBundle, CompanyInfo
 from app.schemas.financials import FiscalYearFinancials
 
-_MARKET_NOT_CACHED_WARNING = (
+MARKET_NOT_CACHED_WARNING = (
     "Market data is not cached; fundamentals served from cache without a "
     "current quote."
 )
@@ -115,5 +115,5 @@ def get_cached(
         financials=financials,
         data_source=company.data_source or "cache",
         fetched_at=fetched_at.isoformat(),
-        warnings=[_MARKET_NOT_CACHED_WARNING],
+        warnings=[MARKET_NOT_CACHED_WARNING],
     )

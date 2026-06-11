@@ -51,19 +51,19 @@ class FmpProvider:
                 raise ProviderError(
                     f"{what} failed: Financial Modeling Prep rejected the API key "
                     f"(HTTP {status})."
-                ) from exc
+                ) from None  # severed: chained httpx error embeds the API key URL
             raise ProviderError(
                 f"{what} failed: Financial Modeling Prep returned HTTP {status}."
-            ) from exc
+            ) from None  # severed: chained httpx error embeds the API key URL
         except httpx.HTTPError as exc:
             raise ProviderError(
                 f"{what} failed: could not reach Financial Modeling Prep "
                 f"({exc.__class__.__name__})."
-            ) from exc
+            ) from None  # severed: chained httpx error embeds the API key URL
         except ValueError as exc:
             raise ProviderError(
                 f"{what} failed: Financial Modeling Prep returned invalid JSON."
-            ) from exc
+            ) from None  # severed: chained httpx error embeds the API key URL
 
     def get_profile(self, ticker: str) -> CompanyInfo | None:
         """Company profile, or None when FMP has no record for the ticker."""

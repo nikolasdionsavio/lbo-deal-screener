@@ -12,7 +12,7 @@ Cache policy:
 from sqlalchemy.orm import Session
 
 from app.crud import companies as companies_crud
-from app.crud.companies import _MARKET_NOT_CACHED_WARNING as MARKET_NOT_CACHED_WARNING
+from app.crud.companies import MARKET_NOT_CACHED_WARNING
 from app.providers.base import DataProvider
 from app.providers.exceptions import ProviderError
 from app.providers.mock import MockProvider
