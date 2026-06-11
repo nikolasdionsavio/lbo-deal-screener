@@ -615,3 +615,87 @@ providers (Polygon/Alpha Vantage), peer comps, historical multiples, deployment 
 - TS: strict mode, no `any` in `lib/` (pages may use narrow casts if unavoidable).
 - Frontend copy: serious, no hype, no exclamation marks, correct PE terminology.
 - Never claim advice; disclaimers per §1.
+
+## 19. Expansion (2026-06): PE depth, peer comps, filings, provider plugins
+
+All changes additive; old payloads/caches must stay valid (new fields default None/[]).
+
+### 19.1 Deeper fundamentals (owner: agent A)
+
+`FiscalYearFinancials` new optional fields: `dividends_paid, share_buybacks,
+receivables, inventory, accounts_payable` (USD absolute, None when unavailable).
+EDGAR tags (per-period merge machinery applies): dividends_paid:
+`PaymentsOfDividends`, `PaymentsOfDividendsCommonStock`; share_buybacks:
+`PaymentsForRepurchaseOfCommonStock`; receivables: `AccountsReceivableNetCurrent`,
+`ReceivablesNetCurrent`; inventory: `InventoryNet`; accounts_payable:
+`AccountsPayableCurrent`, `AccountsPayableAndAccruedLiabilitiesCurrent`.
+Yahoo row map additions: "Cash Dividends Paid"/"Common Stock Dividend Paid",
+"Repurchase Of Capital Stock" (abs), "Accounts Receivable", "Inventory",
+"Accounts Payable".
+
+`KpiResponse` gains `diagnostics: list[TracedValue] = []` ("PE diagnostics", latest FY,
+None+warning on missing inputs; TracedValue.unit literal gains `"days"`):
+dso = receivables/revenue×365; dsi = inventory/cost_of_revenue×365;
+dpo = accounts_payable/cost_of_revenue×365; cash_conversion_cycle = dso+dsi−dpo;
+capital_return_pct_fcf = (dividends_paid+share_buybacks)/fcf;
+buyback_pct_fcf = share_buybacks/fcf; incremental_ebitda_margin = ΔEBITDA/Δrevenue (yoy).
+Series additions: dividends_paid, share_buybacks.
+TESTCO FY2025 bindings (×1e6): dividends_paid 30, share_buybacks 50, receivables 120,
+inventory 80, accounts_payable 90 → dso 43.8, dsi 48.6667, dpo 54.75, ccc 37.7167,
+capital_return_pct_fcf 0.4444, buyback_pct_fcf 0.2778, incremental_ebitda_margin 0.30.
+All six sample files gain internally consistent values for the new fields.
+
+### 19.2 Peer comparables (owner: agent B)
+
+Peer discovery is a duck-typed provider method `get_peers(ticker) ->
+list[{symbol, name, price, mktCap}]`: FmpProvider via GET `/stable/stock-peers?symbol=`
+(VERIFIED working on the free plan; company-screener is NOT); MockProvider returns the
+other sample companies; providers without the method → peers unavailable warning.
+
+GET `/api/companies/{ticker}/peers` → `{ticker, as_of, peer_source, target: PeerRow,
+peers: list[PeerRow] (≤6), stats: {metric: {min, q1, median, q3, max}} for ev_ebitda,
+ev_revenue, pe, ebitda_margin, warnings}`. PeerRow = `{ticker, name, market_cap,
+enterprise_value, ev_ebitda, ev_revenue, pe, ebitda_margin, revenue_growth_yoy,
+currency, warnings}`. Implementation (`services/peers_service.py`): market cap/price
+from the peers payload itself (no extra quote calls); fundamentals per peer through the
+existing cached `company_service.get_bundle` with per-peer try/except → skip + warning;
+quartile stats computed over valued peers only (exclude target), None metric values
+skipped. First uncached load is slow — acceptable, surfaced in the frontend copy.
+
+### 19.3 Filings intelligence (owner: agent B)
+
+`providers/edgar_filings.py`: submissions via
+`https://data.sec.gov/submissions/CIK{cik:010d}.json` (UA header, 429-retry pattern),
+filter forms {10-K, 10-Q, 8-K, DEF 14A}, latest 10, document URL
+`https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession without dashes}/{primaryDocument}`.
+GET `/api/companies/{ticker}/filings` → `{ticker, cik, filings: [{form, filed,
+report_date, accession, primary_document, url}], source: "SEC EDGAR", warnings}`.
+Ticker→CIK via the bundled EDGAR ticker map; unresolvable (mock tickers) → 200 with
+empty list + warning "Filings are available in live mode for US filers only."
+Memo: `generate_memo` gains optional `filings` param — company_overview appends
+"Latest 10-K filed YYYY-MM-DD" with a markdown link; key_risks appends a pointer to
+Item 1A of that 10-K with the link. Services pass filings best-effort (failures never
+break the memo). Full-text section extraction stays on the roadmap.
+
+### 19.4 Market-data provider plugins (owner: agent C)
+
+New key-gated quote adapters, each exposing `get_quote(ticker) -> MarketData | None`
+(15s timeout, ProviderError mapping, keys never in error messages):
+`providers/polygon.py` (prev-close `/v2/aggs/ticker/{t}/prev` + shares from
+`/v3/reference/tickers/{t}`), `providers/alphavantage.py` (GLOBAL_QUOTE + OVERVIEW for
+shares/market cap), `providers/tiingo.py` (`/tiingo/daily/{t}` meta + `/prices`).
+Settings: `polygon_api_key`, `alphavantage_api_key`, `tiingo_api_key` (+ .env.example,
+README provider table). `CompositeLiveProvider` market data becomes an ordered chain of
+configured adapters [FMP, Polygon, Alpha Vantage, Tiingo]; first non-None quote wins and
+sets MarketData.source; `refresh_market` uses the same chain.
+
+### 19.5 Frontend (owner: agent D)
+
+KPIs page: "PE diagnostics" section (same traced table treatment) + capital-returns
+stacked bar chart (dividends + buybacks; `components/charts/CapitalReturnsChart.tsx`)
+when series exist. New page `/company/[ticker]/peers` ("Peer Comps" sidebar item between
+Valuation and LBO Model): peers DataTable with the target row highlighted, median stat
+cards, EV/EBITDA bar chart with target in accent color (`components/peers/`), loading
+copy noting the first load can take ~30s. Dashboard: "Recent SEC filings" card (form
+badge, date, external link). MemoRenderer gains `[text](url)` link support
+(target=_blank, rel=noopener). lib/types.ts + lib/api.ts additions (getPeers, getFilings).
