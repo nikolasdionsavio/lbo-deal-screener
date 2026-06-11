@@ -13,7 +13,8 @@
     "market_cap": 356400000000.0,
     "shares_outstanding": 990000000.0,
     "as_of": "2026-06-01",
-    "source": "Sample data (illustrative figures)"
+    "source": "Sample data (illustrative figures)",
+    "currency": "USD"
   },
   "financials": [
     {
@@ -132,6 +133,7 @@
       "derived_fields": []
     }
   ],
+  "currency": "USD",
   "data_source": "Sample data (illustrative figures)",
   "fetched_at": "2026-06-01T00:00:00Z",
   "warnings": []

@@ -28,12 +28,18 @@ class MarketData(BaseModel):
     shares_outstanding: float | None = None
     as_of: str | None = None  # ISO date
     source: str
+    # Quote currency AFTER normalization (GBp -> GBP with price / 100).
+    # None means legacy/sample payloads, treated as USD (spec §4).
+    currency: str | None = None
 
 
 class CompanyDataBundle(BaseModel):
     info: CompanyInfo
     market: MarketData | None = None
     financials: list[FiscalYearFinancials] = Field(default_factory=list)
+    # Financial reporting currency (ISO code). None ≡ USD for legacy/sample
+    # payloads (spec §4 currency contract).
+    currency: str | None = None
     data_source: str
     fetched_at: str  # ISO datetime
     warnings: list[str] = Field(default_factory=list)
@@ -60,6 +66,9 @@ class CompanyProfile(BaseModel):
     cash: float | None = None
     total_debt: float | None = None
     net_debt: float | None = None
+    # Display currency for fundamentals-derived figures (spec §4). Defaults to
+    # None for backward compatibility; services set it to bundle.currency or "USD".
+    currency: str | None = None
     data_source: str
     data_as_of: str | None = None
     warnings: list[str] = Field(default_factory=list)

@@ -2,7 +2,7 @@ import StatCard from "@/components/ui/StatCard";
 import { fmtCurrency, fmtMultiple, fmtNumber, fmtPercent } from "@/lib/format";
 import type { TracedValue } from "@/lib/types";
 
-function fmtTraced(tv: TracedValue): string {
+function fmtTraced(tv: TracedValue, currency: string | null): string {
   switch (tv.unit) {
     case "percent":
       return fmtPercent(tv.value);
@@ -10,7 +10,7 @@ function fmtTraced(tv: TracedValue): string {
       return fmtMultiple(tv.value);
     case "currency":
     case "per_share":
-      return fmtCurrency(tv.value);
+      return fmtCurrency(tv.value, currency);
     case "ratio":
       return fmtNumber(tv.value, { digits: 2 });
   }
@@ -18,12 +18,15 @@ function fmtTraced(tv: TracedValue): string {
 
 interface MultiplesGridProps {
   multiples: TracedValue[];
+  /** Reporting currency code for currency/per-share values; null means USD. */
+  currency?: string | null;
   className?: string;
 }
 
 /** Current valuation multiples as StatCards with the formula in the sub line. */
 export default function MultiplesGrid({
   multiples,
+  currency = null,
   className = "",
 }: MultiplesGridProps) {
   return (
@@ -34,7 +37,7 @@ export default function MultiplesGrid({
         <StatCard
           key={tv.key}
           label={tv.label}
-          value={fmtTraced(tv)}
+          value={fmtTraced(tv, currency)}
           sub={`${tv.formula} · ${tv.period}`}
         />
       ))}

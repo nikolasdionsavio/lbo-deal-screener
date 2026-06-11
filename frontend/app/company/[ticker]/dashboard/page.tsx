@@ -17,16 +17,17 @@ const NOT_AVAILABLE = (
   </span>
 );
 
-function money(value: number | null): ReactNode {
-  return value === null ? NOT_AVAILABLE : fmtCurrency(value);
-}
-
 function text(value: string | null): ReactNode {
   return value === null || value === "" ? NOT_AVAILABLE : value;
 }
 
 export default function DashboardPage() {
   const { profile } = useCompany();
+  const currency = profile.currency ?? null;
+
+  function money(value: number | null): ReactNode {
+    return value === null ? NOT_AVAILABLE : fmtCurrency(value, currency);
+  }
 
   const fiscalYearLabel =
     profile.latest_fiscal_year === null

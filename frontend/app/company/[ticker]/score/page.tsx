@@ -23,7 +23,7 @@ import {
 import { useApi } from "@/lib/hooks";
 import type { ScoreComponent, TracedValue } from "@/lib/types";
 
-function fmtTraced(input: TracedValue): string {
+function fmtTraced(input: TracedValue, currency: string | null): string {
   if (input.value === null) return "—";
   switch (input.unit) {
     case "percent":
@@ -34,7 +34,7 @@ function fmtTraced(input: TracedValue): string {
       return fmtNumber(input.value, { digits: 2 });
     case "currency":
     case "per_share":
-      return fmtCurrency(input.value);
+      return fmtCurrency(input.value, currency);
   }
 }
 
@@ -43,7 +43,13 @@ function fmtWeight(weight: number): string {
   return fmtPercent(weight, { digits: Number.isInteger(pct) ? 0 : 1 });
 }
 
-function ComponentCard({ component }: { component: ScoreComponent }) {
+function ComponentCard({
+  component,
+  currency,
+}: {
+  component: ScoreComponent;
+  currency: string | null;
+}) {
   const weightsDiffer =
     Math.abs(component.effective_weight - component.weight) > 1e-9;
 
@@ -105,7 +111,7 @@ function ComponentCard({ component }: { component: ScoreComponent }) {
                 {input.label}
                 {input.period !== "" ? ` (${input.period})` : ""}
               </dt>
-              <dd className="tabular-nums">{fmtTraced(input)}</dd>
+              <dd className="tabular-nums">{fmtTraced(input, currency)}</dd>
             </div>
           ))}
         </dl>
@@ -180,7 +186,11 @@ export default function ScorePage() {
         />
         <div className="grid gap-4 lg:grid-cols-2">
           {data.components.map((component) => (
-            <ComponentCard key={component.key} component={component} />
+            <ComponentCard
+              key={component.key}
+              component={component}
+              currency={profile.currency ?? null}
+            />
           ))}
         </div>
       </section>

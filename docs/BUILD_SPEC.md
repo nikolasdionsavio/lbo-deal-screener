@@ -10,14 +10,18 @@ Project root: `/Users/nikolasdionsavio/Documents/Personal Projects/PE_Deal_Analy
 
 ## 1. Product summary
 
-"LBO Deal Screener" — a private equity style deal screening tool for US-listed public
-companies. A user enters a ticker or company name and gets: company dashboard, KPI
-dashboard with traceable calculations, valuation page, simplified 5-year LBO model with
-sensitivities, transparent 0–100 deal screening score, auto-generated investment memo,
-and a saved-deals watchlist (auth required for saving only).
+"LBO Deal Screener" — a private equity style deal screening tool for public companies
+(US, UK, and European listings as of 2026-06; US-only at MVP launch). A user enters a
+ticker or company name and gets: company dashboard, KPI dashboard with traceable
+calculations, valuation page, simplified 5-year LBO model with sensitivities,
+transparent 0–100 deal screening score, auto-generated investment memo, and a
+saved-deals watchlist (auth required for saving only).
 
 Product constraints (binding):
-- US-listed public companies only.
+- Public companies only. Live coverage: US + UK + EU via Yahoo Finance (unofficial,
+  flagged per §5) with official SEC EDGAR fundamentals for US tickers when configured.
+  Figures display in the company's reporting currency; mixed-currency multiples are
+  suppressed, never silently converted (§4 currency contract).
 - Never claim financial advice; never claim a valuation is definitive.
 - Every page shows data source and data date. Every computed number is traceable
   (formula + inputs + period + warnings). No black-box outputs.
@@ -36,9 +40,11 @@ Product constraints (binding):
 3. **Memo generation is deterministic templates** (no LLM). Guarantees the
    never-invent-facts constraint.
 4. **Analysis is public; auth (email+password, JWT) is required only for saving deals.**
-5. **Data providers:** `MockProvider` (bundled sample JSON, default), `SecEdgarProvider`
+5. **Data providers:** `MockProvider` (bundled sample JSON), `SecEdgarProvider`
    (fundamentals, no key, UA header required), `FmpProvider` (market data, key required),
-   composed by a factory honoring `DATA_PROVIDER=auto|mock|live`.
+   `YahooProvider`/`YahooCompositeProvider` (global live US+UK+EU via yfinance, no key,
+   unofficial — added 2026-06), composed by a factory honoring
+   `DATA_PROVIDER=auto|mock|live|yahoo` (auto prefers yahoo; see §5).
 6. **Charts: Recharts. Frontend: Next.js 14 App Router + TypeScript + Tailwind CSS.**
    No react-query, no component library; small hand-rolled UI kit.
 7. **Python:** venv at `ROOT/backend/.venv` created from `/opt/anaconda3/bin/python3`
@@ -121,12 +127,32 @@ description, cik (optional)`.
 
 `CompanyDataBundle` = `{info: CompanyInfo, market: MarketData | None,
 financials: list[FiscalYearFinancials] (ascending fiscal_year, up to 5 years),
-data_source: str, fetched_at: ISO datetime, warnings: list[str]}`.
+currency: str | None (financial reporting currency, ISO code, default None ≡ USD for
+legacy/sample payloads), data_source: str, fetched_at: ISO datetime,
+warnings: list[str]}`.
 
 Headline aggregates (computed in services, shown on dashboard):
 - `enterprise_value = market_cap + net_debt` where `net_debt = total_debt − cash` (latest FY).
 - `market_cap`: from market provider; if absent but `share_price` and shares exist,
   derive; else `None` + warning "Market data unavailable".
+
+### Currency contract (added for global coverage)
+
+- `MarketData.currency: str | None` — quote currency AFTER normalization. Yahoo quotes
+  LSE stocks in pence (`"GBp"`): normalize `share_price /= 100`, currency → `"GBP"`;
+  `market_cap` is cross-checked against `share_price × shares_outstanding` and the
+  computed value wins when they disagree by > 5% (warning recorded).
+- `CompanyDataBundle.currency` / `CompanyProfile.currency` — the financial reporting
+  currency (Yahoo `financialCurrency`); this is the display currency for all
+  fundamentals-derived figures. Sample/mock data: `"USD"`.
+- When (normalized) quote currency ≠ reporting currency: do NOT mix them. EV,
+  EV-based multiples, P/E, FCF yield, and valuation premium-vs-current are `None`
+  with the warning "Quote currency (X) differs from reporting currency (Y); mixed
+  currency multiples suppressed (no FX conversion in MVP)". Fundamentals-only KPIs and
+  the LBO (entirely in reporting currency, entry EV from multiple × EBITDA) still work.
+- Frontend `fmtCurrency(value, currency?)`: `USD → $`, `GBP → £`, `EUR → €`; any other
+  code prefixes the ISO code (`"SEK 1.2bn"`). Company pages read the code from
+  `useCompany().profile.currency`. Backend memo/score formatters accept the same code.
 
 ## 5. Data providers
 
@@ -178,14 +204,55 @@ class DataProvider(ABC):
   Sector/industry are NOT in companyfacts → take from FMP when available, else `None`.
 - **FmpProvider** (market data + profile): `GET /api/v3/profile/{ticker}` and
   `/api/v3/quote/{ticker}` on `https://financialmodelingprep.com`, `apikey` param.
+- **YahooProvider** (global live coverage: US + UK + EU, via the `yfinance` library —
+  UNOFFICIAL Yahoo endpoints; chosen 2026-06 because no official API offers free
+  US+UK+EU fundamentals; FMP/Finnhub/Alpha Vantage free tiers are US-only, Twelve
+  Data/EODHD gate fundamentals behind paid plans):
+  - search: `yfinance` Search/Lookup, equities only, top 8, exchange display name
+    passed through; works for "tesco", "TSCO.L", "ASML", etc.
+  - fundamentals: `Ticker.income_stmt`, `.balance_sheet`, `.cashflow` (annual, up to
+    4-5 FYs) mapped to FiscalYearFinancials. Row-label preference lists (first present
+    wins): revenue "Total Revenue"; cost_of_revenue "Cost Of Revenue";
+    gross_profit "Gross Profit"; operating_income "Operating Income";
+    d_and_a (cashflow) "Depreciation Amortization Depletion", "Depreciation And
+    Amortization", "Depreciation"; interest_expense "Interest Expense";
+    tax_expense "Tax Provision"; net_income "Net Income";
+    operating_cash_flow "Operating Cash Flow", "Cash Flow From Continuing Operating
+    Activities"; capex "Capital Expenditure" (abs); cash "Cash And Cash Equivalents",
+    "Cash Cash Equivalents And Short Term Investments"; total_debt "Total Debt", else
+    "Long Term Debt" + "Current Debt"; current_assets "Current Assets";
+    current_liabilities "Current Liabilities"; total_equity "Stockholders Equity",
+    "Common Stock Equity". Missing rows → None + warning. Fiscal year = column
+    end-date year. Normalization (§4) applies after mapping.
+  - market/profile: `Ticker.info` (sector, industry, longBusinessSummary, exchange,
+    currency, financialCurrency, currentPrice/regularMarketPrice, marketCap,
+    sharesOutstanding) with the GBp normalization and market-cap cross-check above.
+  - data_source: `"Yahoo Finance (unofficial endpoints, via yfinance)"`. Every bundle
+    carries the warning `"Data from unofficial Yahoo Finance endpoints; verify figures
+    against filings before relying on them."`
+  - EDGAR enrichment: when `SEC_EDGAR_USER_AGENT` is set and the ticker has no
+    exchange suffix (US-style), fetch fundamentals from SecEdgarProvider instead and
+    keep Yahoo for market/profile; `data_source: "SEC EDGAR + Yahoo Finance"`. On
+    EDGAR failure, fall back to Yahoo fundamentals with a warning. Implemented as
+    `YahooCompositeProvider` mirroring CompositeLiveProvider.
+  - Errors: yfinance raising/empty frames → CompanyNotFoundError (unknown symbol) or
+    ProviderError (rate limit / network) with readable messages; never tracebacks
+    with URLs. No pytest test may hit the live network (monkeypatched fixtures only).
+  - Cache-hit market refresh: providers may expose `refresh_market(ticker) ->
+    MarketData | None`; company_service uses it on §11 cache hits (replaces the
+    FMP-specific re-fetch).
 - **factory.py** `get_provider(settings) -> DataProvider`:
   - `mock` → MockProvider.
   - `live` → CompositeLiveProvider (EDGAR fundamentals + FMP market/profile; FMP search
     endpoint `/api/v3/search?query=&exchange=NASDAQ,NYSE` if key present, else EDGAR
     ticker-file search). Raise `ProviderConfigError` if `SEC_EDGAR_USER_AGENT` missing.
-  - `auto` → live if `SEC_EDGAR_USER_AGENT` present, else mock. Bundle `warnings`
-    notes which mode is active when mock: "Using bundled sample data; set
-    SEC_EDGAR_USER_AGENT and FMP_API_KEY for live data."
+  - `yahoo` → YahooCompositeProvider (global; no key required). Raise
+    `ProviderConfigError` only if yfinance is not importable.
+  - `auto` → yahoo when yfinance imports, else live if `SEC_EDGAR_USER_AGENT`
+    present, else mock with the warning "Using bundled sample data; set
+    SEC_EDGAR_USER_AGENT and FMP_API_KEY for live data." (auto is live-by-default
+    as of 2026-06; DATA_PROVIDER=mock remains the offline/dev mode and the pytest
+    default via dependency override.)
   All `httpx` calls: 15s timeout, raise-for-status mapped to `ProviderError` with a
   human-readable message. No scraping anywhere; official JSON endpoints only.
 
@@ -379,7 +446,9 @@ JSON payload columns use `sqlalchemy.JSON` (works on SQLite and Postgres).
 `init_db()` runs `Base.metadata.create_all` at startup (Alembic is roadmap).
 
 - `users(id PK, email unique not null, password_hash, created_at)`
-- `companies(id PK, ticker unique, name, sector, industry, exchange, cik, data_source, fetched_at)`
+- `companies(id PK, ticker unique, name, sector, industry, exchange, cik, currency, data_source, fetched_at)`
+  — `currency` is the bundle's financial reporting currency (§4), persisted so
+  cache-hit bundles keep the currency contract (nullable; None ≡ USD)
 - `financial_statements(id PK, company_id FK, fiscal_year, payload JSON, source, fetched_at; unique(company_id, fiscal_year))`
 - `kpi_snapshots(id PK, company_id FK, as_of, payload JSON, created_at)`
 - `lbo_assumptions(id PK, saved_deal_id FK, payload JSON, updated_at)`

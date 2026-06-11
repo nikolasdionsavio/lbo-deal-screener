@@ -95,7 +95,7 @@ def _collect_data_gaps(
 # ---------------------------------------------------------------------------
 
 
-def _company_overview(profile: CompanyProfile) -> str:
+def _company_overview(profile: CompanyProfile, currency: str | None) -> str:
     lines: list[str] = [f"**{profile.name} ({profile.ticker})**", ""]
     if profile.description:
         lines += [profile.description, ""]
@@ -106,11 +106,17 @@ def _company_overview(profile: CompanyProfile) -> str:
     if profile.exchange:
         facts.append(f"- Exchange: {profile.exchange}")
     if profile.share_price is not None:
-        facts.append(f"- Share price: ${profile.share_price:.2f}")
+        facts.append(
+            f"- Share price: {fmt_value(profile.share_price, 'per_share', currency)}"
+        )
     if profile.market_cap is not None:
-        facts.append(f"- Market capitalization: {fmt_currency(profile.market_cap)}")
+        facts.append(
+            f"- Market capitalization: {fmt_currency(profile.market_cap, currency)}"
+        )
     if profile.enterprise_value is not None:
-        facts.append(f"- Enterprise value: {fmt_currency(profile.enterprise_value)}")
+        facts.append(
+            f"- Enterprise value: {fmt_currency(profile.enterprise_value, currency)}"
+        )
     if facts:
         lines += facts + [""]
     source = f"Data source: {profile.data_source}"
@@ -154,7 +160,7 @@ def _investment_thesis(kpi_map: dict[str, TracedValue]) -> str:
     return "\n".join(bullets)
 
 
-def _financial_highlights(profile: CompanyProfile) -> str:
+def _financial_highlights(profile: CompanyProfile, currency: str | None) -> str:
     fy = (
         f"FY{profile.latest_fiscal_year}"
         if profile.latest_fiscal_year is not None
@@ -169,7 +175,9 @@ def _financial_highlights(profile: CompanyProfile) -> str:
         ("Total debt", profile.total_debt),
         ("Net debt", profile.net_debt),
     ]
-    bullets = [f"- {label}: {fmt_currency(v)}" for label, v in items if v is not None]
+    bullets = [
+        f"- {label}: {fmt_currency(v, currency)}" for label, v in items if v is not None
+    ]
     missing = [label for label, v in items if v is None]
     if bullets:
         lines = [f"Key figures for {fy}:", ""] + bullets
@@ -199,7 +207,7 @@ def _kpi_summary(kpis: KpiResponse, kpi_map: dict[str, TracedValue]) -> str:
     return "\n".join(bullets)
 
 
-def _lbo_case_summary(lbo: LboResponse | None) -> str:
+def _lbo_case_summary(lbo: LboResponse | None, currency: str | None) -> str:
     if lbo is None:
         return (
             "An LBO case is not available; the model could not be run on the "
@@ -211,16 +219,16 @@ def _lbo_case_summary(lbo: LboResponse | None) -> str:
     lines = [
         (
             f"Entry at {fmt_multiple(a.entry_multiple)} EV/EBITDA implies an "
-            f"enterprise value of {fmt_currency(e.entry_ev)}, funded with "
-            f"{fmt_currency(e.opening_debt)} of debt "
+            f"enterprise value of {fmt_currency(e.entry_ev, currency)}, funded with "
+            f"{fmt_currency(e.opening_debt, currency)} of debt "
             f"({fmt_multiple(a.debt_multiple)} EBITDA) and "
-            f"{fmt_currency(e.sponsor_equity)} of sponsor equity "
+            f"{fmt_currency(e.sponsor_equity, currency)} of sponsor equity "
             f"({fmt_percent(e.equity_pct)} of the structure)."
         ),
         (
             f"Exit in year {a.holding_period} at {fmt_multiple(a.exit_multiple)} "
-            f"EV/EBITDA on exit EBITDA of {fmt_currency(x.exit_ebitda)} implies "
-            f"exit equity of {fmt_currency(x.exit_equity)}."
+            f"EV/EBITDA on exit EBITDA of {fmt_currency(x.exit_ebitda, currency)} "
+            f"implies exit equity of {fmt_currency(x.exit_equity, currency)}."
         ),
     ]
     returns: list[str] = []
@@ -238,7 +246,7 @@ def _lbo_case_summary(lbo: LboResponse | None) -> str:
     return "\n\n".join(lines)
 
 
-def _valuation_view(valuation: ValuationResponse | None) -> str:
+def _valuation_view(valuation: ValuationResponse | None, currency: str | None) -> str:
     if valuation is None:
         return "A multiples-based valuation range is not available."
     lines: list[str] = []
@@ -256,11 +264,16 @@ def _valuation_view(valuation: ValuationResponse | None) -> str:
     for case in valuation.range:
         parts: list[str] = []
         if case.implied_ev is not None:
-            parts.append(f"implied EV {fmt_currency(case.implied_ev)}")
+            parts.append(f"implied EV {fmt_currency(case.implied_ev, currency)}")
         if case.implied_equity is not None:
-            parts.append(f"implied equity {fmt_currency(case.implied_equity)}")
+            parts.append(
+                f"implied equity {fmt_currency(case.implied_equity, currency)}"
+            )
         if case.implied_share_price is not None:
-            parts.append(f"implied share price ${case.implied_share_price:.2f}")
+            parts.append(
+                "implied share price "
+                f"{fmt_value(case.implied_share_price, 'per_share', currency)}"
+            )
         if case.premium_vs_current is not None:
             parts.append(f"{fmt_percent(case.premium_vs_current)} vs the current price")
         detail = ", ".join(parts) if parts else "implied values not available"
@@ -330,18 +343,24 @@ def generate_memo(
     valuation: ValuationResponse | None,
     lbo: LboResponse | None,
     score: ScoreResponse,
+    currency: str | None = None,
 ) -> MemoResponse:
-    """Generate the nine-section investment memo (spec §10) from computed data."""
+    """Generate the nine-section investment memo (spec §10) from computed data.
+
+    `currency` is the reporting currency code for monetary figures (spec §4);
+    it defaults to the profile's currency, and USD for legacy callers.
+    """
+    ccy = currency or profile.currency or "USD"
     kpi_map = {tv.key: tv for tv in kpis.kpis}
     data_gaps = _collect_data_gaps(profile, kpis, valuation, lbo)
 
     contents: dict[str, str] = {
-        "company_overview": _company_overview(profile),
+        "company_overview": _company_overview(profile, ccy),
         "investment_thesis": _investment_thesis(kpi_map),
-        "financial_highlights": _financial_highlights(profile),
+        "financial_highlights": _financial_highlights(profile, ccy),
         "kpi_summary": _kpi_summary(kpis, kpi_map),
-        "lbo_case_summary": _lbo_case_summary(lbo),
-        "valuation_view": _valuation_view(valuation),
+        "lbo_case_summary": _lbo_case_summary(lbo, ccy),
+        "valuation_view": _valuation_view(valuation, ccy),
         "key_risks": _key_risks(kpi_map, data_gaps),
         "data_gaps": _data_gaps_section(data_gaps),
         "screening_view": _screening_view(score),

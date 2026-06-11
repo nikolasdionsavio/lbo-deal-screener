@@ -26,7 +26,7 @@ import {
 import { useApi } from "@/lib/hooks";
 import type { SeriesPoint, TracedValue } from "@/lib/types";
 
-function fmtTraced(kpi: TracedValue): string {
+function fmtTraced(kpi: TracedValue, currency: string | null): string {
   if (kpi.value === null) return "—";
   switch (kpi.unit) {
     case "percent":
@@ -37,79 +37,83 @@ function fmtTraced(kpi: TracedValue): string {
       return fmtNumber(kpi.value, { digits: 2 });
     case "currency":
     case "per_share":
-      return fmtCurrency(kpi.value);
+      return fmtCurrency(kpi.value, currency);
   }
 }
 
-function fmtInputValue(value: number | null): string {
+function fmtInputValue(value: number | null, currency: string | null): string {
   if (value === null) return "—";
   // KPI inputs are predominantly monetary; small magnitudes (ratios, rates)
   // are shown as plain numbers.
-  if (Math.abs(value) >= 1e5) return fmtCurrency(value);
+  if (Math.abs(value) >= 1e5) return fmtCurrency(value, currency);
   return fmtNumber(value, { digits: 2 });
 }
 
-function inputsTitle(kpi: TracedValue): string {
+function inputsTitle(kpi: TracedValue, currency: string | null): string {
   if (kpi.inputs.length === 0) return "No recorded inputs";
   return (
     "Inputs: " +
     kpi.inputs
       .map(
         (input) =>
-          `${input.field} = ${fmtInputValue(input.value)} (${input.period})`,
+          `${input.field} = ${fmtInputValue(input.value, currency)} (${
+            input.period
+          })`,
       )
       .join("; ")
   );
 }
 
-const KPI_COLUMNS: Column<TracedValue>[] = [
-  {
-    key: "kpi",
-    header: "KPI",
-    render: (kpi) => (
-      <div title={inputsTitle(kpi)}>
-        <span className="font-medium text-ink underline decoration-slate-300 decoration-dotted underline-offset-2">
-          {kpi.label}
+function kpiColumns(currency: string | null): Column<TracedValue>[] {
+  return [
+    {
+      key: "kpi",
+      header: "KPI",
+      render: (kpi) => (
+        <div title={inputsTitle(kpi, currency)}>
+          <span className="font-medium text-ink underline decoration-slate-300 decoration-dotted underline-offset-2">
+            {kpi.label}
+          </span>
+          {kpi.warnings.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {kpi.warnings.map((warning, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[11px] text-warn"
+                >
+                  {warning}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "value",
+      header: "Value",
+      numeric: true,
+      render: (kpi) => (
+        <span
+          className="font-medium text-ink"
+          title={kpi.value === null ? "Not available" : undefined}
+        >
+          {fmtTraced(kpi, currency)}
         </span>
-        {kpi.warnings.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {kpi.warnings.map((warning, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[11px] text-warn"
-              >
-                {warning}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    ),
-  },
-  {
-    key: "value",
-    header: "Value",
-    numeric: true,
-    render: (kpi) => (
-      <span
-        className="font-medium text-ink"
-        title={kpi.value === null ? "Not available" : undefined}
-      >
-        {fmtTraced(kpi)}
-      </span>
-    ),
-  },
-  {
-    key: "period",
-    header: "Period",
-    render: (kpi) => <span className="text-slate-600">{kpi.period}</span>,
-  },
-  {
-    key: "formula",
-    header: "Formula",
-    render: (kpi) => <span className="text-slate-500">{kpi.formula}</span>,
-  },
-];
+      ),
+    },
+    {
+      key: "period",
+      header: "Period",
+      render: (kpi) => <span className="text-slate-600">{kpi.period}</span>,
+    },
+    {
+      key: "formula",
+      header: "Formula",
+      render: (kpi) => <span className="text-slate-500">{kpi.formula}</span>,
+    },
+  ];
+}
 
 const CURRENCY_CHARTS = [
   { key: "revenue", title: "Revenue" },
@@ -132,6 +136,7 @@ function hasData(points: SeriesPoint[]): boolean {
 export default function KpisPage() {
   const { profile } = useCompany();
   const ticker = profile.ticker;
+  const currency = profile.currency ?? null;
   const { data, error, loading, retry } = useApi(
     () => getKpis(ticker),
     [ticker],
@@ -178,7 +183,7 @@ export default function KpisPage() {
         />
         <Card>
           <DataTable
-            columns={KPI_COLUMNS}
+            columns={kpiColumns(currency)}
             rows={data.kpis}
             rowKey={(kpi) => kpi.key}
           />
@@ -200,7 +205,11 @@ export default function KpisPage() {
                 <h3 className="mb-2 text-sm font-semibold text-ink">
                   {chart.title}
                 </h3>
-                <TimeSeriesChart data={chart.points} format="currency" />
+                <TimeSeriesChart
+                  data={chart.points}
+                  format="currency"
+                  currency={currency}
+                />
               </Card>
             ))}
             {marginSeries.length > 0 && (

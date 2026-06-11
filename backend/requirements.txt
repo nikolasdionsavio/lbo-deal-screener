@@ -9,5 +9,6 @@ PyJWT
 python-dotenv
 numpy
 pandas
+yfinance
 psycopg2-binary
 pytest

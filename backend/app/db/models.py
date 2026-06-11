@@ -58,6 +58,8 @@ class Company(Base):
     industry: Mapped[str | None] = mapped_column(String(128))
     exchange: Mapped[str | None] = mapped_column(String(64))
     cik: Mapped[str | None] = mapped_column(String(16))
+    # Financial reporting currency of the cached bundle (spec §4); None ≡ USD.
+    currency: Mapped[str | None] = mapped_column(String(8))
     data_source: Mapped[str | None] = mapped_column(String(128))
     fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

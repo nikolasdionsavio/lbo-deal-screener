@@ -26,43 +26,49 @@ function PremiumCell({ value }: { value: number | null }) {
   return <span className={color}>{fmtPercent(value, { signed: true })}</span>;
 }
 
-const RANGE_COLUMNS: Column<ValuationCase>[] = [
-  { key: "case", header: "Case", render: (row) => caseLabel(row.case) },
-  {
-    key: "multiple",
-    header: "EV/EBITDA",
-    numeric: true,
-    render: (row) => fmtMultiple(row.multiple),
-  },
-  {
-    key: "implied_ev",
-    header: "Implied EV",
-    numeric: true,
-    render: (row) => fmtCurrency(row.implied_ev),
-  },
-  {
-    key: "implied_equity",
-    header: "Implied equity",
-    numeric: true,
-    render: (row) => fmtCurrency(row.implied_equity),
-  },
-  {
-    key: "implied_share_price",
-    header: "Implied share price",
-    numeric: true,
-    render: (row) => fmtCurrency(row.implied_share_price),
-  },
-  {
-    key: "premium_vs_current",
-    header: "Premium vs current",
-    numeric: true,
-    render: (row) => <PremiumCell value={row.premium_vs_current} />,
-  },
-];
+// All monetary columns are in the company's reporting currency
+// (BUILD_SPEC section 4 currency contract); implied share price uses the
+// same code as implied EV/equity.
+function rangeColumns(currency: string | null): Column<ValuationCase>[] {
+  return [
+    { key: "case", header: "Case", render: (row) => caseLabel(row.case) },
+    {
+      key: "multiple",
+      header: "EV/EBITDA",
+      numeric: true,
+      render: (row) => fmtMultiple(row.multiple),
+    },
+    {
+      key: "implied_ev",
+      header: "Implied EV",
+      numeric: true,
+      render: (row) => fmtCurrency(row.implied_ev, currency),
+    },
+    {
+      key: "implied_equity",
+      header: "Implied equity",
+      numeric: true,
+      render: (row) => fmtCurrency(row.implied_equity, currency),
+    },
+    {
+      key: "implied_share_price",
+      header: "Implied share price",
+      numeric: true,
+      render: (row) => fmtCurrency(row.implied_share_price, currency),
+    },
+    {
+      key: "premium_vs_current",
+      header: "Premium vs current",
+      numeric: true,
+      render: (row) => <PremiumCell value={row.premium_vs_current} />,
+    },
+  ];
+}
 
 export default function ValuationPage() {
   const { profile } = useCompany();
   const ticker = profile.ticker;
+  const currency = profile.currency ?? null;
 
   useEffect(() => {
     window.localStorage.setItem("lastTicker", ticker);
@@ -124,7 +130,7 @@ export default function ValuationPage() {
             title="Current multiples"
             subtitle={`As of ${data.as_of}`}
           />
-          <MultiplesGrid multiples={data.multiples} />
+          <MultiplesGrid multiples={data.multiples} currency={currency} />
         </section>
       )}
 
@@ -166,7 +172,7 @@ export default function ValuationPage() {
                 <ErrorState message={error.message} onRetry={retry} />
               ) : data ? (
                 <DataTable
-                  columns={RANGE_COLUMNS}
+                  columns={rangeColumns(currency)}
                   rows={data.range}
                   rowKey={(row) => row.case}
                 />

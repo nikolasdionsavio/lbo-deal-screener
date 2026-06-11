@@ -17,6 +17,8 @@ import type { SeriesPoint } from "@/lib/types";
 interface TimeSeriesChartProps {
   data: SeriesPoint[];
   format: "currency" | "percent";
+  /** Reporting currency code for currency-formatted axes; null means USD. */
+  currency?: string | null;
   variant?: "line" | "bar";
   color?: string;
   height?: number;
@@ -25,12 +27,13 @@ interface TimeSeriesChartProps {
 export default function TimeSeriesChart({
   data,
   format,
+  currency = null,
   variant = "bar",
   color = "#1e3a5f",
   height = 240,
 }: TimeSeriesChartProps) {
   const formatValue = (v: number): string =>
-    format === "currency" ? fmtCurrency(v) : fmtPercent(v);
+    format === "currency" ? fmtCurrency(v, currency) : fmtPercent(v);
 
   const axisProps = {
     stroke: "#64748b",

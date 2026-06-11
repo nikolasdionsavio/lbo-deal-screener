@@ -14,7 +14,7 @@ from app.providers.base import DataProvider
 from app.providers.edgar import SecEdgarProvider
 from app.providers.exceptions import ProviderError
 from app.providers.fmp import FmpProvider
-from app.schemas.company import CompanyDataBundle, SearchResult
+from app.schemas.company import CompanyDataBundle, MarketData, SearchResult
 
 COMBINED_DATA_SOURCE = "SEC EDGAR + Financial Modeling Prep"
 _MARKET_WARNING_PREFIX = "Market data unavailable"
@@ -76,3 +76,9 @@ class CompositeLiveProvider(DataProvider):
         if fmp_used:
             bundle.data_source = COMBINED_DATA_SOURCE
         return bundle
+
+    def refresh_market(self, ticker: str) -> MarketData | None:
+        """§11 cache-hit quote refresh via FMP (None when FMP not configured)."""
+        if self.fmp is None:
+            return None
+        return self.fmp.get_quote(ticker)

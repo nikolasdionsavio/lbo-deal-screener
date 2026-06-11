@@ -81,7 +81,7 @@ def compose_memo(
         lbo: LboResponse | None = compute_lbo(bundle, assumptions)
     except MissingEntryDataError:
         lbo = None  # memo states the gap instead of failing
-    return generate_memo(profile, kpis, valuation, lbo, score)
+    return generate_memo(profile, kpis, valuation, lbo, score, currency=bundle.currency)
 
 
 def compose_deal_payloads(
@@ -97,7 +97,7 @@ def compose_deal_payloads(
         lbo: LboResponse | None = compute_lbo(bundle, assumptions)
     except MissingEntryDataError:
         lbo = None
-    memo = generate_memo(profile, kpis, valuation, lbo, score)
+    memo = generate_memo(profile, kpis, valuation, lbo, score, currency=bundle.currency)
     return {
         "kpi_payload": kpis.model_dump(),
         "score_payload": score.model_dump(),

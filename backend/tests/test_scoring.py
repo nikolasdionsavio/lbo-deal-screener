@@ -238,3 +238,34 @@ def test_disclaimer_verbatim() -> None:
     assert score.disclaimer == (
         "Screening score based on mechanical rules. Not an investment recommendation."
     )
+
+
+# ---------------------------------------------------------------------------
+# Currency-aware formatters (spec §4: USD $, GBP £, EUR €, else "CODE " prefix)
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_currency_default_and_known_symbols() -> None:
+    from app.scoring.model import fmt_currency
+
+    assert fmt_currency(1.5e9) == "$1.5bn"
+    assert fmt_currency(1.5e9, "USD") == "$1.5bn"
+    assert fmt_currency(1.5e9, "GBP") == "£1.5bn"
+    assert fmt_currency(2.3e12, "EUR") == "€2.3tn"
+    assert fmt_currency(-2.5e6, "GBP") == "-£2.5m"
+    assert fmt_currency(950.0, "gbp") == "£950"  # case-insensitive code
+
+
+def test_fmt_currency_unknown_code_prefixes_iso_code() -> None:
+    from app.scoring.model import fmt_currency
+
+    assert fmt_currency(1.2e9, "SEK") == "SEK 1.2bn"
+    assert fmt_currency(-3.4e6, "CHF") == "-CHF 3.4m"
+
+
+def test_fmt_value_per_share_uses_currency_prefix() -> None:
+    from app.scoring.model import fmt_value
+
+    assert fmt_value(13.5, "per_share") == "$13.50"
+    assert fmt_value(2.5, "per_share", "GBP") == "£2.50"
+    assert fmt_value(13.5, "per_share", "SEK") == "SEK 13.50"

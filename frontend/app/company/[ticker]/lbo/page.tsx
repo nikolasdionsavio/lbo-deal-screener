@@ -23,64 +23,73 @@ function fmtMom(value: number | null): string {
   return `${value.toFixed(2)}x`;
 }
 
-const YEAR_COLUMNS: Column<LboYear>[] = [
-  { key: "year", header: "Year", render: (r) => `Year ${r.year}` },
-  {
-    key: "revenue",
-    header: "Revenue",
-    numeric: true,
-    render: (r) => fmtCurrency(r.revenue),
-  },
-  {
-    key: "ebitda",
-    header: "EBITDA",
-    numeric: true,
-    render: (r) => fmtCurrency(r.ebitda),
-  },
-  {
-    key: "capex",
-    header: "Capex",
-    numeric: true,
-    render: (r) => fmtCurrency(r.capex),
-  },
-  {
-    key: "delta_nwc",
-    header: "ΔNWC",
-    numeric: true,
-    render: (r) => fmtCurrency(r.delta_nwc),
-  },
-  {
-    key: "interest",
-    header: "Interest",
-    numeric: true,
-    render: (r) => fmtCurrency(r.interest),
-  },
-  {
-    key: "taxes",
-    header: "Taxes",
-    numeric: true,
-    render: (r) => fmtCurrency(r.taxes),
-  },
-  { key: "fcf", header: "FCF", numeric: true, render: (r) => fmtCurrency(r.fcf) },
-  {
-    key: "debt_repaid",
-    header: "Debt repaid",
-    numeric: true,
-    render: (r) => fmtCurrency(r.debt_repaid),
-  },
-  {
-    key: "ending_debt",
-    header: "Ending debt",
-    numeric: true,
-    render: (r) => fmtCurrency(r.ending_debt),
-  },
-  {
-    key: "ending_cash",
-    header: "Ending cash",
-    numeric: true,
-    render: (r) => fmtCurrency(r.ending_cash),
-  },
-];
+// The LBO model runs entirely in the company's reporting currency
+// (BUILD_SPEC section 4 currency contract).
+function yearColumns(currency: string | null): Column<LboYear>[] {
+  return [
+    { key: "year", header: "Year", render: (r) => `Year ${r.year}` },
+    {
+      key: "revenue",
+      header: "Revenue",
+      numeric: true,
+      render: (r) => fmtCurrency(r.revenue, currency),
+    },
+    {
+      key: "ebitda",
+      header: "EBITDA",
+      numeric: true,
+      render: (r) => fmtCurrency(r.ebitda, currency),
+    },
+    {
+      key: "capex",
+      header: "Capex",
+      numeric: true,
+      render: (r) => fmtCurrency(r.capex, currency),
+    },
+    {
+      key: "delta_nwc",
+      header: "ΔNWC",
+      numeric: true,
+      render: (r) => fmtCurrency(r.delta_nwc, currency),
+    },
+    {
+      key: "interest",
+      header: "Interest",
+      numeric: true,
+      render: (r) => fmtCurrency(r.interest, currency),
+    },
+    {
+      key: "taxes",
+      header: "Taxes",
+      numeric: true,
+      render: (r) => fmtCurrency(r.taxes, currency),
+    },
+    {
+      key: "fcf",
+      header: "FCF",
+      numeric: true,
+      render: (r) => fmtCurrency(r.fcf, currency),
+    },
+    {
+      key: "debt_repaid",
+      header: "Debt repaid",
+      numeric: true,
+      render: (r) => fmtCurrency(r.debt_repaid, currency),
+    },
+    {
+      key: "ending_debt",
+      header: "Ending debt",
+      numeric: true,
+      render: (r) => fmtCurrency(r.ending_debt, currency),
+    },
+    {
+      key: "ending_cash",
+      header: "Ending cash",
+      numeric: true,
+      render: (r) => fmtCurrency(r.ending_cash, currency),
+    },
+  ];
+}
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
@@ -98,6 +107,7 @@ function Figure({ label, value }: { label: string; value: string }) {
 export default function LboPage() {
   const { profile } = useCompany();
   const ticker = profile.ticker;
+  const currency = profile.currency ?? null;
 
   useEffect(() => {
     window.localStorage.setItem("lastTicker", ticker);
@@ -206,15 +216,15 @@ export default function LboPage() {
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Figure
                       label="Entry EV"
-                      value={fmtCurrency(lbo.entry.entry_ev)}
+                      value={fmtCurrency(lbo.entry.entry_ev, currency)}
                     />
                     <Figure
                       label="Opening debt"
-                      value={fmtCurrency(lbo.entry.opening_debt)}
+                      value={fmtCurrency(lbo.entry.opening_debt, currency)}
                     />
                     <Figure
                       label="Sponsor equity"
-                      value={fmtCurrency(lbo.entry.sponsor_equity)}
+                      value={fmtCurrency(lbo.entry.sponsor_equity, currency)}
                     />
                     <Figure
                       label="Equity %"
@@ -223,8 +233,8 @@ export default function LboPage() {
                   </div>
                   <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
                     Entry base ({entryBaseLabel}): EBITDA{" "}
-                    {fmtCurrency(lbo.entry.entry_ebitda)} on revenue{" "}
-                    {fmtCurrency(lbo.entry.entry_revenue)}.
+                    {fmtCurrency(lbo.entry.entry_ebitda, currency)} on revenue{" "}
+                    {fmtCurrency(lbo.entry.entry_revenue, currency)}.
                   </p>
                 </Card>
               </section>
@@ -232,11 +242,13 @@ export default function LboPage() {
               <section>
                 <SectionHeader
                   title={`${lbo.assumptions.holding_period}-year projection`}
-                  subtitle="All figures USD. ΔNWC is the change in net working capital."
+                  subtitle={`All figures ${
+                    currency ?? "USD"
+                  }. ΔNWC is the change in net working capital.`}
                 />
                 <Card>
                   <DataTable
-                    columns={YEAR_COLUMNS}
+                    columns={yearColumns(currency)}
                     rows={lbo.years}
                     rowKey={(row) => row.year}
                   />
@@ -271,17 +283,17 @@ export default function LboPage() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
                   <StatCard
                     label="Exit EBITDA"
-                    value={fmtCurrency(lbo.exit.exit_ebitda)}
+                    value={fmtCurrency(lbo.exit.exit_ebitda, currency)}
                     sub={`Year ${lbo.assumptions.holding_period} EBITDA`}
                   />
                   <StatCard
                     label="Exit EV"
-                    value={fmtCurrency(lbo.exit.exit_ev)}
+                    value={fmtCurrency(lbo.exit.exit_ev, currency)}
                     sub="Exit multiple × exit EBITDA"
                   />
                   <StatCard
                     label="Exit equity"
-                    value={fmtCurrency(lbo.exit.exit_equity)}
+                    value={fmtCurrency(lbo.exit.exit_equity, currency)}
                     sub="Exit EV − ending debt + ending cash"
                   />
                 </div>

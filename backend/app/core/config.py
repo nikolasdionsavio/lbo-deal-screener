@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./lbo_screener.db"
     jwt_secret: str = "dev-secret-change-me"
-    data_provider: Literal["auto", "mock", "live"] = "auto"
+    data_provider: Literal["auto", "mock", "live", "yahoo"] = "auto"
     sec_edgar_user_agent: str = ""
     fmp_api_key: str = ""
     cors_origins: str = "http://localhost:3000"

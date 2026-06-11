@@ -96,12 +96,16 @@ export interface MarketData {
   shares_outstanding: number | null;
   as_of: string;
   source: string;
+  /** Quote currency after normalization (ISO code); absent/null means USD. */
+  currency?: string | null;
 }
 
 export interface CompanyDataBundle {
   info: CompanyInfo;
   market: MarketData | null;
   financials: FiscalYearFinancials[];
+  /** Financial reporting currency (ISO code); absent/null means USD. */
+  currency?: string | null;
   data_source: string;
   fetched_at: string;
   warnings: string[];
@@ -130,6 +134,8 @@ export interface CompanyProfile {
   cash: number | null;
   total_debt: number | null;
   net_debt: number | null;
+  /** Financial reporting currency (ISO code); absent/null means USD. */
+  currency?: string | null;
   data_source: string;
   data_as_of: string | null;
   warnings: string[];

@@ -3,7 +3,7 @@
     "ticker": "KO",
     "name": "The Coca-Cola Company",
     "sector": "Consumer Defensive",
-    "industry": "Beverages \u2014 Non-Alcoholic",
+    "industry": "Beverages — Non-Alcoholic",
     "exchange": "NYSE",
     "description": "The Coca-Cola Company is a beverage company that manufactures, markets and sells nonalcoholic beverages including sparkling soft drinks, water, sports drinks, juice, dairy and coffee.",
     "cik": "0000021344"
@@ -13,7 +13,8 @@
     "market_cap": 301000000000.0,
     "shares_outstanding": 4300000000.0,
     "as_of": "2026-06-01",
-    "source": "Sample data (illustrative figures)"
+    "source": "Sample data (illustrative figures)",
+    "currency": "USD"
   },
   "financials": [
     {
@@ -132,6 +133,7 @@
       "derived_fields": []
     }
   ],
+  "currency": "USD",
   "data_source": "Sample data (illustrative figures)",
   "fetched_at": "2026-06-01T00:00:00Z",
   "warnings": []

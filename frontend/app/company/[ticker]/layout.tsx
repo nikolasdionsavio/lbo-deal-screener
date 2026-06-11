@@ -82,11 +82,14 @@ export default function CompanyLayout({
             </div>
             <span
               className="inline-flex shrink-0 items-center rounded-full border border-slate-300 bg-surface px-3 py-1 text-xs text-slate-600"
-              title="Data source and data date"
+              title="Data source, data date and reporting currency"
             >
               {profile.data_source}
               {profile.data_as_of !== null
                 ? ` · as of ${profile.data_as_of}`
+                : ""}
+              {profile.currency != null && profile.currency !== "USD"
+                ? ` · reported in ${profile.currency}`
                 : ""}
             </span>
           </div>

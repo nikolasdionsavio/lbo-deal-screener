@@ -133,3 +133,77 @@ def test_never_raises_on_empty_financials(
         assert case.implied_share_price is None
         assert case.premium_vs_current is None
     assert response.warnings  # missing data is reported, not raised
+
+
+# ---------------------------------------------------------------------------
+# Currency contract (spec §4): mixed-currency suppression
+# ---------------------------------------------------------------------------
+
+MISMATCH_WARNING = (
+    "Quote currency (GBP) differs from reporting currency (USD); "
+    "mixed currency multiples suppressed (no FX conversion in MVP)"
+)
+
+
+def _mismatched(testco_bundle: CompanyDataBundle) -> CompanyDataBundle:
+    bundle = testco_bundle.model_copy(deep=True)
+    assert bundle.market is not None
+    bundle.market.currency = "GBP"  # quote GBP vs reporting USD
+    return bundle
+
+
+def test_currency_mismatch_suppresses_mixed_multiples(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    response = compute_valuation(_mismatched(testco_bundle))
+    for key in ("enterprise_value", "ev_revenue", "ev_ebitda", "pe", "price_sales",
+                "fcf_yield"):
+        traced = _multiple(response, key)
+        assert traced.value is None, key
+        assert MISMATCH_WARNING in traced.warnings, key
+    # Market cap is shown but flagged via the response-level warning.
+    assert _multiple(response, "market_cap").value == pytest.approx(
+        1350.0 * M, rel=REL
+    )
+    assert MISMATCH_WARNING in response.warnings
+
+
+def test_currency_mismatch_range_keeps_reporting_currency_figures(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    """Implied EV/equity/share price are reporting-currency-only and survive;
+    only the premium against the quoted price is suppressed."""
+    response = compute_valuation(_mismatched(testco_bundle))
+    # Without a usable EV/EBITDA the default base falls back to 8.0x.
+    assert response.assumptions.base == pytest.approx(8.0)
+    for case in response.range:
+        assert case.implied_ev == pytest.approx(case.multiple * 250.0 * M, rel=REL)
+        assert case.implied_equity == pytest.approx(
+            case.multiple * 250.0 * M - 300.0 * M, rel=REL
+        )
+        assert case.implied_share_price is not None
+        assert case.premium_vs_current is None
+
+
+def test_matching_non_usd_currencies_do_not_suppress(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    assert bundle.market is not None
+    bundle.market.currency = "EUR"
+    bundle.currency = "EUR"  # both sides EUR -> single-currency, no suppression
+    response = compute_valuation(bundle)
+    assert _multiple(response, "ev_ebitda").value == pytest.approx(6.6, rel=REL)
+    assert not any("mixed currency" in w for w in response.warnings)
+
+
+def test_currency_mismatch_lbo_defaults_fall_back_to_eight_x(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    """The default entry multiple must not be derived from a mixed-currency
+    EV/EBITDA; it falls back to 8.0x (spec §4 + §8)."""
+    from app.lbo import derive_defaults
+
+    assumptions, basis = derive_defaults(_mismatched(testco_bundle))
+    assert assumptions.entry_multiple == pytest.approx(8.0)
+    assert "unavailable" in basis["entry_multiple"]

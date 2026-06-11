@@ -55,6 +55,7 @@ def upsert_company(db: Session, bundle: CompanyDataBundle) -> Company:
     company.industry = bundle.info.industry
     company.exchange = bundle.info.exchange
     company.cik = bundle.info.cik
+    company.currency = bundle.currency
     company.data_source = bundle.data_source
     company.fetched_at = fetched_at
     db.flush()
@@ -113,6 +114,7 @@ def get_cached(
         ),
         market=None,  # §11 companies table carries no market-data columns
         financials=financials,
+        currency=company.currency,
         data_source=company.data_source or "cache",
         fetched_at=fetched_at.isoformat(),
         warnings=[MARKET_NOT_CACHED_WARNING],

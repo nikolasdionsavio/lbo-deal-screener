@@ -4,12 +4,20 @@ Current multiples are TracedValue entries (formula + inputs + period +
 warnings). The valuation range applies user-editable low/base/high EV/EBITDA
 multiples to the latest fiscal-year EBITDA. Missing inputs yield None values
 plus warnings — this module never raises on bad/absent data.
+
+Currency contract (spec §4): when the normalized quote currency differs from
+the reporting currency, every figure that mixes the two — EV, EV-based
+multiples, P/E, price/sales, FCF yield and premium-vs-current — is suppressed
+(None + warning). The implied range itself is reporting-currency-only
+(multiple × EBITDA) and still works; only the premium against the quoted
+share price is suppressed.
 """
 
 from __future__ import annotations
 
 import math
 
+from app.normalization import currency_mismatch_warning
 from app.schemas.company import CompanyDataBundle
 from app.schemas.financials import FiscalYearFinancials
 from app.schemas.kpi import TracedInput, TracedValue
@@ -82,11 +90,26 @@ def compute_valuation(
     net_debt = (
         total_debt - cash if total_debt is not None and cash is not None else None
     )
-    enterprise_value = (
-        market_cap + net_debt
-        if market_cap is not None and net_debt is not None
-        else None
-    )
+
+    # Spec §4: quote currency ≠ reporting currency -> suppress mixed-currency
+    # figures. market_cap itself is still shown (flagged by the warning).
+    mismatch_warning = currency_mismatch_warning(bundle)
+    mixed_currency = mismatch_warning is not None
+    if mixed_currency:
+        warnings.append(mismatch_warning)
+        enterprise_value = None
+    else:
+        enterprise_value = (
+            market_cap + net_debt
+            if market_cap is not None and net_debt is not None
+            else None
+        )
+
+    def _suppressed(value: float | None) -> float | None:
+        return None if mixed_currency else value
+
+    def _mismatch_notes() -> list[str]:
+        return [mismatch_warning] if mixed_currency else []
 
     def _missing(pairs: list[tuple[str, float | None, str]]) -> list[str]:
         return [
@@ -144,6 +167,7 @@ def compute_valuation(
             fy_period,
             "Market cap + Total debt − Cash",
             ev_inputs,
+            extra_warnings=_mismatch_notes(),
         ),
         _traced(
             "ev_revenue",
@@ -156,6 +180,7 @@ def compute_valuation(
                 ("enterprise_value", enterprise_value, fy_period),
                 ("revenue", revenue, fy_period),
             ],
+            extra_warnings=_mismatch_notes(),
         ),
         _traced(
             "ev_ebitda",
@@ -168,11 +193,12 @@ def compute_valuation(
                 ("enterprise_value", enterprise_value, fy_period),
                 ("ebitda", ebitda, fy_period),
             ],
+            extra_warnings=_mismatch_notes(),
         ),
         _traced(
             "pe",
             "Price / Earnings",
-            _ratio(market_cap, net_income),
+            _suppressed(_ratio(market_cap, net_income)),
             "multiple",
             fy_period,
             "Market cap / Net income",
@@ -180,11 +206,12 @@ def compute_valuation(
                 ("market_cap", market_cap, market_period),
                 ("net_income", net_income, fy_period),
             ],
+            extra_warnings=_mismatch_notes(),
         ),
         _traced(
             "price_sales",
             "Price / Sales",
-            _ratio(market_cap, revenue),
+            _suppressed(_ratio(market_cap, revenue)),
             "multiple",
             fy_period,
             "Market cap / Revenue",
@@ -192,11 +219,12 @@ def compute_valuation(
                 ("market_cap", market_cap, market_period),
                 ("revenue", revenue, fy_period),
             ],
+            extra_warnings=_mismatch_notes(),
         ),
         _traced(
             "fcf_yield",
             "FCF Yield",
-            _ratio(fcf, market_cap),
+            _suppressed(_ratio(fcf, market_cap)),
             "percent",
             fy_period,
             "Free cash flow / Market cap",
@@ -204,6 +232,7 @@ def compute_valuation(
                 ("free_cash_flow", fcf, fy_period),
                 ("market_cap", market_cap, market_period),
             ],
+            extra_warnings=_mismatch_notes(),
         ),
     ]
 
@@ -260,9 +289,13 @@ def compute_valuation(
             if implied_equity is not None and shares
             else None
         )
+        # Premium compares a reporting-currency implied price with the quoted
+        # price, so it is suppressed under a currency mismatch (spec §4).
         premium_vs_current = (
             implied_share_price / share_price - 1
-            if implied_share_price is not None and share_price
+            if implied_share_price is not None
+            and share_price
+            and not mixed_currency
             else None
         )
         cases.append(

@@ -4,15 +4,18 @@ Cache policy:
 - MockProvider is instant -> skip the DB cache entirely.
 - Live providers: serve from `crud.companies.get_cached` (24h TTL) when fresh.
   Cached bundles carry no market data (the §11 companies table has no market
-  columns), so on a cache hit we re-fetch the quote via FMP when configured and
-  replace the "not cached" warning. On a miss we fetch from the provider and
-  write through via the crud upsert.
+  columns), so on a cache hit we ask the provider for a fresh quote via its
+  optional `refresh_market` hook (FMP for CompositeLiveProvider, Yahoo
+  fast_info/info for YahooCompositeProvider) and replace the "not cached"
+  warning. On a miss we fetch from the provider and write through via the
+  crud upsert.
 """
 
 from sqlalchemy.orm import Session
 
 from app.crud import companies as companies_crud
 from app.crud.companies import MARKET_NOT_CACHED_WARNING
+from app.normalization import currency_mismatch_warning, reporting_currency
 from app.providers.base import DataProvider
 from app.providers.exceptions import ProviderError
 from app.providers.mock import MockProvider
@@ -47,16 +50,14 @@ def get_bundle(
 def _refresh_market_data(
     bundle: CompanyDataBundle, ticker: str, provider: DataProvider
 ) -> None:
-    """Re-fetch the market quote via FMP for a cache-hit bundle (market=None).
+    """Refresh the market quote for a cache-hit bundle (market=None).
 
-    Successful refresh replaces the cached-bundle warning; failures keep the
-    warning so the response still explains the missing quote.
+    Uses the provider's optional `refresh_market` hook (spec §5). Successful
+    refresh replaces the cached-bundle warning; failures keep the warning so
+    the response still explains the missing quote.
     """
-    fmp = getattr(provider, "fmp", None)  # CompositeLiveProvider when configured
-    if fmp is None:
-        return
     try:
-        quote = fmp.get_quote(ticker)
+        quote = provider.refresh_market(ticker)
     except ProviderError:
         return
     if quote is None:
@@ -73,6 +74,11 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
     EV = market_cap + net_debt; net_debt = total_debt − cash (latest FY);
     market_cap derived from share price × shares when the quote lacks it.
     None-tolerant: missing inputs yield None fields plus warnings.
+
+    Currency contract (§4): profile.currency is the reporting currency
+    (bundle.currency, default USD). When the normalized quote currency
+    differs, EV mixes currencies and is suppressed with the spec warning;
+    market_cap is still shown but flagged by the same warning.
     """
     financials = sorted(bundle.financials, key=lambda y: y.fiscal_year)
     latest = financials[-1] if financials else None
@@ -111,13 +117,18 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
             "fiscal year)"
         )
 
-    enterprise_value = (
-        market_cap + net_debt
-        if market_cap is not None and net_debt is not None
-        else None
-    )
-    if enterprise_value is None:
-        _warn("Enterprise value unavailable (market cap or net debt missing)")
+    mismatch_warning = currency_mismatch_warning(bundle)
+    if mismatch_warning is not None:
+        enterprise_value = None  # market cap and net debt are in different currencies
+        _warn(mismatch_warning)
+    else:
+        enterprise_value = (
+            market_cap + net_debt
+            if market_cap is not None and net_debt is not None
+            else None
+        )
+        if enterprise_value is None:
+            _warn("Enterprise value unavailable (market cap or net debt missing)")
 
     data_as_of = (
         market.as_of if market is not None and market.as_of else bundle.fetched_at
@@ -142,6 +153,7 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
         cash=cash,
         total_debt=total_debt,
         net_debt=net_debt,
+        currency=reporting_currency(bundle),
         data_source=bundle.data_source,
         data_as_of=data_as_of,
         warnings=warnings,

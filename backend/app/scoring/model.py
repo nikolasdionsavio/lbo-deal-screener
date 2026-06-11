@@ -28,27 +28,39 @@ def fmt_ratio(value: float) -> str:
     return f"{value:.1f}"
 
 
-def fmt_currency(value: float) -> str:
+# Spec §4: USD -> $, GBP -> £, EUR -> €; any other ISO code is prefixed
+# verbatim ("SEK 1.2bn"). None ≡ USD for legacy callers.
+_CURRENCY_SYMBOLS = {"USD": "$", "GBP": "£", "EUR": "€"}
+
+
+def _currency_prefix(currency: str | None) -> str:
+    code = (currency or "USD").upper()
+    symbol = _CURRENCY_SYMBOLS.get(code)
+    return symbol if symbol is not None else f"{code} "
+
+
+def fmt_currency(value: float, currency: str | None = None) -> str:
+    prefix = _currency_prefix(currency)
     sign = "-" if value < 0 else ""
     v = abs(value)
     if v >= 1e12:
-        return f"{sign}${v / 1e12:.1f}tn"
+        return f"{sign}{prefix}{v / 1e12:.1f}tn"
     if v >= 1e9:
-        return f"{sign}${v / 1e9:.1f}bn"
+        return f"{sign}{prefix}{v / 1e9:.1f}bn"
     if v >= 1e6:
-        return f"{sign}${v / 1e6:.1f}m"
-    return f"{sign}${v:,.0f}"
+        return f"{sign}{prefix}{v / 1e6:.1f}m"
+    return f"{sign}{prefix}{v:,.0f}"
 
 
-def fmt_value(value: float, unit: str) -> str:
+def fmt_value(value: float, unit: str, currency: str | None = None) -> str:
     if unit == "percent":
         return fmt_percent(value)
     if unit == "multiple":
         return fmt_multiple(value)
     if unit == "currency":
-        return fmt_currency(value)
+        return fmt_currency(value, currency)
     if unit == "per_share":
-        return f"${value:.2f}"
+        return f"{_currency_prefix(currency)}{value:.2f}"
     return fmt_ratio(value)
 
 

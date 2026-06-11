@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 
+from app.normalization import currency_mismatch_warning
 from app.schemas.company import CompanyDataBundle
 from app.schemas.financials import FiscalYearFinancials
 from app.schemas.lbo import LboAssumptions
@@ -38,8 +39,15 @@ def _round_half(x: float) -> float:
 def _current_ev_ebitda(
     bundle: CompanyDataBundle, latest: FiscalYearFinancials | None
 ) -> float | None:
-    """Current EV/EBITDA: (market cap + total debt - cash) / latest EBITDA."""
+    """Current EV/EBITDA: (market cap + total debt - cash) / latest EBITDA.
+
+    None under a quote/reporting currency mismatch (spec §4): the multiple
+    would mix currencies, so the 8.0x fallback applies instead. The LBO model
+    itself stays single-currency (entry EV = multiple × EBITDA).
+    """
     if latest is None or latest.ebitda is None or latest.ebitda <= 0:
+        return None
+    if currency_mismatch_warning(bundle) is not None:
         return None
     market = bundle.market
     market_cap = market.market_cap if market is not None else None

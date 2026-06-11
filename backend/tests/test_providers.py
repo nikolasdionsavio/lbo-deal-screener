@@ -481,7 +481,14 @@ def test_factory_mock_mode_returns_mock_provider() -> None:
     assert isinstance(provider, MockProvider)
 
 
-def test_factory_auto_without_user_agent_falls_back_to_mock_with_warning() -> None:
+def test_factory_auto_without_yfinance_or_user_agent_falls_back_to_mock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Spec §5 auto chain: yahoo -> live -> mock. With yfinance unavailable and
+    # no SEC_EDGAR_USER_AGENT, auto serves sample data with the mode warning.
+    monkeypatch.setattr(
+        "app.providers.factory._yfinance_importable", lambda: False
+    )
     provider = get_provider(_settings(data_provider="auto"))
     assert isinstance(provider, MockProvider)
     bundle = provider.get_company("TESTCO")
@@ -493,7 +500,12 @@ def test_factory_live_without_user_agent_raises_config_error() -> None:
         get_provider(_settings(data_provider="live"))
 
 
-def test_factory_auto_with_user_agent_returns_live_provider() -> None:
+def test_factory_auto_without_yfinance_with_user_agent_returns_live_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.providers.factory._yfinance_importable", lambda: False
+    )
     provider = get_provider(
         _settings(data_provider="auto", sec_edgar_user_agent=TEST_USER_AGENT)
     )
