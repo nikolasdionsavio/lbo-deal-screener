@@ -1,0 +1,32 @@
+# Render blueprint — deploys the FastAPI backend (Docker) + free Postgres.
+# The Next.js frontend lives on Netlify and points here via NEXT_PUBLIC_API_URL.
+
+databases:
+  - name: lbo-screener-db
+    plan: free
+    databaseName: lbo_screener
+    user: lbo
+
+services:
+  - type: web
+    name: lbo-screener-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lbo-screener-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_PROVIDER
+        value: live
+      - key: SEC_EDGAR_USER_AGENT
+        value: "LBO Deal Screener nikolasdionsavio2002@gmail.com"
+      - key: FMP_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "https://nikolasproject.com,https://www.nikolasproject.com"
