@@ -29,3 +29,6 @@ npm-debug.log*
 .idea/
 .vscode/
 .claude/
+
+# Local Netlify folder
+.netlify

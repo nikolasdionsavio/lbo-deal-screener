@@ -6,6 +6,7 @@
 
 import type { ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
+import TradingViewChart from "@/components/company/TradingViewChart";
 import Disclaimer from "@/components/ui/Disclaimer";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -101,6 +102,14 @@ export default function DashboardPage() {
           />
           <StatCard label="Latest fiscal year" value={fiscalYearLabel} />
         </div>
+      </section>
+
+      <section className="mt-8">
+        <SectionHeader
+          title="Price chart"
+          subtitle="Interactive chart by TradingView (its own market data, independent of the figures above)"
+        />
+        <TradingViewChart ticker={profile.ticker} exchange={profile.exchange} />
       </section>
 
       <section className="mt-8">
