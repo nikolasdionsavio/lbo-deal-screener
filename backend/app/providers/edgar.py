@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -152,26 +153,41 @@ class SecEdgarProvider(DataProvider):
 
     def _request_json(self, url: str, *, what: str) -> Any:
         headers = {"User-Agent": self.user_agent}
-        try:
-            response = self._client.get(url, headers=headers, timeout=TIMEOUT_SECONDS)
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as exc:
-            status = exc.response.status_code
-            if status == 404:
-                raise CompanyNotFoundError(
-                    f"{what}: not found on SEC EDGAR (HTTP 404)."
+        # SEC rate-limits aggressively by IP (shared cloud egress IPs especially);
+        # 429s are usually transient, so retry briefly before failing.
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            try:
+                response = self._client.get(url, headers=headers, timeout=TIMEOUT_SECONDS)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                if status == 404:
+                    raise CompanyNotFoundError(
+                        f"{what}: not found on SEC EDGAR (HTTP 404)."
+                    ) from exc
+                if status == 429 and attempt < attempts:
+                    time.sleep(attempt * 2.0)
+                    continue
+                if status == 429:
+                    raise ProviderError(
+                        f"{what} failed: SEC EDGAR is rate limiting requests "
+                        "(HTTP 429). Try again in a minute."
+                    ) from exc
+                raise ProviderError(
+                    f"{what} failed: SEC EDGAR returned HTTP {status}."
                 ) from exc
-            raise ProviderError(
-                f"{what} failed: SEC EDGAR returned HTTP {status}."
-            ) from exc
-        except httpx.HTTPError as exc:
-            raise ProviderError(
-                f"{what} failed: could not reach SEC EDGAR "
-                f"({exc.__class__.__name__})."
-            ) from exc
-        except ValueError as exc:
-            raise ProviderError(f"{what} failed: SEC EDGAR returned invalid JSON.") from exc
+            except httpx.HTTPError as exc:
+                raise ProviderError(
+                    f"{what} failed: could not reach SEC EDGAR "
+                    f"({exc.__class__.__name__})."
+                ) from exc
+            except ValueError as exc:
+                raise ProviderError(
+                    f"{what} failed: SEC EDGAR returned invalid JSON."
+                ) from exc
+        raise ProviderError(f"{what} failed: SEC EDGAR retries exhausted.")
 
     # ----- ticker -> CIK map (memory + disk cache) -----
 

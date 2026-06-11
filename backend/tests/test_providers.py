@@ -531,3 +531,22 @@ def test_factory_live_with_user_agent_and_key_wires_fmp() -> None:
     )
     assert isinstance(provider, CompositeLiveProvider)
     assert isinstance(provider.fmp, FmpProvider)
+
+
+def test_edgar_retries_transient_429(monkeypatch, tmp_path) -> None:
+    """A 429 followed by success must be retried, not surfaced as an error."""
+    import app.providers.edgar as edgar_mod
+
+    monkeypatch.setattr(edgar_mod.time, "sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return httpx.Response(429, json={})
+        return httpx.Response(200, json={"0": {"cik_str": 1, "ticker": "X", "title": "X Corp"}})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
+    assert provider._ticker_map()["0"]["ticker"] == "X"
+    assert calls["n"] == 3
