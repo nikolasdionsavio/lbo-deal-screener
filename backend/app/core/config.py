@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     data_provider: Literal["auto", "mock", "live", "yahoo"] = "auto"
     sec_edgar_user_agent: str = ""
     fmp_api_key: str = ""
+    polygon_api_key: str = ""
+    alphavantage_api_key: str = ""
+    tiingo_api_key: str = ""
     cors_origins: str = "http://localhost:3000"
 
     @property

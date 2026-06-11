@@ -11,6 +11,7 @@ from app.kpis import compute_kpis
 from app.lbo import derive_defaults, run_lbo
 from app.memo import generate_memo
 from app.schemas.company import CompanyDataBundle
+from app.schemas.filings import Filing
 from app.schemas.financials import FiscalYearFinancials
 from app.schemas.lbo import LboAssumptions, LboResponse
 from app.schemas.memo import MemoResponse
@@ -70,9 +71,15 @@ def compute_lbo(
 
 
 def compose_memo(
-    bundle: CompanyDataBundle, assumptions: LboAssumptions | None = None
+    bundle: CompanyDataBundle,
+    assumptions: LboAssumptions | None = None,
+    filings: list[Filing] | None = None,
 ) -> MemoResponse:
-    """Memo from computed data: profile, KPIs, valuation, LBO, score (§10)."""
+    """Memo from computed data: profile, KPIs, valuation, LBO, score (§10).
+
+    `filings` is best-effort 10-K context (spec §19.3); callers pass None when
+    filings could not be fetched and the memo is unchanged.
+    """
     profile = build_profile(bundle)
     kpis = compute_kpis(bundle)
     valuation = compute_valuation(bundle)  # default multiples
@@ -81,7 +88,9 @@ def compose_memo(
         lbo: LboResponse | None = compute_lbo(bundle, assumptions)
     except MissingEntryDataError:
         lbo = None  # memo states the gap instead of failing
-    return generate_memo(profile, kpis, valuation, lbo, score, currency=bundle.currency)
+    return generate_memo(
+        profile, kpis, valuation, lbo, score, currency=bundle.currency, filings=filings
+    )
 
 
 def compose_deal_payloads(

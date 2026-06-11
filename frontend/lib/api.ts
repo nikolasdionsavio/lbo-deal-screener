@@ -3,12 +3,15 @@
 
 import type {
   CompanyProfile,
+  FilingsResponse,
   FinancialsResponse,
   KpiResponse,
   LboAssumptions,
   LboDefaultsResponse,
   LboResponse,
   MemoResponse,
+  NewsResponse,
+  PeersResponse,
   SavedDeal,
   SaveDealRequest,
   ScoreResponse,
@@ -110,6 +113,24 @@ export function getFinancials(ticker: string): Promise<FinancialsResponse> {
 export function getKpis(ticker: string): Promise<KpiResponse> {
   return request<KpiResponse>(
     `/api/companies/${encodeURIComponent(ticker)}/kpis`,
+  );
+}
+
+export function getPeers(ticker: string): Promise<PeersResponse> {
+  return request<PeersResponse>(
+    `/api/companies/${encodeURIComponent(ticker)}/peers`,
+  );
+}
+
+export function getFilings(ticker: string): Promise<FilingsResponse> {
+  return request<FilingsResponse>(
+    `/api/companies/${encodeURIComponent(ticker)}/filings`,
+  );
+}
+
+export function getNews(ticker: string): Promise<NewsResponse> {
+  return request<NewsResponse>(
+    `/api/companies/${encodeURIComponent(ticker)}/news`,
   );
 }
 

@@ -1,8 +1,9 @@
-"""Traceable KPI calculations (spec §6).
+"""Traceable KPI calculations (spec §6, PE diagnostics §19.1).
 
-`compute_kpis` turns a `CompanyDataBundle` into the 14-KPI `KpiResponse` with full
-traceability (formula, inputs, period, warnings). Missing inputs yield a `None`
-value plus a warning — this module never raises on bad/absent data.
+`compute_kpis` turns a `CompanyDataBundle` into the 14-KPI `KpiResponse` (plus the
+seven PE diagnostics) with full traceability (formula, inputs, period, warnings).
+Missing inputs yield a `None` value plus a warning — this module never raises on
+bad/absent data.
 
 All KPIs are fundamentals-only (no market data is used here).
 """
@@ -314,6 +315,157 @@ def _roic(latest: FiscalYearFinancials | None) -> TracedValue:
     )
 
 
+def _cash_conversion_cycle(
+    dso: TracedValue, dsi: TracedValue, dpo: TracedValue, period: str
+) -> TracedValue:
+    """CCC = DSO + DSI − DPO; inputs are the three computed day metrics."""
+    components = [("DSO", dso), ("DSI", dsi), ("DPO", dpo)]
+    inputs = [
+        TracedInput(field=tv.key, value=tv.value, period=period)
+        for _, tv in components
+    ]
+    warnings = [
+        f"{name} unavailable for {period}"
+        for name, tv in components
+        if tv.value is None
+    ]
+    value: float | None = None
+    if not warnings:
+        assert dso.value is not None and dsi.value is not None and dpo.value is not None
+        value = dso.value + dsi.value - dpo.value
+    return TracedValue(
+        key="cash_conversion_cycle",
+        label="Cash Conversion Cycle",
+        value=value,
+        unit="days",
+        period=period,
+        formula="DSO + DSI − DPO",
+        inputs=inputs,
+        warnings=warnings,
+    )
+
+
+def _incremental_ebitda_margin(
+    latest: FiscalYearFinancials | None, prior: FiscalYearFinancials | None
+) -> TracedValue:
+    """Incremental EBITDA margin = ΔEBITDA / ΔRevenue over the latest YoY span."""
+    latest_period = _fy(latest) if latest is not None else "N/A"
+    prior_period = _fy(prior) if prior is not None else "N/A"
+    period = f"{prior_period}→{latest_period}"
+    inputs = [
+        TracedInput(
+            field=field,
+            value=getattr(year, field) if year is not None else None,
+            period=year_period,
+        )
+        for year, year_period in ((latest, latest_period), (prior, prior_period))
+        for field in ("ebitda", "revenue")
+    ]
+    warnings: list[str] = []
+    value: float | None = None
+    if latest is None:
+        warnings.append("No financial data available")
+    elif prior is None:
+        warnings.append(f"Prior fiscal year (FY{latest.fiscal_year - 1}) unavailable")
+    else:
+        warnings.extend(_missing_warnings(latest, ["ebitda", "revenue"], latest_period))
+        warnings.extend(_missing_warnings(prior, ["ebitda", "revenue"], prior_period))
+        if not warnings:
+            assert (
+                latest.ebitda is not None
+                and prior.ebitda is not None
+                and latest.revenue is not None
+                and prior.revenue is not None
+            )
+            revenue_delta = latest.revenue - prior.revenue
+            if revenue_delta == 0:
+                warnings.append(
+                    f"Revenue unchanged over {period}; incremental margin undefined"
+                )
+            else:
+                value = (latest.ebitda - prior.ebitda) / revenue_delta
+    return TracedValue(
+        key="incremental_ebitda_margin",
+        label="Incremental EBITDA Margin",
+        value=value,
+        unit="percent",
+        period=period,
+        formula="ΔEBITDA / ΔRevenue (YoY)",
+        inputs=inputs,
+        warnings=warnings,
+    )
+
+
+def _build_diagnostics(
+    latest: FiscalYearFinancials | None, prior: FiscalYearFinancials | None
+) -> list[TracedValue]:
+    """The seven PE diagnostics (spec §19.1), latest FY unless stated."""
+    period = _fy(latest) if latest is not None else "N/A"
+    dso = _simple_ratio(
+        latest,
+        key="dso",
+        label="Days Sales Outstanding",
+        unit="days",
+        formula="Receivables / Revenue × 365",
+        numerator=lambda y: y.receivables * 365 if y.receivables is not None else None,
+        numerator_fields=["receivables"],
+        denominator_field="revenue",
+    )
+    dsi = _simple_ratio(
+        latest,
+        key="dsi",
+        label="Days Sales of Inventory",
+        unit="days",
+        formula="Inventory / Cost of revenue × 365",
+        numerator=lambda y: y.inventory * 365 if y.inventory is not None else None,
+        numerator_fields=["inventory"],
+        denominator_field="cost_of_revenue",
+    )
+    dpo = _simple_ratio(
+        latest,
+        key="dpo",
+        label="Days Payables Outstanding",
+        unit="days",
+        formula="Accounts payable / Cost of revenue × 365",
+        numerator=lambda y: (
+            y.accounts_payable * 365 if y.accounts_payable is not None else None
+        ),
+        numerator_fields=["accounts_payable"],
+        denominator_field="cost_of_revenue",
+    )
+    return [
+        dso,
+        dsi,
+        dpo,
+        _cash_conversion_cycle(dso, dsi, dpo, period),
+        _simple_ratio(
+            latest,
+            key="capital_return_pct_fcf",
+            label="Capital Returns % of FCF",
+            unit="percent",
+            formula="(Dividends paid + Share buybacks) / Free cash flow",
+            numerator=lambda y: (
+                y.dividends_paid + y.share_buybacks
+                if y.dividends_paid is not None and y.share_buybacks is not None
+                else None
+            ),
+            numerator_fields=["dividends_paid", "share_buybacks"],
+            denominator_field="free_cash_flow",
+        ),
+        _simple_ratio(
+            latest,
+            key="buyback_pct_fcf",
+            label="Buybacks % of FCF",
+            unit="percent",
+            formula="Share buybacks / Free cash flow",
+            numerator=lambda y: y.share_buybacks,
+            numerator_fields=["share_buybacks"],
+            denominator_field="free_cash_flow",
+        ),
+        _incremental_ebitda_margin(latest, prior),
+    ]
+
+
 def _build_series(financials: list[FiscalYearFinancials]) -> dict[str, list[SeriesPoint]]:
     """Per-year series (spec §6), skipping years with missing inputs."""
 
@@ -327,6 +479,8 @@ def _build_series(financials: list[FiscalYearFinancials]) -> dict[str, list[Seri
         "ebitda": lambda y: y.ebitda,
         "free_cash_flow": lambda y: y.free_cash_flow,
         "total_debt": lambda y: y.total_debt,
+        "dividends_paid": lambda y: y.dividends_paid,
+        "share_buybacks": lambda y: y.share_buybacks,
         "gross_margin": lambda y: div(y.gross_profit, y.revenue),
         "ebitda_margin": lambda y: div(y.ebitda, y.revenue),
         "net_income_margin": lambda y: div(y.net_income, y.revenue),
@@ -352,7 +506,7 @@ def _build_series(financials: list[FiscalYearFinancials]) -> dict[str, list[Seri
 
 
 def compute_kpis(bundle: CompanyDataBundle) -> KpiResponse:
-    """Compute the 14 traceable KPIs and time series for a company bundle.
+    """Compute the 14 traceable KPIs, 7 PE diagnostics, and time series for a bundle.
 
     Never raises on missing data: each affected KPI gets value None plus a
     warning explaining which input was unavailable.
@@ -487,5 +641,6 @@ def compute_kpis(bundle: CompanyDataBundle) -> KpiResponse:
         as_of=as_of,
         data_source=bundle.data_source,
         kpis=kpis,
+        diagnostics=_build_diagnostics(latest, prior),
         series=_build_series(financials),
     )

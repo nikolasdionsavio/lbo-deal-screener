@@ -107,6 +107,78 @@ class FmpProvider:
             source=DATA_SOURCE,
         )
 
+    def get_peers(self, ticker: str) -> list[dict[str, Any]]:
+        """Peer companies via GET /stable/stock-peers (duck-typed, spec §19.2).
+
+        Returns the §19.2 payload shape ``[{symbol, name, price, mktCap}]``
+        (FMP's ``companyName`` is mapped to ``name``); the target symbol is
+        excluded and an unknown ticker yields ``[]``. VERIFIED working on the
+        free plan (the company-screener endpoint is NOT).
+        """
+        symbol = ticker.strip().upper()
+        data = self._request_json(
+            "/stable/stock-peers",
+            {"symbol": symbol},
+            what=f"FMP peers for {symbol}",
+        )
+        if not isinstance(data, list):
+            return []
+        peers: list[dict[str, Any]] = []
+        for record in data:
+            if not isinstance(record, dict):
+                continue
+            peer_symbol = record.get("symbol")
+            if not peer_symbol or str(peer_symbol).upper() == symbol:
+                continue
+            peers.append(
+                {
+                    "symbol": str(peer_symbol),
+                    "name": str(record.get("companyName") or peer_symbol),
+                    "price": _to_float(record.get("price")),
+                    "mktCap": _to_float(record.get("mktCap")),
+                }
+            )
+        return peers
+
+    def get_news(self, ticker: str, limit: int = 12) -> list[dict[str, Any]] | None:
+        """Stock news via GET /stable/news/stock, or None when plan-gated (§19.6).
+
+        The FMP free plan answers this endpoint with a "Restricted Endpoint"
+        body (and sometimes HTTP 402/403). That is "unavailable", not an
+        error: return None so callers fall through to the next news source.
+        Other failures map to ProviderError like every FMP call.
+        """
+        symbol = ticker.strip().upper()
+        what = f"FMP news for {symbol}"
+        params = {"symbols": symbol, "limit": str(limit), "apikey": self.api_key}
+        try:
+            response = self._client.get(
+                f"{BASE_URL}/stable/news/stock",
+                params=params,
+                timeout=TIMEOUT_SECONDS,
+            )
+            if response.status_code in (402, 403) or "Restricted Endpoint" in response.text:
+                return None  # plan-gated endpoint — unavailable, never an error
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as exc:
+            raise ProviderError(
+                f"{what} failed: Financial Modeling Prep returned HTTP "
+                f"{exc.response.status_code}."
+            ) from None  # severed: chained httpx error embeds the API key URL
+        except httpx.HTTPError as exc:
+            raise ProviderError(
+                f"{what} failed: could not reach Financial Modeling Prep "
+                f"({exc.__class__.__name__})."
+            ) from None  # severed: chained httpx error embeds the API key URL
+        except ValueError:
+            raise ProviderError(
+                f"{what} failed: Financial Modeling Prep returned invalid JSON."
+            ) from None  # severed: chained httpx error embeds the API key URL
+        if not isinstance(data, list):
+            return None
+        return [record for record in data if isinstance(record, dict)]
+
     def search(self, query: str) -> list[SearchResult]:
         q = query.strip()
         if not q:

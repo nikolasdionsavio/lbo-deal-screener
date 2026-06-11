@@ -13,14 +13,23 @@ from app.kpis import compute_kpis
 from app.lbo import derive_defaults
 from app.providers.base import DataProvider
 from app.schemas.company import CompanyDataBundle, CompanyProfile
+from app.schemas.filings import FilingsResponse
 from app.schemas.financials import FinancialsResponse
 from app.schemas.kpi import KpiResponse
 from app.schemas.lbo import LboAssumptions, LboDefaultsResponse, LboResponse
 from app.schemas.memo import MemoRequest, MemoResponse
+from app.schemas.news import NewsResponse
+from app.schemas.peers import PeersResponse
 from app.schemas.score import ScoreResponse
 from app.schemas.valuation import ValuationRequest, ValuationResponse
 from app.scoring import compute_score
-from app.services import company_service, deal_service
+from app.services import (
+    company_service,
+    deal_service,
+    filings_service,
+    news_service,
+    peers_service,
+)
 from app.valuation import compute_valuation
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -120,4 +129,34 @@ def post_memo(
 ) -> MemoResponse:
     bundle = _bundle(ticker, db, provider)
     assumptions = request.lbo_assumptions if request is not None else None
-    return deal_service.compose_memo(bundle, assumptions)
+    # Best-effort 10-K context (spec §19.3): failures never break the memo.
+    filings = filings_service.get_filings_for_memo(bundle.info.ticker, provider)
+    return deal_service.compose_memo(bundle, assumptions, filings=filings)
+
+
+@router.get("/{ticker}/peers")
+def get_peers(
+    ticker: str,
+    db: Session = Depends(get_db),
+    provider: DataProvider = Depends(get_provider_dep),
+) -> PeersResponse:
+    with provider_errors_to_http():
+        return peers_service.get_peers(ticker, db, provider)
+
+
+@router.get("/{ticker}/filings")
+def get_filings(
+    ticker: str,
+    provider: DataProvider = Depends(get_provider_dep),
+) -> FilingsResponse:
+    with provider_errors_to_http():
+        return filings_service.get_filings(ticker, provider)
+
+
+@router.get("/{ticker}/news")
+def get_news(
+    ticker: str,
+    provider: DataProvider = Depends(get_provider_dep),
+) -> NewsResponse:
+    with provider_errors_to_http():
+        return news_service.get_news(ticker, provider)

@@ -1,4 +1,4 @@
-"""KPI tests (spec §15) against the TESTCO fixture."""
+"""KPI and PE-diagnostics tests (spec §15, §19.1) against the TESTCO fixture."""
 
 import pytest
 
@@ -174,6 +174,7 @@ def test_series_keys_and_lengths(testco_bundle: CompanyDataBundle) -> None:
     response = compute_kpis(testco_bundle)
     expected_series = {
         "revenue", "ebitda", "free_cash_flow", "total_debt",
+        "dividends_paid", "share_buybacks",
         "gross_margin", "ebitda_margin", "net_income_margin", "fcf_margin",
         "net_debt_to_ebitda",
     }
@@ -212,3 +213,148 @@ def test_series_skips_years_with_missing_inputs(
         years = [p.fiscal_year for p in series[name]]
         assert years == [2021, 2022, 2024, 2025], name
     assert len(series["revenue"]) == 5  # untouched series keep all years
+
+
+# ---------------------------------------------------------------------------
+# PE diagnostics (spec §19.1)
+# ---------------------------------------------------------------------------
+
+DIAG_REL = 1e-4
+
+EXPECTED_DIAGNOSTIC_KEYS = [
+    "dso",
+    "dsi",
+    "dpo",
+    "cash_conversion_cycle",
+    "capital_return_pct_fcf",
+    "buyback_pct_fcf",
+    "incremental_ebitda_margin",
+]
+
+
+def diag_map(bundle: CompanyDataBundle) -> dict[str, TracedValue]:
+    response = compute_kpis(bundle)
+    return {d.key: d for d in response.diagnostics}
+
+
+def test_all_7_diagnostics_present_with_units(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    response = compute_kpis(testco_bundle)
+    assert [d.key for d in response.diagnostics] == EXPECTED_DIAGNOSTIC_KEYS
+    units = {d.key: d.unit for d in response.diagnostics}
+    for key in ("dso", "dsi", "dpo", "cash_conversion_cycle"):
+        assert units[key] == "days", key
+    for key in (
+        "capital_return_pct_fcf", "buyback_pct_fcf", "incremental_ebitda_margin",
+    ):
+        assert units[key] == "percent", key
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [
+        # TESTCO FY2025 bindings (spec §19.1): receivables 120m, inventory 80m,
+        # payables 90m, dividends 30m, buybacks 50m over revenue 1000m,
+        # COGS 600m, FCF 180m; ΔEBITDA 15m / Δrevenue 50m.
+        ("dso", 43.8),
+        ("dsi", 48.6667),
+        ("dpo", 54.75),
+        ("cash_conversion_cycle", 37.7167),
+        # 0.4444 per §19.1; exact 4/9 = 0.44444… sits just outside rel=1e-4 of
+        # the 4-decimal rounding, so the exact fraction is pinned instead.
+        ("capital_return_pct_fcf", 80 / 180),
+        ("buyback_pct_fcf", 0.2778),
+        ("incremental_ebitda_margin", 0.30),
+    ],
+)
+def test_testco_diagnostic_values(
+    testco_bundle: CompanyDataBundle, key: str, expected: float
+) -> None:
+    diag = diag_map(testco_bundle)[key]
+    assert diag.value == pytest.approx(expected, rel=DIAG_REL)
+    assert diag.warnings == []
+
+
+def test_diagnostic_periods(testco_bundle: CompanyDataBundle) -> None:
+    diags = diag_map(testco_bundle)
+    for key in EXPECTED_DIAGNOSTIC_KEYS[:-1]:
+        assert diags[key].period == "FY2025", key
+    assert diags["incremental_ebitda_margin"].period == "FY2024→FY2025"
+
+
+def test_ccc_inputs_are_component_day_metrics(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    ccc = diag_map(testco_bundle)["cash_conversion_cycle"]
+    by_field = {i.field: i.value for i in ccc.inputs}
+    assert by_field == {
+        "dso": pytest.approx(43.8, rel=DIAG_REL),
+        "dsi": pytest.approx(48.6667, rel=DIAG_REL),
+        "dpo": pytest.approx(54.75, rel=DIAG_REL),
+    }
+
+
+def test_missing_receivables_nones_dso_and_ccc_only(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    bundle.financials[-1].receivables = None
+    diags = diag_map(bundle)  # must not raise
+    for key in ("dso", "cash_conversion_cycle"):
+        assert diags[key].value is None, key
+        assert diags[key].warnings, key
+    # Unrelated diagnostics unaffected.
+    assert diags["dsi"].value == pytest.approx(48.6667, rel=DIAG_REL)
+    assert diags["dpo"].value == pytest.approx(54.75, rel=DIAG_REL)
+
+
+def test_missing_dividends_nones_capital_return_only(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    bundle.financials[-1].dividends_paid = None
+    diags = diag_map(bundle)
+    assert diags["capital_return_pct_fcf"].value is None
+    assert diags["capital_return_pct_fcf"].warnings
+    assert diags["buyback_pct_fcf"].value == pytest.approx(0.2778, rel=DIAG_REL)
+
+
+def test_incremental_margin_requires_prior_year(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    bundle.financials = bundle.financials[-1:]  # FY2025 only
+    diag = diag_map(bundle)["incremental_ebitda_margin"]
+    assert diag.value is None
+    assert diag.warnings
+
+
+def test_incremental_margin_zero_revenue_delta(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    bundle.financials[-1].revenue = bundle.financials[-2].revenue
+    diag = diag_map(bundle)["incremental_ebitda_margin"]
+    assert diag.value is None
+    assert diag.warnings
+
+
+def test_diagnostics_never_raise_on_empty_financials(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    bundle = testco_bundle.model_copy(deep=True)
+    bundle.financials = []
+    response = compute_kpis(bundle)
+    assert len(response.diagnostics) == 7
+    for diag in response.diagnostics:
+        assert diag.value is None
+        assert diag.warnings
+
+
+def test_capital_return_series_present(testco_bundle: CompanyDataBundle) -> None:
+    series = compute_kpis(testco_bundle).series
+    for name in ("dividends_paid", "share_buybacks"):
+        assert [p.fiscal_year for p in series[name]] == list(range(2021, 2026)), name
+    assert series["dividends_paid"][-1].value == pytest.approx(30e6, rel=REL)
+    assert series["share_buybacks"][-1].value == pytest.approx(50e6, rel=REL)

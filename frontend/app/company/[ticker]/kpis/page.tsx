@@ -4,6 +4,7 @@
 // inputs shown via title tooltip and warnings as inline amber badges) plus
 // fiscal-year trend charts. Data from GET /api/companies/{ticker}/kpis.
 
+import CapitalReturnsChart from "@/components/charts/CapitalReturnsChart";
 import MarginChart, {
   type MarginSeries,
 } from "@/components/charts/MarginChart";
@@ -19,6 +20,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { getKpis } from "@/lib/api";
 import {
   fmtCurrency,
+  fmtDays,
   fmtMultiple,
   fmtNumber,
   fmtPercent,
@@ -35,6 +37,8 @@ function fmtTraced(kpi: TracedValue, currency: string | null): string {
       return fmtMultiple(kpi.value);
     case "ratio":
       return fmtNumber(kpi.value, { digits: 2 });
+    case "days":
+      return fmtDays(kpi.value);
     case "currency":
     case "per_share":
       return fmtCurrency(kpi.value, currency);
@@ -171,8 +175,17 @@ export default function KpisPage() {
   });
   const leverage = series["net_debt_to_ebitda"];
   const showLeverage = leverage !== undefined && hasData(leverage);
+  const dividends = series["dividends_paid"];
+  const buybacks = series["share_buybacks"];
+  const showCapitalReturns =
+    (dividends !== undefined && hasData(dividends)) ||
+    (buybacks !== undefined && hasData(buybacks));
   const showCharts =
-    currencyCharts.length > 0 || marginSeries.length > 0 || showLeverage;
+    currencyCharts.length > 0 ||
+    marginSeries.length > 0 ||
+    showLeverage ||
+    showCapitalReturns;
+  const diagnostics = data.diagnostics ?? [];
 
   return (
     <div>
@@ -192,6 +205,25 @@ export default function KpisPage() {
           </p>
         </Card>
       </section>
+
+      {diagnostics.length > 0 && (
+        <section className="mt-10">
+          <SectionHeader
+            title="PE diagnostics"
+            subtitle="Working-capital efficiency and capital-return metrics, latest fiscal year"
+          />
+          <Card>
+            <DataTable
+              columns={kpiColumns(currency)}
+              rows={diagnostics}
+              rowKey={(kpi) => kpi.key}
+            />
+            <p className="mt-3 text-xs text-slate-500">
+              Hover a metric name to see the inputs behind the calculation.
+            </p>
+          </Card>
+        </section>
+      )}
 
       {showCharts && (
         <section className="mt-10">
@@ -226,6 +258,18 @@ export default function KpisPage() {
                   Net debt / EBITDA
                 </h3>
                 <MultipleSeriesChart data={leverage} />
+              </Card>
+            )}
+            {showCapitalReturns && (
+              <Card>
+                <h3 className="mb-2 text-sm font-semibold text-ink">
+                  Capital returns
+                </h3>
+                <CapitalReturnsChart
+                  dividends={dividends}
+                  buybacks={buybacks}
+                  currency={currency}
+                />
               </Card>
             )}
           </div>

@@ -16,6 +16,7 @@ import WarningList from "@/components/ui/WarningList";
 import { getScore } from "@/lib/api";
 import {
   fmtCurrency,
+  fmtDays,
   fmtMultiple,
   fmtNumber,
   fmtPercent,
@@ -32,6 +33,8 @@ function fmtTraced(input: TracedValue, currency: string | null): string {
       return fmtMultiple(input.value);
     case "ratio":
       return fmtNumber(input.value, { digits: 2 });
+    case "days":
+      return fmtDays(input.value);
     case "currency":
     case "per_share":
       return fmtCurrency(input.value, currency);

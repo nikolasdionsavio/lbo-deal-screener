@@ -14,11 +14,14 @@
 import importlib.util
 
 from app.core.config import Settings
+from app.providers.alphavantage import AlphaVantageProvider
 from app.providers.base import DataProvider
 from app.providers.edgar import SecEdgarProvider
 from app.providers.exceptions import ProviderConfigError
 from app.providers.fmp import FmpProvider
-from app.providers.live import CompositeLiveProvider
+from app.providers.live import CompositeLiveProvider, MarketDataAdapter
+from app.providers.polygon import PolygonProvider
+from app.providers.tiingo import TiingoProvider
 from app.providers.mock import MockProvider
 from app.providers.yahoo import YahooProvider
 from app.providers.yahoo_composite import YahooCompositeProvider
@@ -37,10 +40,23 @@ def _yfinance_importable() -> bool:
         return False
 
 
+def _build_market_adapters(settings: Settings) -> list[MarketDataAdapter]:
+    """Key-gated quote fallbacks for the §19.4 market-data chain, in chain
+    order after FMP: Polygon, Alpha Vantage, Tiingo."""
+    adapters: list[MarketDataAdapter] = []
+    if settings.polygon_api_key.strip():
+        adapters.append(PolygonProvider(settings.polygon_api_key))
+    if settings.alphavantage_api_key.strip():
+        adapters.append(AlphaVantageProvider(settings.alphavantage_api_key))
+    if settings.tiingo_api_key.strip():
+        adapters.append(TiingoProvider(settings.tiingo_api_key))
+    return adapters
+
+
 def _build_live(settings: Settings) -> CompositeLiveProvider:
     edgar = SecEdgarProvider(settings.sec_edgar_user_agent)
     fmp = FmpProvider(settings.fmp_api_key) if settings.fmp_api_key.strip() else None
-    return CompositeLiveProvider(edgar, fmp)
+    return CompositeLiveProvider(edgar, fmp, _build_market_adapters(settings))
 
 
 def _build_yahoo(settings: Settings) -> YahooCompositeProvider:

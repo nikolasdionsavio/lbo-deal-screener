@@ -229,6 +229,27 @@ export interface FilingsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// News (section 19.6)
+// ---------------------------------------------------------------------------
+
+export interface NewsItem {
+  title: string;
+  url: string;
+  source: string;
+  /** ISO timestamp. */
+  published_at: string;
+  summary: string | null;
+}
+
+export interface NewsResponse {
+  ticker: string;
+  /** Up to 12 items, newest first. */
+  items: NewsItem[];
+  provider: string;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Valuation (section 7)
 // ---------------------------------------------------------------------------
 

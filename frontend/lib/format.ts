@@ -66,3 +66,9 @@ export function fmtNumber(
     maximumFractionDigits: digits,
   });
 }
+
+/** Day-count metrics (DSO, DSI, DPO, CCC): "43.8 days"; null renders as —. */
+export function fmtDays(value: number | null | undefined): string {
+  if (isMissing(value)) return NOT_AVAILABLE;
+  return `${value.toFixed(1)} days`;
+}

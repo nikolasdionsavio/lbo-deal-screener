@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.schemas.company import CompanyProfile
+from app.schemas.filings import Filing
 from app.schemas.kpi import KpiResponse, TracedValue
 from app.schemas.lbo import LboResponse
 from app.schemas.memo import (
@@ -95,7 +96,19 @@ def _collect_data_gaps(
 # ---------------------------------------------------------------------------
 
 
-def _company_overview(profile: CompanyProfile, currency: str | None) -> str:
+def _latest_10k(filings: list[Filing] | None) -> Filing | None:
+    """The most recent linkable 10-K, or None (spec §19.3 memo lines)."""
+    if not filings:
+        return None
+    candidates = [f for f in filings if f.form == "10-K" and f.url and f.filed]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda f: f.filed or "")
+
+
+def _company_overview(
+    profile: CompanyProfile, currency: str | None, latest_10k: Filing | None = None
+) -> str:
     lines: list[str] = [f"**{profile.name} ({profile.ticker})**", ""]
     if profile.description:
         lines += [profile.description, ""]
@@ -124,6 +137,12 @@ def _company_overview(profile: CompanyProfile, currency: str | None) -> str:
         source += f" (data as of {profile.data_as_of})"
     source += "."
     lines.append(source)
+    if latest_10k is not None:
+        lines += [
+            "",
+            f"Latest 10-K filed {latest_10k.filed}: "
+            f"[view filing on SEC EDGAR]({latest_10k.url}).",
+        ]
     return "\n".join(lines)
 
 
@@ -284,7 +303,11 @@ def _valuation_view(valuation: ValuationResponse | None, currency: str | None) -
     return "\n".join(lines)
 
 
-def _key_risks(kpi_map: dict[str, TracedValue], data_gaps: list[str]) -> str:
+def _key_risks(
+    kpi_map: dict[str, TracedValue],
+    data_gaps: list[str],
+    latest_10k: Filing | None = None,
+) -> str:
     bullets: list[str] = []
     v = _kpi_value(kpi_map, "net_debt_to_ebitda")
     if v is not None and v > 3:
@@ -304,6 +327,11 @@ def _key_risks(kpi_map: dict[str, TracedValue], data_gaps: list[str]) -> str:
             "see the Data Gaps section."
         )
     bullets.append(f"- {PUBLIC_MARKET_RISK}")
+    if latest_10k is not None:
+        bullets.append(
+            "- For company-disclosed risk factors, see Item 1A of the "
+            f"[latest 10-K (filed {latest_10k.filed})]({latest_10k.url})."
+        )
     return "\n".join(bullets)
 
 
@@ -344,24 +372,28 @@ def generate_memo(
     lbo: LboResponse | None,
     score: ScoreResponse,
     currency: str | None = None,
+    filings: list[Filing] | None = None,
 ) -> MemoResponse:
     """Generate the nine-section investment memo (spec §10) from computed data.
 
     `currency` is the reporting currency code for monetary figures (spec §4);
     it defaults to the profile's currency, and USD for legacy callers.
+    `filings` (spec §19.3) optionally adds 10-K link lines to the overview and
+    key-risks sections; when absent the output is byte-identical to before.
     """
     ccy = currency or profile.currency or "USD"
     kpi_map = {tv.key: tv for tv in kpis.kpis}
     data_gaps = _collect_data_gaps(profile, kpis, valuation, lbo)
+    latest_10k = _latest_10k(filings)
 
     contents: dict[str, str] = {
-        "company_overview": _company_overview(profile, ccy),
+        "company_overview": _company_overview(profile, ccy, latest_10k),
         "investment_thesis": _investment_thesis(kpi_map),
         "financial_highlights": _financial_highlights(profile, ccy),
         "kpi_summary": _kpi_summary(kpis, kpi_map),
         "lbo_case_summary": _lbo_case_summary(lbo, ccy),
         "valuation_view": _valuation_view(valuation, ccy),
-        "key_risks": _key_risks(kpi_map, data_gaps),
+        "key_risks": _key_risks(kpi_map, data_gaps, latest_10k),
         "data_gaps": _data_gaps_section(data_gaps),
         "screening_view": _screening_view(score),
     }

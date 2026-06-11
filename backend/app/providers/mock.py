@@ -71,6 +71,30 @@ class MockProvider(DataProvider):
                 )
         return results
 
+    def get_peers(self, ticker: str) -> list[dict]:
+        """The other sample companies as the §19.2 duck-typed peer payload.
+
+        Returns ``[{symbol, name, price, mktCap}]`` built from each sample
+        bundle's market data. Hidden test fixtures (TESTCO) never appear as
+        anyone's peer — mirroring their exclusion from search — but still get
+        the real sample companies as their own peer set.
+        """
+        target = ticker.strip().upper()
+        peers: list[dict] = []
+        for symbol, bundle in sorted(self._load_bundles().items()):
+            if symbol == target or symbol in _HIDDEN_TICKERS:
+                continue
+            market = bundle.market
+            peers.append(
+                {
+                    "symbol": bundle.info.ticker,
+                    "name": bundle.info.name,
+                    "price": market.share_price if market is not None else None,
+                    "mktCap": market.market_cap if market is not None else None,
+                }
+            )
+        return peers
+
     def get_company(self, ticker: str) -> CompanyDataBundle:
         cached = self._load_bundles().get(ticker.strip().upper())
         if cached is None:

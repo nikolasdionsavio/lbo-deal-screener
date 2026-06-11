@@ -12,6 +12,8 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   rows: T[];
   rowKey?: (row: T, index: number) => string | number;
+  /** Optional extra classes per row (e.g. to highlight a pinned row). */
+  rowClassName?: (row: T, index: number) => string;
   className?: string;
 }
 
@@ -19,6 +21,7 @@ export default function DataTable<T>({
   columns,
   rows,
   rowKey,
+  rowClassName,
   className = "",
 }: DataTableProps<T>) {
   return (
@@ -43,7 +46,9 @@ export default function DataTable<T>({
           {rows.map((row, index) => (
             <tr
               key={rowKey ? rowKey(row, index) : index}
-              className="border-b border-slate-100 last:border-b-0"
+              className={`border-b border-slate-100 last:border-b-0 ${
+                rowClassName ? rowClassName(row, index) : ""
+              }`}
             >
               {columns.map((col) => (
                 <td

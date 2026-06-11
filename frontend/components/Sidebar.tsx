@@ -9,6 +9,7 @@ const COMPANY_PAGES = [
   { slug: "dashboard", label: "Dashboard" },
   { slug: "kpis", label: "KPIs" },
   { slug: "valuation", label: "Valuation" },
+  { slug: "peers", label: "Peer Comps" },
   { slug: "lbo", label: "LBO Model" },
   { slug: "score", label: "Deal Score" },
   { slug: "memo", label: "Memo" },

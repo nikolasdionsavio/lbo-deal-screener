@@ -1,5 +1,11 @@
 import StatCard from "@/components/ui/StatCard";
-import { fmtCurrency, fmtMultiple, fmtNumber, fmtPercent } from "@/lib/format";
+import {
+  fmtCurrency,
+  fmtDays,
+  fmtMultiple,
+  fmtNumber,
+  fmtPercent,
+} from "@/lib/format";
 import type { TracedValue } from "@/lib/types";
 
 function fmtTraced(tv: TracedValue, currency: string | null): string {
@@ -13,6 +19,8 @@ function fmtTraced(tv: TracedValue, currency: string | null): string {
       return fmtCurrency(tv.value, currency);
     case "ratio":
       return fmtNumber(tv.value, { digits: 2 });
+    case "days":
+      return fmtDays(tv.value);
   }
 }
 

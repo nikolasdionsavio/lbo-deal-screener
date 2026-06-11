@@ -53,6 +53,7 @@ Four providers, composed by a factory and controlled by `DATA_PROVIDER`:
 - **YahooProvider**: global live data (US, UK and EU listings) via the `yfinance` library. No API key required. This uses unofficial Yahoo Finance endpoints; see the trade-off below.
 - **SecEdgarProvider**: annual 10-K fundamentals from the official SEC EDGAR JSON API. No API key, but SEC requires a descriptive `User-Agent` header (`SEC_EDGAR_USER_AGENT`).
 - **FmpProvider**: share price, market cap and company profile from Financial Modeling Prep (`FMP_API_KEY`).
+- **PolygonProvider / AlphaVantageProvider / TiingoProvider**: optional key-gated market-data fallbacks for `live` mode (`POLYGON_API_KEY`, `ALPHAVANTAGE_API_KEY`, `TIINGO_API_KEY`). Quotes are tried in order FMP → Polygon → Alpha Vantage → Tiingo and the first provider with a quote wins; Tiingo supplies price only (no market cap/shares).
 - **MockProvider**: bundled sample JSON in `backend/data/sample/`, clearly labelled "Sample data (illustrative figures)". No network calls.
 
 Modes:
@@ -130,6 +131,9 @@ All variables are documented in `.env.example`. Defaults are chosen so the app r
 | `DATA_PROVIDER` | `auto`, `mock`, `live` or `yahoo` | `auto` | Set `mock` to force sample data, `yahoo` for keyless global live data, `live` for EDGAR + FMP |
 | `SEC_EDGAR_USER_AGENT` | Descriptive User-Agent for SEC EDGAR requests | empty | Official US fundamentals (required for `live`; recommended for `yahoo`/`auto`) |
 | `FMP_API_KEY` | Financial Modeling Prep API key | empty | Market data in `live` mode only (Yahoo modes need no key) |
+| `POLYGON_API_KEY` | Polygon.io API key | empty | Optional `live`-mode market-data fallback (tried after FMP); free key at https://polygon.io |
+| `ALPHAVANTAGE_API_KEY` | Alpha Vantage API key | empty | Optional `live`-mode market-data fallback (tried after Polygon); free key at https://www.alphavantage.co/support/#api-key |
+| `TIINGO_API_KEY` | Tiingo API key | empty | Optional `live`-mode market-data fallback (tried last; price only); free key at https://www.tiingo.com |
 | `CORS_ORIGINS` | Comma-separated allowed origins for the API | `http://localhost:3000` | Frontend served from another origin |
 | `NEXT_PUBLIC_API_URL` | Base URL the browser uses to reach the API | `http://localhost:8000` | Frontend deployed apart from the API (set in `frontend/.env.local` or as a Docker build arg) |
 
