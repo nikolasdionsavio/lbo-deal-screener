@@ -25,35 +25,33 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col px-8">
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-16">
-        <h1 className="text-center text-3xl font-semibold text-brand">
+        <h1 className="text-center font-display text-[2.5rem] font-semibold leading-tight text-ink">
           LBO Deal Screener
         </h1>
-        <p className="mt-3 text-center text-base text-slate-600">
+        <p className="mt-3 text-center text-base text-ink-secondary">
           A private equity style deal screening tool for public companies.
         </p>
 
-        <SearchBar className="mt-8" autoFocus />
+        <SearchBar className="mt-10" autoFocus />
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
-          <span className="text-slate-500">Sample companies:</span>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
+          <span className="text-ink-muted">Sample companies:</span>
           {SAMPLE_TICKERS.map((ticker) => (
             <Link
               key={ticker}
               href={`/company/${ticker}/dashboard`}
-              className="rounded border border-slate-300 bg-surface px-2.5 py-1 font-medium tabular-nums text-brand hover:border-brand"
+              className="rounded-full border border-line bg-surface px-3 py-1 font-medium tabular-nums text-ink-secondary transition-colors duration-150 hover:border-line-strong hover:text-ink"
             >
               {ticker}
             </Link>
           ))}
         </div>
 
-        <div className="mt-14 grid gap-8 sm:grid-cols-3">
+        <div className="mt-16 grid gap-8 border-t border-line pt-10 sm:grid-cols-3">
           {POINTS.map((point) => (
             <div key={point.title}>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink">
-                {point.title}
-              </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+              <h2 className="text-sm font-semibold text-ink">{point.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
                 {point.body}
               </p>
             </div>

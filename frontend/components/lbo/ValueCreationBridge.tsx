@@ -20,14 +20,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+  type ChartTheme,
+} from "@/components/charts/chartTheme";
 import Card from "@/components/ui/Card";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { fmtCurrency } from "@/lib/format";
 import type { LboResponse } from "@/lib/types";
-
-const BRAND = "#1e3a5f";
-const ACCENT = "#0d9488";
-const NEGATIVE = "#b91c1c";
 
 type RowKind = "total" | "increase" | "decrease";
 
@@ -42,9 +43,9 @@ interface BridgeRow {
   kind: RowKind;
 }
 
-function rowColor(kind: RowKind): string {
-  if (kind === "total") return BRAND;
-  return kind === "increase" ? ACCENT : NEGATIVE;
+function rowColor(kind: RowKind, chart: ChartTheme): string {
+  if (kind === "total") return chart.brand;
+  return kind === "increase" ? chart.accent : chart.negative;
 }
 
 function totalRow(label: string, value: number): BridgeRow {
@@ -82,9 +83,9 @@ function BridgeTooltip({ active, payload, currency }: BridgeTooltipProps) {
       ? `+${fmtCurrency(row.display, currency)}`
       : fmtCurrency(row.display, currency);
   return (
-    <div className="rounded border border-slate-200 bg-surface px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs shadow-card">
       <div className="font-medium text-ink">{row.label}</div>
-      <div className="mt-0.5 tabular-nums text-slate-600">{signed}</div>
+      <div className="mt-0.5 tabular-nums text-ink-secondary">{signed}</div>
     </div>
   );
 }
@@ -101,6 +102,7 @@ export default function ValueCreationBridge({
   currency = null,
   height = 280,
 }: ValueCreationBridgeProps) {
+  const chart = useChartTheme();
   const { entry, exit, assumptions } = lbo;
 
   const entryEquity = entry.sponsor_equity;
@@ -166,37 +168,37 @@ export default function ValueCreationBridge({
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#e2e8f0"
+                stroke={chart.grid}
                 vertical={false}
               />
               <XAxis
                 dataKey="label"
-                stroke="#64748b"
-                fontSize={11}
+                stroke={chart.axis}
+                fontSize={CHART_AXIS_FONT_SIZE}
                 tickLine={false}
                 interval={0}
               />
               <YAxis
-                stroke="#64748b"
-                fontSize={12}
+                stroke={chart.axis}
+                fontSize={CHART_AXIS_FONT_SIZE}
                 tickLine={false}
                 width={72}
                 tickFormatter={(v: number) => fmtCurrency(v, currency)}
               />
               <Tooltip
                 content={<BridgeTooltip currency={currency} />}
-                cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                cursor={{ fill: chart.cursorFill }}
               />
               <Bar dataKey="base" stackId="bridge" fill="transparent" />
               <Bar dataKey="size" stackId="bridge" radius={[2, 2, 0, 0]}>
                 {rows.map((row) => (
-                  <Cell key={row.label} fill={rowColor(row.kind)} />
+                  <Cell key={row.label} fill={rowColor(row.kind, chart)} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+        <p className="mt-3 border-t border-line pt-3 text-xs text-ink-muted">
           Exit equity = entry equity + entry multiple × (exit EBITDA − entry
           EBITDA) + (exit multiple − entry multiple) × exit EBITDA + (debt
           repaid + ending cash).

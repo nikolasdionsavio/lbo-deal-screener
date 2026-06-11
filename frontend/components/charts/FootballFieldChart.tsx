@@ -16,10 +16,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtCurrency, fmtMultiple } from "@/lib/format";
 import type { ValuationCase } from "@/lib/types";
-
-const BRAND = "#1e3a5f";
 
 interface ChartRow {
   label: string;
@@ -46,6 +48,8 @@ export default function FootballFieldChart({
   currency = null,
   height = 220,
 }: FootballFieldChartProps) {
+  const chart = useChartTheme();
+
   const rows: ChartRow[] = range.flatMap((row) =>
     row.implied_ev !== null && Number.isFinite(row.implied_ev)
       ? [
@@ -74,13 +78,13 @@ export default function FootballFieldChart({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            stroke={chart.grid}
             horizontal={false}
           />
           <XAxis
             type="number"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             // Keep the reference line inside the plot even when the current
             // EV sits beyond the highest implied EV.
@@ -94,8 +98,8 @@ export default function FootballFieldChart({
           <YAxis
             type="category"
             dataKey="label"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={48}
           />
@@ -111,25 +115,27 @@ export default function FootballFieldChart({
                 ? `${row.label} — ${fmtMultiple(row.multiple)} EV/EBITDA`
                 : label;
             }}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
+            cursor={{ fill: chart.cursorFill }}
           />
           <Bar
             dataKey="implied_ev"
             name="Implied EV"
-            fill={BRAND}
+            fill={chart.brand}
             barSize={22}
             radius={[0, 2, 2, 0]}
           />
           {refEv !== null && (
             <ReferenceLine
               x={refEv}
-              stroke="#475569"
+              stroke={chart.reference}
               strokeDasharray="4 4"
               label={{
                 value: "Current EV",
                 position: "top",
                 fontSize: 11,
-                fill: "#475569",
+                fill: chart.reference,
               }}
             />
           )}

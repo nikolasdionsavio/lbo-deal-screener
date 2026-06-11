@@ -16,14 +16,14 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <Card className={className}>
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold tabular-nums text-ink">
         {value}
       </div>
       {sub !== undefined && sub !== null && (
-        <div className="mt-1 text-xs text-slate-500">{sub}</div>
+        <div className="mt-1 text-xs text-ink-muted">{sub}</div>
       )}
     </Card>
   );

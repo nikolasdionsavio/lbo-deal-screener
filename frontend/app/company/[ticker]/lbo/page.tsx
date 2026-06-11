@@ -96,7 +96,7 @@ function yearColumns(currency: string | null): Column<LboYear>[] {
 function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">
         {label}
       </div>
       <div className="mt-1 text-lg font-semibold tabular-nums text-ink">
@@ -142,13 +142,14 @@ export default function LboPage() {
 
   const header = (
     <SectionHeader
+      variant="page"
       title="LBO Model"
       subtitle={`${profile.data_source} · Data as of ${
         profile.data_as_of ?? "not available"
       }`}
       actions={
         recomputing ? (
-          <span className="text-xs text-slate-500">Recomputing…</span>
+          <span className="text-xs text-ink-muted">Recomputing…</span>
         ) : undefined
       }
     />
@@ -233,7 +234,7 @@ export default function LboPage() {
                       value={fmtPercent(lbo.entry.equity_pct)}
                     />
                   </div>
-                  <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                  <p className="mt-4 border-t border-line pt-3 text-xs text-ink-muted">
                     Entry base ({entryBaseLabel}): EBITDA{" "}
                     {fmtCurrency(lbo.entry.entry_ebitda, currency)} on revenue{" "}
                     {fmtCurrency(lbo.entry.entry_revenue, currency)}.
@@ -260,7 +261,7 @@ export default function LboPage() {
                     <h3 className="text-sm font-semibold text-ink">
                       Debt paydown
                     </h3>
-                    <p className="mb-3 mt-0.5 text-xs text-slate-500">
+                    <p className="mb-3 mt-0.5 text-xs text-ink-muted">
                       Ending debt and ending cash by year; year 0 is the
                       opening debt at entry.
                     </p>

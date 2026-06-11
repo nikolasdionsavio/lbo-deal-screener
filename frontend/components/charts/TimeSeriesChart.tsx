@@ -11,6 +11,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtCurrency, fmtPercent } from "@/lib/format";
 import type { SeriesPoint } from "@/lib/types";
 
@@ -20,6 +24,7 @@ interface TimeSeriesChartProps {
   /** Reporting currency code for currency-formatted axes; null means USD. */
   currency?: string | null;
   variant?: "line" | "bar";
+  /** Series color override; defaults to the theme brand color. */
   color?: string;
   height?: number;
 }
@@ -29,15 +34,18 @@ export default function TimeSeriesChart({
   format,
   currency = null,
   variant = "bar",
-  color = "#1e3a5f",
+  color,
   height = 240,
 }: TimeSeriesChartProps) {
+  const chart = useChartTheme();
+  const seriesColor = color ?? chart.brand;
+
   const formatValue = (v: number): string =>
     format === "currency" ? fmtCurrency(v, currency) : fmtPercent(v);
 
   const axisProps = {
-    stroke: "#64748b",
-    fontSize: 12,
+    stroke: chart.axis,
+    fontSize: CHART_AXIS_FONT_SIZE,
     tickLine: false,
   } as const;
 
@@ -46,7 +54,7 @@ export default function TimeSeriesChart({
 
   const chartChildren = (
     <>
-      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+      <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
       <XAxis dataKey="fiscal_year" {...axisProps} />
       <YAxis
         {...axisProps}
@@ -56,7 +64,9 @@ export default function TimeSeriesChart({
       <Tooltip
         formatter={tooltipFormatter}
         labelFormatter={(label) => `FY${String(label)}`}
-        contentStyle={{ fontSize: 12 }}
+        contentStyle={chart.tooltip.contentStyle}
+        labelStyle={chart.tooltip.labelStyle}
+        cursor={variant === "bar" ? { fill: chart.cursorFill } : undefined}
       />
     </>
   );
@@ -67,7 +77,7 @@ export default function TimeSeriesChart({
         {variant === "bar" ? (
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             {chartChildren}
-            <Bar dataKey="value" fill={color} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="value" fill={seriesColor} radius={[2, 2, 0, 0]} />
           </BarChart>
         ) : (
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -75,7 +85,7 @@ export default function TimeSeriesChart({
             <Line
               type="monotone"
               dataKey="value"
-              stroke={color}
+              stroke={seriesColor}
               strokeWidth={2}
               dot={{ r: 3 }}
             />

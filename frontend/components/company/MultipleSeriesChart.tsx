@@ -13,20 +13,28 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtMultiple } from "@/lib/format";
 import type { SeriesPoint } from "@/lib/types";
 
 interface MultipleSeriesChartProps {
   data: SeriesPoint[];
+  /** Series color override; defaults to the theme brand color. */
   color?: string;
   height?: number;
 }
 
 export default function MultipleSeriesChart({
   data,
-  color = "#1e3a5f",
+  color,
   height = 240,
 }: MultipleSeriesChartProps) {
+  const chart = useChartTheme();
+  const seriesColor = color ?? chart.brand;
+
   const tooltipFormatter = (value: number | string): string =>
     typeof value === "number" ? fmtMultiple(value) : String(value);
 
@@ -39,18 +47,18 @@ export default function MultipleSeriesChart({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            stroke={chart.grid}
             vertical={false}
           />
           <XAxis
             dataKey="fiscal_year"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
           />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={56}
             tickFormatter={(v: number) => fmtMultiple(v)}
@@ -58,12 +66,13 @@ export default function MultipleSeriesChart({
           <Tooltip
             formatter={tooltipFormatter}
             labelFormatter={(label) => `FY${String(label)}`}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
           />
           <Line
             type="monotone"
             dataKey="value"
-            stroke={color}
+            stroke={seriesColor}
             strokeWidth={2}
             dot={{ r: 3 }}
           />

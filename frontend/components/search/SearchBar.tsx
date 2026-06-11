@@ -108,7 +108,7 @@ export default function SearchBar({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      <div className="flex items-center rounded-lg border border-slate-300 bg-surface shadow-sm focus-within:border-brand">
+      <div className="flex items-center rounded-lg border border-line bg-surface-sunken transition-colors duration-150 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft">
         <input
           type="text"
           role="combobox"
@@ -116,7 +116,7 @@ export default function SearchBar({
           aria-controls="company-search-results"
           aria-autocomplete="list"
           autoFocus={autoFocus}
-          className="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-slate-400"
+          className="w-full rounded-lg bg-transparent px-4 py-3 text-sm text-ink outline-none"
           placeholder={placeholder}
           value={query}
           onChange={(event) => {
@@ -128,7 +128,7 @@ export default function SearchBar({
         />
         {loading && (
           <span
-            className="mr-4 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-300 border-t-brand"
+            className="mr-4 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-brand"
             role="status"
             aria-label="Searching"
           />
@@ -139,21 +139,21 @@ export default function SearchBar({
         <ul
           id="company-search-results"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-slate-200 bg-surface py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-line-strong bg-surface py-1 shadow-card-hover"
         >
           {searchError !== null && (
-            <li className="px-4 py-2.5 text-sm text-negative">
+            <li className="px-4 py-2.5 text-sm text-negative-text">
               {searchError}
             </li>
           )}
           {searchError === null && loading && results === null && (
-            <li className="px-4 py-2.5 text-sm text-slate-500">Searching</li>
+            <li className="px-4 py-2.5 text-sm text-ink-muted">Searching</li>
           )}
           {searchError === null &&
             !loading &&
             results !== null &&
             results.length === 0 && (
-              <li className="px-4 py-2.5 text-sm text-slate-500">
+              <li className="px-4 py-2.5 text-sm text-ink-muted">
                 No matches
               </li>
             )}
@@ -165,7 +165,7 @@ export default function SearchBar({
                 role="option"
                 aria-selected={index === activeIndex}
                 className={`cursor-pointer px-4 py-2 text-sm ${
-                  index === activeIndex ? "bg-brand/5" : ""
+                  index === activeIndex ? "bg-brand-soft" : ""
                 }`}
                 onMouseEnter={() => setActiveIndex(index)}
                 onMouseDown={(event) => event.preventDefault()}
@@ -174,9 +174,9 @@ export default function SearchBar({
                 <span className="font-semibold tabular-nums text-ink">
                   {result.ticker}
                 </span>
-                <span className="ml-2 text-slate-600">{result.name}</span>
+                <span className="ml-2 text-ink-secondary">{result.name}</span>
                 {result.exchange !== null && result.exchange !== "" && (
-                  <span className="ml-2 text-xs text-slate-400">
+                  <span className="ml-2 text-xs text-ink-muted">
                     {result.exchange}
                   </span>
                 )}

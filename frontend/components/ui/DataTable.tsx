@@ -28,12 +28,12 @@ export default function DataTable<T>({
     <div className={`overflow-x-auto ${className}`}>
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-slate-200">
+          <tr className="border-b border-line">
             {columns.map((col) => (
               <th
                 key={col.key}
                 scope="col"
-                className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+                className={`px-3 py-2 text-xs font-medium text-ink-muted ${
                   col.numeric ? "text-right" : "text-left"
                 }`}
               >
@@ -46,7 +46,7 @@ export default function DataTable<T>({
           {rows.map((row, index) => (
             <tr
               key={rowKey ? rowKey(row, index) : index}
-              className={`border-b border-slate-100 last:border-b-0 ${
+              className={`border-b border-line transition-colors duration-150 last:border-b-0 hover:bg-brand-soft ${
                 rowClassName ? rowClassName(row, index) : ""
               }`}
             >

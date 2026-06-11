@@ -60,7 +60,7 @@ function ComponentCard({
     <Card>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold text-ink">{component.label}</h3>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-ink-muted">
           Weight {fmtWeight(component.weight)}
           {weightsDiffer && (
             <span> · effective {fmtWeight(component.effective_weight)}</span>
@@ -70,7 +70,7 @@ function ComponentCard({
 
       <div className="mt-3 flex items-center gap-3">
         <div
-          className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"
+          className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken"
           role="img"
           aria-label={
             component.score !== null
@@ -80,7 +80,7 @@ function ComponentCard({
         >
           {component.score !== null && (
             <div
-              className="h-full rounded-full bg-slate-400"
+              className="h-full rounded-full bg-brand"
               style={{
                 width: `${Math.max(0, Math.min(100, component.score))}%`,
               }}
@@ -94,21 +94,21 @@ function ComponentCard({
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-slate-700">{component.reason}</p>
+      <p className="mt-3 text-sm text-ink-secondary">{component.reason}</p>
 
       {component.weighted_points !== null && (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-ink-muted">
           Contributes {component.weighted_points.toFixed(1)} points to the
           total.
         </p>
       )}
 
       {component.inputs.length > 0 && (
-        <dl className="mt-3 space-y-0.5 border-t border-slate-100 pt-2">
+        <dl className="mt-3 space-y-0.5 border-t border-line pt-2">
           {component.inputs.map((input) => (
             <div
               key={input.key}
-              className="flex justify-between gap-3 text-xs text-slate-500"
+              className="flex justify-between gap-3 text-xs text-ink-muted"
             >
               <dt>
                 {input.label}
@@ -137,7 +137,7 @@ export default function ScorePage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader title="Deal score" />
+        <SectionHeader variant="page" title="Deal score" />
         <LoadingState lines={8} />
         <Disclaimer />
       </div>
@@ -147,7 +147,7 @@ export default function ScorePage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader title="Deal score" />
+        <SectionHeader variant="page" title="Deal score" />
         <ErrorState
           message={
             error !== null
@@ -165,6 +165,7 @@ export default function ScorePage() {
     <div>
       <section>
         <SectionHeader
+          variant="page"
           title="Deal score"
           subtitle={`Data source: ${profile.data_source} · Score as of ${data.as_of}`}
         />
@@ -172,12 +173,12 @@ export default function ScorePage() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="text-5xl font-semibold tabular-nums text-ink">
               {data.total.toFixed(1)}
-              <span className="ml-1 text-xl font-normal text-slate-400">
+              <span className="ml-1 text-xl font-normal text-ink-muted">
                 / 100
               </span>
             </div>
             <RatingBadge rating={data.rating} />
-            <p className="max-w-md text-sm text-slate-500">{data.disclaimer}</p>
+            <p className="max-w-md text-sm text-ink-muted">{data.disclaimer}</p>
           </div>
         </Card>
       </section>
@@ -201,7 +202,7 @@ export default function ScorePage() {
       <section className="mt-8">
         <SectionHeader title="Methodology" />
         <Card>
-          <p className="text-sm leading-relaxed text-slate-700">
+          <p className="text-sm leading-relaxed text-ink-secondary">
             The total score is the sum of each component score multiplied by
             its effective weight, using the weights shown on the cards above.
             Each input is scored linearly between a defined worst and best

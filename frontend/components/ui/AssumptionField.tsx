@@ -57,10 +57,10 @@ export default function AssumptionField({
 
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-medium text-slate-600">
+      <span className="mb-1 block text-xs font-medium text-ink-secondary">
         {label}
       </span>
-      <span className="flex items-center rounded border border-slate-300 bg-surface focus-within:border-brand">
+      <span className="flex items-center rounded border border-line bg-surface-sunken transition-colors duration-150 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft">
         <input
           type="number"
           inputMode="decimal"
@@ -72,7 +72,7 @@ export default function AssumptionField({
           onChange={handleChange}
         />
         {unit !== "" && (
-          <span className="pr-2 text-xs text-slate-500">{unit}</span>
+          <span className="pr-2 text-xs text-ink-muted">{unit}</span>
         )}
       </span>
     </label>

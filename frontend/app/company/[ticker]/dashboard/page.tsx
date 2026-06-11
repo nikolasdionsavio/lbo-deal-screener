@@ -22,7 +22,7 @@ import { useApi } from "@/lib/hooks";
 import type { Filing } from "@/lib/types";
 
 const NOT_AVAILABLE = (
-  <span title="Not available" className="text-slate-400">
+  <span title="Not available" className="text-ink-muted">
     —
   </span>
 );
@@ -57,7 +57,7 @@ function CompanyDescription({ description }: { description: string }) {
     <Card className="mt-4">
       <p
         ref={proseRef}
-        className={`text-sm leading-relaxed text-slate-700 ${
+        className={`text-sm leading-relaxed text-ink-secondary ${
           expanded ? "" : "line-clamp-4"
         }`}
       >
@@ -67,7 +67,7 @@ function CompanyDescription({ description }: { description: string }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-sm font-medium text-brand hover:underline"
+          className="mt-2 text-sm font-medium text-brand-text hover:underline"
           aria-expanded={expanded}
         >
           {expanded ? "Show less" : "Show more"}
@@ -84,8 +84,8 @@ function FilingFormBadge({ form }: { form: string }) {
     <span
       className={`inline-flex w-20 shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${
         accent
-          ? "border-accent/30 bg-accent/10 text-accent"
-          : "border-slate-300 bg-slate-50 text-slate-600"
+          ? "border-transparent bg-accent-soft text-positive-text"
+          : "border-line bg-surface-sunken text-ink-secondary"
       }`}
     >
       {form}
@@ -97,14 +97,14 @@ function FilingRow({ filing }: { filing: Filing }) {
   return (
     <li className="flex flex-wrap items-center gap-3 py-2">
       <FilingFormBadge form={filing.form} />
-      <span className="text-sm tabular-nums text-slate-600">
+      <span className="text-sm tabular-nums text-ink-secondary">
         Filed {filing.filed}
       </span>
       <a
         href={filing.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm font-medium text-brand underline decoration-slate-300 underline-offset-2 hover:decoration-brand"
+        className="text-sm font-medium text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
         title={filing.primary_document}
       >
         View filing
@@ -127,13 +127,13 @@ function RecentFilings({ ticker }: { ticker: string }) {
         {loading ? (
           <LoadingState lines={4} />
         ) : error !== null || data === null ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Could not load SEC filings
             {error !== null ? `: ${error.message}` : "."}
           </p>
         ) : data.filings.length === 0 ? (
           <div>
-            <p className="text-sm text-warn">
+            <p className="text-sm text-warn-text">
               {data.warnings.length > 0
                 ? data.warnings.join(" ")
                 : "No recent SEC filings are available for this company."}
@@ -141,7 +141,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
           </div>
         ) : (
           <>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {data.filings.map((filing) => (
                 <FilingRow key={filing.accession} filing={filing} />
               ))}

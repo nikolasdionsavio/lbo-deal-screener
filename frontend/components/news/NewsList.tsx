@@ -41,23 +41,23 @@ function NewsRow({ item }: { item: NewsItem }) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm font-medium text-brand underline decoration-slate-300 underline-offset-2 hover:decoration-brand"
+        className="text-sm font-medium text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
       >
         {item.title}
       </a>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
         <span>{item.source}</span>
-        <span className="text-slate-300">·</span>
+        <span className="text-ink-muted">·</span>
         <span className="tabular-nums">{absolute}</span>
         {relative !== null && (
           <>
-            <span className="text-slate-300">·</span>
+            <span className="text-ink-muted">·</span>
             <span>{relative}</span>
           </>
         )}
       </div>
       {item.summary !== null && item.summary !== "" && (
-        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-600">
+        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-secondary">
           {item.summary}
         </p>
       )}
@@ -67,7 +67,7 @@ function NewsRow({ item }: { item: NewsItem }) {
 
 export default function NewsList({ items }: { items: NewsItem[] }) {
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-line">
       {items.map((item, i) => (
         <NewsRow key={`${item.url}-${i}`} item={item} />
       ))}

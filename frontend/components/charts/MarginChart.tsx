@@ -10,6 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtPercent } from "@/lib/format";
 import type { SeriesPoint } from "@/lib/types";
 
@@ -22,8 +26,6 @@ interface MarginChartProps {
   series: MarginSeries[];
   height?: number;
 }
-
-const COLORS = ["#1e3a5f", "#0d9488", "#b45309", "#b91c1c", "#475569"];
 
 type Row = Record<string, number | null> & { fiscal_year: number };
 
@@ -45,6 +47,7 @@ function mergeSeries(series: MarginSeries[]): Row[] {
 }
 
 export default function MarginChart({ series, height = 260 }: MarginChartProps) {
+  const chart = useChartTheme();
   const rows = mergeSeries(series);
 
   const tooltipFormatter = (value: number | string): string =>
@@ -54,11 +57,16 @@ export default function MarginChart({ series, height = 260 }: MarginChartProps) 
     <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="fiscal_year" stroke="#64748b" fontSize={12} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
+          <XAxis
+            dataKey="fiscal_year"
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
+            tickLine={false}
+          />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={56}
             tickFormatter={(v: number) => fmtPercent(v)}
@@ -66,7 +74,8 @@ export default function MarginChart({ series, height = 260 }: MarginChartProps) 
           <Tooltip
             formatter={tooltipFormatter}
             labelFormatter={(label) => `FY${String(label)}`}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {series.map((s, i) => (
@@ -74,7 +83,7 @@ export default function MarginChart({ series, height = 260 }: MarginChartProps) 
               key={s.name}
               type="monotone"
               dataKey={s.name}
-              stroke={COLORS[i % COLORS.length]}
+              stroke={chart.series[i % chart.series.length]}
               strokeWidth={2}
               dot={{ r: 3 }}
               connectNulls

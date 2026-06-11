@@ -1,9 +1,9 @@
 import type { Rating } from "@/lib/types";
 
 const STYLES: Record<Rating, string> = {
-  Attractive: "border-accent/30 bg-accent/10 text-accent",
-  Watchlist: "border-warn/30 bg-warn/10 text-warn",
-  Pass: "border-negative/30 bg-negative/10 text-negative",
+  Attractive: "border-transparent bg-accent-soft text-positive-text",
+  Watchlist: "border-transparent bg-warn-soft text-warn-text",
+  Pass: "border-transparent bg-negative-soft text-negative-text",
 };
 
 interface RatingBadgeProps {

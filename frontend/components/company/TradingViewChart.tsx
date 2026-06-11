@@ -2,9 +2,12 @@
 
 // Official TradingView Advanced Chart embed widget. The widget supplies its
 // own price data and carries TradingView's required attribution; it is purely
-// presentational and independent of the app's data providers.
+// presentational and independent of the app's data providers. The widget is
+// torn down and re-created whenever the app theme changes so its colorTheme
+// always matches.
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "@/lib/theme";
 
 interface TradingViewChartProps {
   ticker: string;
@@ -27,6 +30,7 @@ export default function TradingViewChart({
   height = 460,
 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -47,7 +51,7 @@ export default function TradingViewChart({
       symbol: tvSymbol(ticker, exchange),
       interval: "D",
       timezone: "Etc/UTC",
-      theme: "light",
+      theme,
       style: "1",
       locale: "en",
       hide_top_toolbar: false,
@@ -63,14 +67,14 @@ export default function TradingViewChart({
     return () => {
       container.innerHTML = "";
     };
-  }, [ticker, exchange]);
+  }, [ticker, exchange, theme]);
 
   // The embed script overwrites the .tradingview-widget-container element's
   // inline style with height:100%, so the fixed height must live on an outer
   // wrapper the script never touches.
   return (
     <div
-      className="overflow-hidden rounded-lg border border-slate-200 bg-surface"
+      className="overflow-hidden rounded-lg border border-line bg-surface"
       style={{ height }}
     >
       <div

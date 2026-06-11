@@ -23,7 +23,7 @@ function caseLabel(value: string): string {
 
 function PremiumCell({ value }: { value: number | null }) {
   const color =
-    value === null ? "" : value > 0 ? "text-accent" : value < 0 ? "text-negative" : "";
+    value === null ? "" : value > 0 ? "text-positive-text" : value < 0 ? "text-negative-text" : "";
   return <span className={color}>{fmtPercent(value, { signed: true })}</span>;
 }
 
@@ -107,13 +107,14 @@ export default function ValuationPage() {
   return (
     <div className="space-y-8">
       <SectionHeader
+        variant="page"
         title="Valuation"
         subtitle={`${profile.data_source} · Data as of ${
           profile.data_as_of ?? "not available"
         }`}
         actions={
           recomputing ? (
-            <span className="text-xs text-slate-500">Recomputing…</span>
+            <span className="text-xs text-ink-muted">Recomputing…</span>
           ) : undefined
         }
       />
@@ -182,11 +183,11 @@ export default function ValuationPage() {
               )}
             </div>
             {data && data.range.some((row) => row.implied_ev !== null) && (
-              <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="mt-5 border-t border-line pt-4">
                 <h3 className="text-sm font-semibold text-ink">
                   Football field
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-ink-muted">
                   Implied enterprise value by case. The dashed line marks the
                   current enterprise value.
                 </p>

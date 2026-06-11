@@ -20,21 +20,23 @@ function LoginPrompt() {
   return (
     <div className="flex flex-1 items-center justify-center py-24">
       <Card className="w-full max-w-sm text-center">
-        <h1 className="text-lg font-semibold text-ink">Saved deals</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="font-display text-lg font-semibold text-ink">
+          Saved deals
+        </h1>
+        <p className="mt-2 text-sm text-ink-secondary">
           Saving deals to a watchlist requires an account. Analysis pages
           remain available without one.
         </p>
         <div className="mt-5 flex justify-center gap-3">
           <Link
             href="/login?next=%2Fdeals"
-            className="rounded bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90"
+            className="btn btn-primary px-4 py-2 text-sm"
           >
             Log in
           </Link>
           <Link
             href="/register?next=%2Fdeals"
-            className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="btn btn-secondary px-4 py-2 text-sm"
           >
             Register
           </Link>
@@ -63,7 +65,7 @@ function DealsList() {
   if (data.length === 0) {
     return (
       <Card>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-secondary">
           No saved deals yet. Open a company memo and use Save to watchlist to
           add one.
         </p>
@@ -92,6 +94,7 @@ export default function DealsPage() {
       ) : (
         <div className="mx-auto w-full max-w-4xl">
           <SectionHeader
+            variant="page"
             title="Saved deals"
             subtitle={`Signed in as ${user.email}. Scores and memos are snapshots taken when each deal was saved or last updated.`}
           />

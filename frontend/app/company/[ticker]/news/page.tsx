@@ -27,7 +27,7 @@ export default function NewsPage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader title="News" />
+        <SectionHeader variant="page" title="News" />
         <LoadingState lines={8} />
         <Disclaimer />
       </div>
@@ -37,7 +37,7 @@ export default function NewsPage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader title="News" />
+        <SectionHeader variant="page" title="News" />
         <ErrorState
           message={
             error !== null ? error.message : `Could not load news for ${ticker}.`
@@ -53,12 +53,13 @@ export default function NewsPage() {
     <div>
       <section>
         <SectionHeader
+          variant="page"
           title="News"
           subtitle={`Provider: ${data.provider}`}
         />
         {data.items.length === 0 ? (
           <Card>
-            <p className="text-sm text-warn">
+            <p className="text-sm text-warn-text">
               {data.warnings.length > 0
                 ? data.warnings.join(" ")
                 : `No recent news is available for ${ticker}.`}

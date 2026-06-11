@@ -16,11 +16,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtCurrency } from "@/lib/format";
 import type { LboYear } from "@/lib/types";
-
-const BRAND = "#1e3a5f";
-const ACCENT = "#0d9488";
 
 interface ChartRow {
   year: number;
@@ -42,6 +43,8 @@ export default function DebtPaydownChart({
   currency = null,
   height = 260,
 }: DebtPaydownChartProps) {
+  const chart = useChartTheme();
+
   // Hidden when the entry debt or the projection is missing.
   if (openingDebt === null || !Number.isFinite(openingDebt)) return null;
   if (years.length === 0) return null;
@@ -67,19 +70,19 @@ export default function DebtPaydownChart({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            stroke={chart.grid}
             vertical={false}
           />
           <XAxis
             dataKey="year"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             tickFormatter={(v: number) => `Y${v}`}
           />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={72}
             tickFormatter={(v: number) => fmtCurrency(v, currency)}
@@ -87,21 +90,23 @@ export default function DebtPaydownChart({
           <Tooltip
             formatter={tooltipFormatter}
             labelFormatter={(label) => `Year ${String(label)}`}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
+            cursor={{ fill: chart.cursorFill }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar
             dataKey="ending_debt"
             name="Ending debt"
-            fill={BRAND}
+            fill={chart.brand}
             radius={[2, 2, 0, 0]}
           />
           <Line
             dataKey="ending_cash"
             name="Ending cash"
-            stroke={ACCENT}
+            stroke={chart.accent}
             strokeWidth={2}
-            dot={{ r: 3, fill: ACCENT, strokeWidth: 0 }}
+            dot={{ r: 3, fill: chart.accent, strokeWidth: 0 }}
           />
         </ComposedChart>
       </ResponsiveContainer>

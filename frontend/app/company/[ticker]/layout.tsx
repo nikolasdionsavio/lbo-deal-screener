@@ -60,28 +60,28 @@ export default function CompanyLayout({
   return (
     <CompanyContext.Provider value={{ profile, refetch: retry }}>
       <div className="px-8 py-8">
-        <header className="mb-6 border-b border-slate-200 pb-5">
+        <header className="mb-6 border-b border-line pb-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h1 className="text-2xl font-semibold text-ink">
+                <h1 className="font-display text-[1.75rem] font-semibold leading-tight text-ink">
                   {profile.name}
                 </h1>
-                <span className="text-sm font-medium tabular-nums text-slate-500">
+                <span className="text-sm font-medium tabular-nums text-ink-muted">
                   {profile.ticker}
                   {profile.exchange !== null && profile.exchange !== ""
                     ? ` · ${profile.exchange}`
                     : ""}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-ink-muted">
                 {sectorIndustry !== ""
                   ? sectorIndustry
                   : "Sector and industry not available"}
               </p>
             </div>
             <span
-              className="inline-flex shrink-0 items-center rounded-full border border-slate-300 bg-surface px-3 py-1 text-xs text-slate-600"
+              className="inline-flex shrink-0 items-center rounded-full border border-line-strong bg-surface px-3 py-1 text-xs text-ink-secondary"
               title="Data source, data date and reporting currency"
             >
               {profile.data_source}

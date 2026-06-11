@@ -75,7 +75,7 @@ function kpiColumns(currency: string | null): Column<TracedValue>[] {
       header: "KPI",
       render: (kpi) => (
         <div title={inputsTitle(kpi, currency)}>
-          <span className="font-medium text-ink underline decoration-slate-300 decoration-dotted underline-offset-2">
+          <span className="font-medium text-ink underline decoration-line-strong decoration-dotted underline-offset-2">
             {kpi.label}
           </span>
           {kpi.warnings.length > 0 && (
@@ -83,7 +83,7 @@ function kpiColumns(currency: string | null): Column<TracedValue>[] {
               {kpi.warnings.map((warning, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[11px] text-warn"
+                  className="inline-flex items-center rounded-full border border-transparent bg-warn-soft px-2 py-0.5 text-[11px] text-warn-text"
                 >
                   {warning}
                 </span>
@@ -109,12 +109,12 @@ function kpiColumns(currency: string | null): Column<TracedValue>[] {
     {
       key: "period",
       header: "Period",
-      render: (kpi) => <span className="text-slate-600">{kpi.period}</span>,
+      render: (kpi) => <span className="text-ink-secondary">{kpi.period}</span>,
     },
     {
       key: "formula",
       header: "Formula",
-      render: (kpi) => <span className="text-slate-500">{kpi.formula}</span>,
+      render: (kpi) => <span className="text-ink-muted">{kpi.formula}</span>,
     },
   ];
 }
@@ -191,6 +191,7 @@ export default function KpisPage() {
     <div>
       <section>
         <SectionHeader
+          variant="page"
           title="Key performance indicators"
           subtitle={`Source: ${data.data_source} · Data as of ${data.as_of}`}
         />
@@ -200,7 +201,7 @@ export default function KpisPage() {
             rows={data.kpis}
             rowKey={(kpi) => kpi.key}
           />
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-ink-muted">
             Hover a KPI name to see the inputs behind the calculation.
           </p>
         </Card>
@@ -218,7 +219,7 @@ export default function KpisPage() {
               rows={diagnostics}
               rowKey={(kpi) => kpi.key}
             />
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-ink-muted">
               Hover a metric name to see the inputs behind the calculation.
             </p>
           </Card>

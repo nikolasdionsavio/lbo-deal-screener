@@ -17,14 +17,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import Card from "@/components/ui/Card";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { getFinancials } from "@/lib/api";
 import { fmtCurrency, fmtPercent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
-
-const BRAND = "#1e3a5f";
-const ACCENT = "#0d9488";
 
 const REVENUE_NAME = "Revenue";
 const MARGIN_NAME = "EBITDA margin";
@@ -48,6 +49,7 @@ export default function FinancialTrendChart({
   height = 260,
 }: FinancialTrendChartProps) {
   const { data } = useApi(() => getFinancials(ticker), [ticker]);
+  const chart = useChartTheme();
 
   // Hidden while loading and on error; the dashboard reads fine without it.
   if (data === null) return null;
@@ -97,20 +99,20 @@ export default function FinancialTrendChart({
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#e2e8f0"
+                stroke={chart.grid}
                 vertical={false}
               />
               <XAxis
                 dataKey="fiscal_year"
-                stroke="#64748b"
-                fontSize={12}
+                stroke={chart.axis}
+                fontSize={CHART_AXIS_FONT_SIZE}
                 tickLine={false}
                 tickFormatter={(v: number) => `FY${v}`}
               />
               <YAxis
                 yAxisId="revenue"
-                stroke="#64748b"
-                fontSize={12}
+                stroke={chart.axis}
+                fontSize={CHART_AXIS_FONT_SIZE}
                 tickLine={false}
                 width={72}
                 tickFormatter={(v: number) => fmtCurrency(v, currency)}
@@ -118,8 +120,8 @@ export default function FinancialTrendChart({
               <YAxis
                 yAxisId="margin"
                 orientation="right"
-                stroke="#64748b"
-                fontSize={12}
+                stroke={chart.axis}
+                fontSize={CHART_AXIS_FONT_SIZE}
                 tickLine={false}
                 width={56}
                 tickFormatter={(v: number) => fmtPercent(v, { digits: 0 })}
@@ -127,23 +129,25 @@ export default function FinancialTrendChart({
               <Tooltip
                 formatter={tooltipFormatter}
                 labelFormatter={(label) => `FY${String(label)}`}
-                contentStyle={{ fontSize: 12 }}
+                contentStyle={chart.tooltip.contentStyle}
+                labelStyle={chart.tooltip.labelStyle}
+                cursor={{ fill: chart.cursorFill }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar
                 yAxisId="revenue"
                 dataKey="revenue"
                 name={REVENUE_NAME}
-                fill={BRAND}
+                fill={chart.brand}
                 radius={[2, 2, 0, 0]}
               />
               <Line
                 yAxisId="margin"
                 dataKey="margin"
                 name={MARGIN_NAME}
-                stroke={ACCENT}
+                stroke={chart.accent}
                 strokeWidth={2}
-                dot={{ r: 3, fill: ACCENT, strokeWidth: 0 }}
+                dot={{ r: 3, fill: chart.accent, strokeWidth: 0 }}
                 connectNulls
               />
             </ComposedChart>

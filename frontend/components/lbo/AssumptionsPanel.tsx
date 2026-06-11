@@ -59,7 +59,7 @@ export default function AssumptionsPanel({
           <button
             type="button"
             onClick={onReset}
-            className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="btn btn-secondary px-2.5 py-1 text-xs"
           >
             Reset to defaults
           </button>
@@ -128,11 +128,11 @@ export default function AssumptionsPanel({
         </div>
 
         <label className="mt-3 block">
-          <span className="mb-1 block text-xs font-medium text-slate-600">
+          <span className="mb-1 block text-xs font-medium text-ink-secondary">
             Holding period
           </span>
           <select
-            className="w-full rounded border border-slate-300 bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand"
+            className="input px-2 py-1.5"
             value={values.holding_period}
             onChange={(event) => setHoldingPeriod(Number(event.target.value))}
           >
@@ -145,7 +145,7 @@ export default function AssumptionsPanel({
         </label>
 
         <div className="mt-4">
-          <div className="mb-1.5 text-xs font-semibold text-slate-600">
+          <div className="mb-1.5 text-xs font-semibold text-ink-secondary">
             Revenue growth by year
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -163,7 +163,7 @@ export default function AssumptionsPanel({
         </div>
 
         <div className="mt-4">
-          <div className="mb-1.5 text-xs font-semibold text-slate-600">
+          <div className="mb-1.5 text-xs font-semibold text-ink-secondary">
             EBITDA margin by year
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -181,7 +181,7 @@ export default function AssumptionsPanel({
         </div>
       </Card>
 
-      <div className="mt-3 space-y-1 text-xs text-slate-500">
+      <div className="mt-3 space-y-1 text-xs text-ink-muted">
         <p>Assumptions are editable; defaults derived from company data.</p>
         {Object.entries(basis).map(([key, note]) => (
           <p key={key}>

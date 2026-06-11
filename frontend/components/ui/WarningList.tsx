@@ -10,7 +10,7 @@ export default function WarningList({
   if (warnings.length === 0) return null;
   return (
     <ul
-      className={`space-y-1 rounded-lg border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn ${className}`}
+      className={`space-y-1 rounded-lg border border-transparent bg-warn-soft px-4 py-3 text-sm text-warn-text ${className}`}
     >
       {warnings.map((warning, i) => (
         <li key={i}>{warning}</li>

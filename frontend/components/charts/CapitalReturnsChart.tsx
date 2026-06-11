@@ -14,6 +14,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtCurrency } from "@/lib/format";
 import type { SeriesPoint } from "@/lib/types";
 
@@ -65,6 +69,8 @@ export default function CapitalReturnsChart({
   currency = null,
   height = 240,
 }: CapitalReturnsChartProps) {
+  const chart = useChartTheme();
+
   // Hidden when both series are absent.
   if (!hasValues(dividends) && !hasValues(buybacks)) return null;
 
@@ -79,18 +85,18 @@ export default function CapitalReturnsChart({
         <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            stroke={chart.grid}
             vertical={false}
           />
           <XAxis
             dataKey="fiscal_year"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
           />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={72}
             tickFormatter={(v: number) => fmtCurrency(v, currency)}
@@ -98,20 +104,22 @@ export default function CapitalReturnsChart({
           <Tooltip
             formatter={tooltipFormatter}
             labelFormatter={(label) => `FY${String(label)}`}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
+            cursor={{ fill: chart.cursorFill }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar
             dataKey="dividends"
             name="Dividends paid"
             stackId="returns"
-            fill="#1e3a5f"
+            fill={chart.brand}
           />
           <Bar
             dataKey="buybacks"
             name="Share buybacks"
             stackId="returns"
-            fill="#0d9488"
+            fill={chart.accent}
             radius={[2, 2, 0, 0]}
           />
         </BarChart>

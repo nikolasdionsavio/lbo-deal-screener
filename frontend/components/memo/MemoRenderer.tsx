@@ -1,7 +1,8 @@
 // Minimal markdown-ish renderer for memo section content (BUILD_SPEC
 // sections 10 and 19.5). Supports paragraphs (blank-line separated), "- "
-// bullet lists, and inline [text](url) links; nothing else. No dependency;
-// memo content is deterministic template text, not arbitrary HTML.
+// bullet lists, inline [text](url) links, and **bold** spans; nothing else.
+// No dependency; memo content is deterministic template text, not arbitrary
+// HTML.
 
 import type { ReactNode } from "react";
 
@@ -48,6 +49,30 @@ function parseBlocks(content: string): Block[] {
 // Inline [text](url) links. Only http(s) URLs become anchors; anything else
 // is left as literal text.
 const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+const BOLD_PATTERN = /\*\*([^*]+)\*\*/g;
+
+function renderBold(text: string, keyPrefix: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  BOLD_PATTERN.lastIndex = 0;
+  while ((match = BOLD_PATTERN.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <strong key={`${keyPrefix}-b${match.index}`} className="font-semibold text-ink">
+        {match[1]}
+      </strong>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : [text];
+}
 
 function renderInline(text: string): ReactNode {
   const parts: ReactNode[] = [];
@@ -57,7 +82,7 @@ function renderInline(text: string): ReactNode {
   LINK_PATTERN.lastIndex = 0;
   while ((match = LINK_PATTERN.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      parts.push(...renderBold(text.slice(lastIndex, match.index), `${match.index}`));
     }
     parts.push(
       <a
@@ -65,7 +90,7 @@ function renderInline(text: string): ReactNode {
         href={match[2]}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
+        className="font-medium text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
       >
         {match[1]}
       </a>,
@@ -73,34 +98,40 @@ function renderInline(text: string): ReactNode {
     lastIndex = match.index + match[0].length;
   }
 
-  if (parts.length === 0) return text;
+  if (parts.length === 0) return renderBold(text, "t");
   if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    parts.push(...renderBold(text.slice(lastIndex), "tail"));
   }
   return parts;
 }
 
 interface MemoRendererProps {
   content: string;
+  /** "warn" renders the prose in the warning text token (data gaps section). */
+  tone?: "default" | "warn";
   className?: string;
 }
 
 export default function MemoRenderer({
   content,
+  tone = "default",
   className = "",
 }: MemoRendererProps) {
   const blocks = parseBlocks(content);
+  const toneClass = tone === "warn" ? "text-warn-text" : "text-ink-secondary";
 
   if (blocks.length === 0) {
     return (
-      <p className={`text-sm text-slate-500 ${className}`}>
+      <p className={`text-sm text-ink-muted ${className}`}>
         No content available for this section.
       </p>
     );
   }
 
   return (
-    <div className={`space-y-3 text-sm leading-relaxed text-slate-700 ${className}`}>
+    <div
+      className={`max-w-[70ch] space-y-3 text-sm leading-relaxed ${toneClass} ${className}`}
+    >
       {blocks.map((block, i) =>
         block.type === "p" ? (
           <p key={i}>{renderInline(block.text)}</p>

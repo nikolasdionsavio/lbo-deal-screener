@@ -24,7 +24,7 @@ function safeNextPath(): string {
 }
 
 const INPUT_CLASS =
-  "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none";
+  "input mt-1";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -71,13 +71,13 @@ export default function RegisterPage() {
     <div className="flex min-h-screen flex-col px-8 py-8">
       <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-sm">
-          <h1 className="text-lg font-semibold text-ink">Register</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-lg font-semibold text-ink">Register</h1>
+          <p className="mt-1 text-sm text-ink-muted">
             An account is required only for saving deals to a watchlist.
           </p>
 
           <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-ink-secondary">
               Email
               <input
                 type="email"
@@ -88,7 +88,7 @@ export default function RegisterPage() {
                 className={INPUT_CLASS}
               />
             </label>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-ink-secondary">
               Password
               <input
                 type="password"
@@ -99,13 +99,13 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className={INPUT_CLASS}
               />
-              <span className="mt-1 block text-xs font-normal text-slate-500">
+              <span className="mt-1 block text-xs font-normal text-ink-muted">
                 At least 8 characters.
               </span>
             </label>
 
             {error !== null && (
-              <p className="text-sm text-negative" role="alert">
+              <p className="text-sm text-negative-text" role="alert">
                 {error}
               </p>
             )}
@@ -113,17 +113,17 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand/90 disabled:opacity-50"
+              className="btn btn-primary w-full px-3 py-2 text-sm"
             >
               {submitting ? "Creating account" : "Create account"}
             </button>
           </form>
 
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-4 text-sm text-ink-muted">
             Already registered?{" "}
             <Link
               href={loginHref}
-              className="font-medium text-brand underline-offset-2 hover:underline"
+              className="font-medium text-brand-text underline-offset-2 hover:underline"
             >
               Log in
             </Link>

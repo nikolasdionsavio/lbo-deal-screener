@@ -14,11 +14,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_AXIS_FONT_SIZE,
+  useChartTheme,
+} from "@/components/charts/chartTheme";
 import { fmtMultiple } from "@/lib/format";
 import type { PeerRow } from "@/lib/types";
-
-const BRAND = "#1e3a5f";
-const ACCENT = "#0d9488";
 
 interface ChartRow {
   ticker: string;
@@ -38,6 +39,8 @@ export default function EvEbitdaChart({
   peers,
   height = 260,
 }: EvEbitdaChartProps) {
+  const chart = useChartTheme();
+
   const rows: ChartRow[] = [
     { peer: target, isTarget: true },
     ...peers.map((peer) => ({ peer, isTarget: false })),
@@ -62,18 +65,18 @@ export default function EvEbitdaChart({
         <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            stroke={chart.grid}
             vertical={false}
           />
           <XAxis
             dataKey="ticker"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
           />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={chart.axis}
+            fontSize={CHART_AXIS_FONT_SIZE}
             tickLine={false}
             width={56}
             tickFormatter={(v: number) => fmtMultiple(v)}
@@ -86,13 +89,15 @@ export default function EvEbitdaChart({
               const row = rows.find((r) => r.ticker === label);
               return row ? `${row.name} (${row.ticker})` : label;
             }}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={chart.tooltip.contentStyle}
+            labelStyle={chart.tooltip.labelStyle}
+            cursor={{ fill: chart.cursorFill }}
           />
           <Bar dataKey="value" name="EV / EBITDA" radius={[2, 2, 0, 0]}>
             {rows.map((row) => (
               <Cell
                 key={row.ticker}
-                fill={row.isTarget ? ACCENT : BRAND}
+                fill={row.isTarget ? chart.accent : chart.brand}
               />
             ))}
           </Bar>

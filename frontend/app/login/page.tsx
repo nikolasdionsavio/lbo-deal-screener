@@ -23,7 +23,7 @@ function safeNextPath(): string {
 }
 
 const INPUT_CLASS =
-  "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none";
+  "input mt-1";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,13 +66,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col px-8 py-8">
       <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-sm">
-          <h1 className="text-lg font-semibold text-ink">Log in</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-lg font-semibold text-ink">Log in</h1>
+          <p className="mt-1 text-sm text-ink-muted">
             Required only for saving deals. Analysis pages are public.
           </p>
 
           <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-ink-secondary">
               Email
               <input
                 type="email"
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 className={INPUT_CLASS}
               />
             </label>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-ink-secondary">
               Password
               <input
                 type="password"
@@ -96,7 +96,7 @@ export default function LoginPage() {
             </label>
 
             {error !== null && (
-              <p className="text-sm text-negative" role="alert">
+              <p className="text-sm text-negative-text" role="alert">
                 {error}
               </p>
             )}
@@ -104,17 +104,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand/90 disabled:opacity-50"
+              className="btn btn-primary w-full px-3 py-2 text-sm"
             >
               {submitting ? "Logging in" : "Log in"}
             </button>
           </form>
 
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-4 text-sm text-ink-muted">
             No account?{" "}
             <Link
               href={registerHref}
-              className="font-medium text-brand underline-offset-2 hover:underline"
+              className="font-medium text-brand-text underline-offset-2 hover:underline"
             >
               Register
             </Link>

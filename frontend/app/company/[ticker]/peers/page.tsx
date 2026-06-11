@@ -31,8 +31,8 @@ export default function PeersPage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader title="Peer comparables" />
-        <p className="mb-4 text-sm text-slate-500">
+        <SectionHeader variant="page" title="Peer comparables" />
+        <p className="mb-4 text-sm text-ink-muted">
           Loading peer comparables. The first load fetches financials for each
           peer and can take around 30 seconds; later visits are served from
           cache.
@@ -46,7 +46,7 @@ export default function PeersPage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader title="Peer comparables" />
+        <SectionHeader variant="page" title="Peer comparables" />
         <ErrorState
           message={
             error !== null
@@ -66,6 +66,7 @@ export default function PeersPage() {
     <div>
       <section>
         <SectionHeader
+          variant="page"
           title="Peer comparables"
           subtitle={`Peer source: ${data.peer_source} · Data as of ${data.as_of}`}
         />
@@ -74,7 +75,7 @@ export default function PeersPage() {
           <PeerStatCards stats={data.stats} />
         ) : (
           <Card>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-muted">
               No peers are available for {ticker}.
             </p>
           </Card>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 
 const COMPANY_PAGES = [
   { slug: "dashboard", label: "Dashboard" },
@@ -15,6 +16,76 @@ const COMPANY_PAGES = [
   { slug: "memo", label: "Memo" },
   { slug: "news", label: "News" },
 ];
+
+// Inline 16px icons, 1.5px stroke (DESIGN.md Iconography).
+function SunIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+/**
+ * Theme toggle for the sidebar footer. Cycles light → dark → light and shows
+ * the current state. The label is gated on mount: the server renders a
+ * neutral placeholder because the active theme is only known on the client.
+ */
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted && theme === "dark";
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={
+        mounted
+          ? `Switch to ${isDark ? "light" : "dark"} theme`
+          : "Toggle theme"
+      }
+      className="flex w-full items-center gap-2.5 rounded px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+    >
+      {isDark ? <MoonIcon /> : <SunIcon />}
+      <span>{mounted ? (isDark ? "Dark theme" : "Light theme") : "Theme"}</span>
+    </button>
+  );
+}
 
 function linkClass(active: boolean): string {
   return `block rounded px-3 py-1.5 text-sm transition-colors ${
@@ -45,7 +116,7 @@ export default function Sidebar() {
   const ticker = routeTicker ?? storedTicker;
 
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-brand">
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-sidebar">
       <div className="px-5 pb-4 pt-6">
         <Link href="/" className="block">
           <div className="text-base font-semibold text-white">
@@ -111,7 +182,9 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-white/10 px-3 py-4">
-        {user ? (
+        <ThemeToggle />
+        <div className="mt-3">
+          {user ? (
           <div className="space-y-2 px-3">
             <div className="truncate text-xs text-white/60" title={user.email}>
               {user.email}
@@ -135,6 +208,7 @@ export default function Sidebar() {
             </Link>
           </div>
         )}
+        </div>
       </div>
     </aside>
   );

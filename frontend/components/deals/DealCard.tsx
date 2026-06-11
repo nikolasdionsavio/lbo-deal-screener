@@ -63,13 +63,13 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <Link
               href={companyHref}
-              className="text-base font-semibold text-brand underline-offset-2 hover:underline"
+              className="text-base font-semibold text-brand-text underline-offset-2 hover:underline"
             >
               {deal.ticker}
             </Link>
-            <span className="text-sm text-slate-600">{deal.company_name}</span>
+            <span className="text-sm text-ink-secondary">{deal.company_name}</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-muted">
             Analysed {fmtDate(deal.created_at)} · Updated{" "}
             {fmtDate(deal.updated_at)}
           </p>
@@ -85,10 +85,10 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 border-t border-slate-100 pt-3">
+      <div className="mt-4 border-t border-line pt-3">
         {assumptions !== null ? (
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-slate-600">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-ink-secondary">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">
               Saved assumptions
             </span>
             <span className="tabular-nums">
@@ -99,17 +99,17 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
             </span>
             <Link
               href={lboHref}
-              className="font-medium text-brand underline-offset-2 hover:underline"
+              className="font-medium text-brand-text underline-offset-2 hover:underline"
             >
               Open in LBO model
             </Link>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             No saved LBO assumptions.{" "}
             <Link
               href={lboHref}
-              className="font-medium text-brand underline-offset-2 hover:underline"
+              className="font-medium text-brand-text underline-offset-2 hover:underline"
             >
               Open in LBO model
             </Link>
@@ -122,7 +122,7 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
           type="button"
           onClick={() => setMemoOpen((open) => !open)}
           disabled={deal.memo === null}
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-default disabled:opacity-50"
+          className="btn btn-secondary px-3 py-1.5 text-sm"
         >
           {deal.memo === null
             ? "No memo snapshot"
@@ -133,12 +133,12 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
 
         {confirming ? (
           <span className="flex items-center gap-2 text-sm">
-            <span className="text-slate-600">Delete this saved deal?</span>
+            <span className="text-ink-secondary">Delete this saved deal?</span>
             <button
               type="button"
               onClick={onDelete}
               disabled={deleting}
-              className="rounded bg-negative px-3 py-1.5 text-sm font-medium text-white hover:bg-negative/90 disabled:opacity-50"
+              className="btn bg-negative px-3 py-1.5 text-sm text-white hover:bg-negative-hover"
             >
               {deleting ? "Deleting" : "Confirm delete"}
             </button>
@@ -146,7 +146,7 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
               type="button"
               onClick={() => setConfirming(false)}
               disabled={deleting}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="btn btn-secondary px-3 py-1.5 text-sm"
             >
               Cancel
             </button>
@@ -155,24 +155,24 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
           <button
             type="button"
             onClick={() => setConfirming(true)}
-            className="rounded border border-negative/40 px-3 py-1.5 text-sm font-medium text-negative hover:bg-negative/5"
+            className="btn btn-destructive px-3 py-1.5 text-sm"
           >
             Delete
           </button>
         )}
 
         {deleteError !== null && (
-          <span className="text-sm text-negative">{deleteError}</span>
+          <span className="text-sm text-negative-text">{deleteError}</span>
         )}
       </div>
 
       {memoOpen && deal.memo !== null && (
-        <div className="mt-4 rounded-lg border border-slate-200 bg-bg p-5">
+        <div className="mt-4 rounded-lg border border-line bg-surface-sunken p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-ink">
               Memo snapshot — {deal.memo.ticker}
             </h3>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-ink-muted">
               Generated {fmtDate(deal.memo.generated_at)}
             </span>
           </div>
@@ -181,19 +181,20 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
               section.key === "data_gaps" ? (
                 <section
                   key={section.key}
-                  className="rounded-lg border border-warn/30 bg-warn/10 p-4"
+                  className="rounded-lg bg-warn-soft p-4"
                 >
-                  <h4 className="text-sm font-semibold text-warn">
+                  <h4 className="font-display text-sm font-semibold text-warn-text">
                     {section.title}
                   </h4>
                   <MemoRenderer
                     content={section.content}
-                    className="mt-2 text-warn"
+                    tone="warn"
+                    className="mt-2"
                   />
                 </section>
               ) : (
                 <section key={section.key}>
-                  <h4 className="text-sm font-semibold text-ink">
+                  <h4 className="font-display text-sm font-semibold text-ink">
                     {section.title}
                   </h4>
                   <MemoRenderer content={section.content} className="mt-2" />
@@ -201,7 +202,7 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
               ),
             )}
           </div>
-          <p className="mt-4 text-xs text-slate-500">{deal.memo.disclaimer}</p>
+          <p className="mt-4 text-xs text-ink-muted">{deal.memo.disclaimer}</p>
         </div>
       )}
     </Card>
