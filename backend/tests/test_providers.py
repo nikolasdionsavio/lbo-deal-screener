@@ -309,11 +309,12 @@ FMP_PROFILE = {
     "companyName": "Fixture Manufacturing Corp",
     "sector": "Industrials",
     "industry": "Industrial Machinery",
-    "exchangeShortName": "NYSE",
+    "exchange": "NYSE",
+    "exchangeFullName": "New York Stock Exchange",
     "description": "Synthetic fixture company.",
     "cik": "0001234567",
     "price": 25.0,
-    "mktCap": 1250000000,
+    "marketCap": 1250000000,
 }
 FMP_QUOTE = {
     "symbol": "FIXT",
@@ -328,9 +329,17 @@ FMP_SEARCH = [
         "symbol": "FIXT",
         "name": "Fixture Manufacturing Corp",
         "currency": "USD",
-        "stockExchange": "New York Stock Exchange",
-        "exchangeShortName": "NYSE",
-    }
+        "exchangeFullName": "New York Stock Exchange",
+        "exchange": "NYSE",
+    },
+    {
+        # Non-US cross-listing: must be filtered out by the provider.
+        "symbol": "FIXT.SW",
+        "name": "Fixture Manufacturing Corp",
+        "currency": "CHF",
+        "exchangeFullName": "Swiss Exchange",
+        "exchange": "SIX",
+    },
 ]
 
 
@@ -344,12 +353,11 @@ def _fmp_handler(
         path = request.url.path
         if empty:
             return httpx.Response(200, json=[])
-        if path == "/api/v3/profile/FIXT":
+        if path == "/stable/profile" and request.url.params.get("symbol") == "FIXT":
             return httpx.Response(200, json=[FMP_PROFILE])
-        if path == "/api/v3/quote/FIXT":
+        if path == "/stable/quote" and request.url.params.get("symbol") == "FIXT":
             return httpx.Response(200, json=[FMP_QUOTE])
-        if path == "/api/v3/search":
-            assert request.url.params.get("exchange") == "NASDAQ,NYSE"
+        if path == "/stable/search-name":
             return httpx.Response(200, json=FMP_SEARCH)
         return httpx.Response(200, json=[])
 
@@ -396,7 +404,7 @@ def test_fmp_empty_payloads_return_none() -> None:
 def test_fmp_search_maps_results() -> None:
     results = _make_fmp(_fmp_handler()).search("fixture")
     assert [r.ticker for r in results] == ["FIXT"]
-    assert results[0].exchange == "NYSE"
+    assert results[0].exchange == "New York Stock Exchange"
     assert results[0].source == "fmp"
 
 

@@ -1,9 +1,10 @@
 """FmpProvider: market data, company profile and search from FMP (spec §5).
 
-Official JSON endpoints on https://financialmodelingprep.com:
-- GET /api/v3/profile/{ticker}   -> company profile (sector, industry, ...)
-- GET /api/v3/quote/{ticker}     -> share price / market cap / shares
-- GET /api/v3/search?query=&exchange=NASDAQ,NYSE -> ticker search
+Official JSON endpoints on https://financialmodelingprep.com (the "stable" API;
+the /api/v3 endpoints are legacy-only for accounts created before 2025-08-31):
+- GET /stable/profile?symbol=     -> company profile (sector, industry, ...)
+- GET /stable/quote?symbol=       -> share price / market cap / shares
+- GET /stable/search-name?query=  -> ticker search (post-filtered to US venues)
 
 This is a market-data component used by CompositeLiveProvider, not a full
 DataProvider (it has no fundamentals). All HTTP: 15s timeout, errors mapped to
@@ -22,7 +23,7 @@ from app.schemas.company import CompanyInfo, MarketData, SearchResult
 
 BASE_URL = "https://financialmodelingprep.com"
 TIMEOUT_SECONDS = 15.0
-SEARCH_EXCHANGES = "NASDAQ,NYSE"
+US_EXCHANGES = {"NASDAQ", "NYSE", "AMEX"}
 DATA_SOURCE = "Financial Modeling Prep"
 
 
@@ -69,7 +70,7 @@ class FmpProvider:
         """Company profile, or None when FMP has no record for the ticker."""
         symbol = ticker.strip().upper()
         data = self._request_json(
-            f"/api/v3/profile/{symbol}", {}, what=f"FMP profile for {symbol}"
+            "/stable/profile", {"symbol": symbol}, what=f"FMP profile for {symbol}"
         )
         if not isinstance(data, list) or not data:
             return None
@@ -79,7 +80,7 @@ class FmpProvider:
             name=str(record.get("companyName") or symbol),
             sector=record.get("sector") or None,
             industry=record.get("industry") or None,
-            exchange=record.get("exchangeShortName") or None,
+            exchange=record.get("exchange") or record.get("exchangeShortName") or None,
             description=record.get("description") or None,
             cik=record.get("cik") or None,
         )
@@ -88,7 +89,7 @@ class FmpProvider:
         """Latest quote as MarketData, or None when FMP has no quote."""
         symbol = ticker.strip().upper()
         data = self._request_json(
-            f"/api/v3/quote/{symbol}", {}, what=f"FMP quote for {symbol}"
+            "/stable/quote", {"symbol": symbol}, what=f"FMP quote for {symbol}"
         )
         if not isinstance(data, list) or not data:
             return None
@@ -111,8 +112,8 @@ class FmpProvider:
         if not q:
             return []
         data = self._request_json(
-            "/api/v3/search",
-            {"query": q, "exchange": SEARCH_EXCHANGES},
+            "/stable/search-name",
+            {"query": q, "limit": "20"},
             what=f"FMP search for '{q}'",
         )
         if not isinstance(data, list):
@@ -120,18 +121,22 @@ class FmpProvider:
         results: list[SearchResult] = []
         for record in data:
             symbol = record.get("symbol")
-            if not symbol:
+            # The stable search has no server-side venue filter; keep US listings
+            # only (product scope) and drop suffixed cross-listings like HD.SW.
+            if not symbol or record.get("exchange") not in US_EXCHANGES:
                 continue
             results.append(
                 SearchResult(
                     ticker=str(symbol),
                     name=str(record.get("name") or symbol),
-                    exchange=record.get("exchangeShortName")
-                    or record.get("stockExchange")
+                    exchange=record.get("exchangeFullName")
+                    or record.get("exchange")
                     or None,
                     source=self.name,
                 )
             )
+            if len(results) >= 8:
+                break
         return results
 
 
