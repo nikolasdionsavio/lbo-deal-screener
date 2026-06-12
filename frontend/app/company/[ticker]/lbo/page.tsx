@@ -15,7 +15,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import StatCard from "@/components/ui/StatCard";
 import WarningList from "@/components/ui/WarningList";
 import { getLboDefaults, runLbo } from "@/lib/api";
-import { fmtCurrency, fmtDate, fmtMultiple, fmtPercent } from "@/lib/format";
+import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
 import type { LboAssumptions, LboResponse, LboYear } from "@/lib/types";
 
@@ -143,10 +143,9 @@ export default function LboPage() {
   const header = (
     <SectionHeader
       variant="page"
+      as="h2"
       title="LBO Model"
-      subtitle={`${profile.data_source} · Data as of ${
-        profile.data_as_of !== null ? fmtDate(profile.data_as_of) : "not available"
-      }`}
+      subtitle="Simplified five-year model. Edits recompute everything, including sensitivities."
       actions={
         recomputing ? (
           <span className="text-xs text-ink-muted">Recomputing…</span>
@@ -192,14 +191,18 @@ export default function LboPage() {
       {lbo && lbo.warnings.length > 0 && <WarningList warnings={lbo.warnings} />}
 
       <div className="grid items-start gap-6 xl:grid-cols-[340px,minmax(0,1fr)]">
-        <AssumptionsPanel
-          values={current}
-          basis={defaults.basis}
-          onChange={(values) => setEdited({ ticker, values })}
-          onReset={() => setEdited(null)}
-        />
+        {/* Assumptions stay in view while the outputs scroll (xl and up);
+            64px clears the sticky top bar. */}
+        <div className="xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-80px)] xl:self-start xl:overflow-y-auto">
+          <AssumptionsPanel
+            values={current}
+            basis={defaults.basis}
+            onChange={(values) => setEdited({ ticker, values })}
+            onReset={() => setEdited(null)}
+          />
+        </div>
 
-        <div className="min-w-0 space-y-8">
+        <div className="min-w-0">
           {lboApi.error ? (
             <ErrorState message={lboApi.error.message} onRetry={lboApi.retry} />
           ) : !lbo ? (
@@ -242,41 +245,9 @@ export default function LboPage() {
                 </Card>
               </section>
 
-              <section>
+              <section className="divider-dashed mt-8 pt-8">
                 <SectionHeader
-                  title={`${lbo.assumptions.holding_period}-year projection`}
-                  subtitle={`All figures ${
-                    currency ?? "USD"
-                  }. ΔNWC is the change in net working capital.`}
-                />
-                <Card>
-                  <DataTable
-                    columns={yearColumns(currency)}
-                    rows={lbo.years}
-                    rowKey={(row) => row.year}
-                  />
-                </Card>
-                {lbo.entry.opening_debt !== null && lbo.years.length > 0 && (
-                  <Card className="mt-5">
-                    <h3 className="text-sm font-semibold text-ink">
-                      Debt paydown
-                    </h3>
-                    <p className="mb-3 mt-0.5 text-xs text-ink-muted">
-                      Ending debt and ending cash by year; year 0 is the
-                      opening debt at entry.
-                    </p>
-                    <DebtPaydownChart
-                      openingDebt={lbo.entry.opening_debt}
-                      years={lbo.years}
-                      currency={currency}
-                    />
-                  </Card>
-                )}
-              </section>
-
-              <section>
-                <SectionHeader
-                  title="Exit"
+                  title="Returns"
                   subtitle={`Exit at ${fmtMultiple(
                     lbo.assumptions.exit_multiple,
                   )} EV/EBITDA after ${lbo.assumptions.holding_period} ${
@@ -318,9 +289,43 @@ export default function LboPage() {
                 </div>
               </section>
 
-              <ValueCreationBridge lbo={lbo} currency={currency} />
+              <section className="divider-dashed mt-8 pt-8">
+                <SectionHeader
+                  title={`${lbo.assumptions.holding_period}-year projection`}
+                  subtitle={`All figures ${
+                    currency ?? "USD"
+                  }. ΔNWC is the change in net working capital.`}
+                />
+                <Card>
+                  <DataTable
+                    columns={yearColumns(currency)}
+                    rows={lbo.years}
+                    rowKey={(row) => row.year}
+                  />
+                </Card>
+              </section>
 
-              <section>
+              {lbo.entry.opening_debt !== null && lbo.years.length > 0 && (
+                <section className="divider-dashed mt-8 pt-8">
+                  <SectionHeader
+                    title="Debt paydown"
+                    subtitle="Ending debt and ending cash by year; year 0 is the opening debt at entry."
+                  />
+                  <Card>
+                    <DebtPaydownChart
+                      openingDebt={lbo.entry.opening_debt}
+                      years={lbo.years}
+                      currency={currency}
+                    />
+                  </Card>
+                </section>
+              )}
+
+              <div className="divider-dashed mt-8 pt-8">
+                <ValueCreationBridge lbo={lbo} currency={currency} />
+              </div>
+
+              <section className="divider-dashed mt-8 pt-8">
                 <SectionHeader
                   title="Sensitivities"
                   subtitle="The full model is recomputed for each cell. The base case cell is outlined."

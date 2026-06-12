@@ -55,6 +55,7 @@ def upsert_company(db: Session, bundle: CompanyDataBundle) -> Company:
     company.industry = bundle.info.industry
     company.exchange = bundle.info.exchange
     company.cik = bundle.info.cik
+    company.description = bundle.info.description
     company.currency = bundle.currency
     company.data_source = bundle.data_source
     company.fetched_at = fetched_at
@@ -110,6 +111,7 @@ def get_cached(
             sector=company.sector,
             industry=company.industry,
             exchange=company.exchange,
+            description=company.description,
             cik=company.cik,
         ),
         market=None,  # §11 companies table carries no market-data columns

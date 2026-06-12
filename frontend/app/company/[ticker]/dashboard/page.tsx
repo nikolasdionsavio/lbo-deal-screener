@@ -1,10 +1,12 @@
 "use client";
 
-// Company dashboard: StatCard grid over every profile field from
-// BUILD_SPEC section 2 / section 12 (profile endpoint), the business
-// description as collapsible prose (section 19.6), and a lazily fetched
-// "Recent SEC filings" card (section 19.5). Profile data comes from the
-// layout's CompanyContext; filings from GET /api/companies/{ticker}/filings.
+// Company dashboard, ordered by decision relevance (BUILD_SPEC section
+// 19.8 IA pass): a six-tile Snapshot band (the numbers an analyst checks
+// first), the business description, secondary financial tiles, the
+// financial trend chart, the TradingView price chart, recent SEC filings,
+// and the data-source tiles last. Identity fields (name/ticker/sector/
+// industry) live only in the layout's company header. Profile data comes
+// from CompanyContext; filings from GET /api/companies/{ticker}/filings.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
@@ -14,7 +16,6 @@ import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionHeader from "@/components/ui/SectionHeader";
-import StatCard from "@/components/ui/StatCard";
 import WarningList from "@/components/ui/WarningList";
 import { getFilings } from "@/lib/api";
 import { fmtCurrency, fmtDate } from "@/lib/format";
@@ -85,8 +86,43 @@ function DataSourceRow({
   );
 }
 
-function text(value: string | null): ReactNode {
-  return value === null || value === "" ? NOT_AVAILABLE : value;
+/** Snapshot band tile: compact, value-first (the analyst's first scan). */
+function SnapshotTile({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-line bg-surface px-4 py-3 shadow-card">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+        {label}
+      </div>
+      <div className="mt-0.5 text-xl font-semibold tabular-nums text-ink">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/** Secondary financial tile: one register smaller than the snapshot band. */
+function DetailTile({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-line bg-surface px-4 py-3 shadow-card">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+        {label}
+      </div>
+      <div className="mt-0.5 text-base font-semibold tabular-nums text-ink">
+        {value}
+      </div>
+      {sub !== undefined && (
+        <div className="mt-0.5 text-[11px] text-ink-muted">{sub}</div>
+      )}
+    </div>
+  );
 }
 
 /** Business description as prose, clamped to ~4 lines with a toggle when long. */
@@ -112,7 +148,7 @@ function CompanyDescription({ description }: { description: string }) {
   }, [description, expanded]);
 
   return (
-    <Card className="mt-4">
+    <Card>
       <p
         ref={proseRef}
         className={`text-sm leading-relaxed text-ink-secondary ${
@@ -225,75 +261,53 @@ export default function DashboardPage() {
       ? NOT_AVAILABLE
       : `FY${profile.latest_fiscal_year}`;
 
+  const fyNote =
+    profile.latest_fiscal_year !== null
+      ? `FY${profile.latest_fiscal_year}`
+      : "the latest fiscal year";
+
   return (
     <div>
       <section>
-        <SectionHeader title="Company" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Name"
-            value={<span className="text-base">{profile.name}</span>}
-          />
-          <StatCard label="Ticker" value={profile.ticker} />
-          <StatCard
-            label="Sector"
-            value={<span className="text-base">{text(profile.sector)}</span>}
-          />
-          <StatCard
-            label="Industry"
-            value={<span className="text-base">{text(profile.industry)}</span>}
-          />
-        </div>
-        {profile.description !== null && profile.description !== "" && (
-          <CompanyDescription description={profile.description} />
-        )}
-      </section>
-
-      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
-          title="Market"
-          subtitle={
-            profile.data_as_of !== null
-              ? `As of ${fmtDate(profile.data_as_of)}`
-              : "Data date not available"
-          }
+          title="Snapshot"
+          subtitle={`Price and EV at market; revenue, EBITDA and net debt from ${fyNote}. EV = market cap + net debt.`}
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Share price" value={money(profile.share_price)} />
-          <StatCard label="Market cap" value={money(profile.market_cap)} />
-          <StatCard
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <SnapshotTile label="Share price" value={money(profile.share_price)} />
+          <SnapshotTile label="Market cap" value={money(profile.market_cap)} />
+          <SnapshotTile
             label="Enterprise value"
             value={money(profile.enterprise_value)}
-            sub="Market cap + net debt"
           />
+          <SnapshotTile label="Revenue" value={money(profile.revenue)} />
+          <SnapshotTile label="EBITDA" value={money(profile.ebitda)} />
+          <SnapshotTile label="Net debt" value={money(profile.net_debt)} />
         </div>
       </section>
 
+      {profile.description !== null && profile.description !== "" && (
+        <section className="divider-dashed mt-8 pt-8">
+          <SectionHeader title="Business" />
+          <CompanyDescription description={profile.description} />
+        </section>
+      )}
+
       <section className="divider-dashed mt-8 pt-8">
-        <SectionHeader
-          title="Financials"
-          subtitle={
-            profile.latest_fiscal_year !== null
-              ? `Latest fiscal year FY${profile.latest_fiscal_year}`
-              : "Latest fiscal year not available"
-          }
-        />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Revenue" value={money(profile.revenue)} />
-          <StatCard label="EBITDA" value={money(profile.ebitda)} />
-          <StatCard label="Net income" value={money(profile.net_income)} />
-          <StatCard
+        <SectionHeader title="Financial detail" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <DetailTile label="Net income" value={money(profile.net_income)} />
+          <DetailTile
             label="Free cash flow"
             value={money(profile.free_cash_flow)}
           />
-          <StatCard label="Cash" value={money(profile.cash)} />
-          <StatCard label="Total debt" value={money(profile.total_debt)} />
-          <StatCard
-            label="Net debt"
-            value={money(profile.net_debt)}
-            sub="Total debt less cash"
+          <DetailTile label="Cash" value={money(profile.cash)} />
+          <DetailTile
+            label="Total debt"
+            value={money(profile.total_debt)}
+            sub="Net debt = total debt less cash"
           />
-          <StatCard label="Latest fiscal year" value={fiscalYearLabel} />
+          <DetailTile label="Latest fiscal year" value={fiscalYearLabel} />
         </div>
       </section>
 

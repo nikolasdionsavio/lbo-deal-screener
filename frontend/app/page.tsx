@@ -121,7 +121,8 @@ function HeroArcs() {
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col px-8">
+    // Full viewport height minus the h-12 top bar.
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-8">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-16">
         <Reveal>
           <section className="relative overflow-hidden rounded-3xl bg-surface-sunken px-6 py-12 text-center sm:px-12 sm:py-14">

@@ -135,9 +135,13 @@ export function getFilings(ticker: string): Promise<FilingsResponse> {
   );
 }
 
-export function getNews(ticker: string): Promise<NewsResponse> {
+export function getNews(
+  ticker: string,
+  limit?: number,
+): Promise<NewsResponse> {
+  const query = limit !== undefined ? `?limit=${limit}` : "";
   return request<NewsResponse>(
-    `/api/companies/${encodeURIComponent(ticker)}/news`,
+    `/api/companies/${encodeURIComponent(ticker)}/news${query}`,
   );
 }
 

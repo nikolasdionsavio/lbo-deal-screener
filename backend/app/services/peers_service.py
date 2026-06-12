@@ -1,9 +1,16 @@
-"""Peer comparables composition (spec §19.2).
+"""Peer comparables composition (spec §19.2, caching §19.8).
 
 Peer discovery is duck-typed: the active provider's ``get_peers`` is used when
 present (MockProvider and FmpProvider expose it); otherwise an FmpProvider is
 constructed from settings when ``fmp_api_key`` is set; otherwise peers are
 unavailable (warning + empty list, never an error).
+
+Discovery caching (§19.8, non-mock sources only): the raw peers payload is
+cached in the ``peers_cache`` table with a 7-day TTL. While fresh it is served
+without touching the source; on expiry the source is re-queried and the cache
+refreshed; when the refresh fails (FMP quota or any provider error) the STALE
+payload is served with a warning; quota with no cache yields the §19.8 quota
+warning and an empty list.
 
 Market cap / price for each peer come from the peers payload itself (no extra
 quote calls). Per-peer fundamentals go through the cached
@@ -23,11 +30,12 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.config import settings as global_settings
+from app.crud import peers as peers_crud
 from app.normalization import reporting_currency
 from app.providers.base import DataProvider
 from app.providers.exceptions import ProviderError
 from app.providers.fmp import DATA_SOURCE as FMP_DATA_SOURCE
-from app.providers.fmp import FmpProvider
+from app.providers.fmp import FmpProvider, FmpQuotaExceededError
 from app.providers.mock import MockProvider
 from app.schemas.company import CompanyDataBundle
 from app.schemas.financials import FiscalYearFinancials
@@ -140,6 +148,42 @@ def _build_row(
     return row
 
 
+def _discover_with_cache(
+    ticker: str,
+    db: Session,
+    source: Callable[[str], PeerPayload],
+    warnings: list[str],
+) -> PeerPayload:
+    """§19.8 cached peer discovery: fresh cache > refresh > stale cache > [].
+
+    A fresh cache row (7-day TTL) is served without calling the source. On
+    expiry (or no cache) the source is queried and the cache refreshed. When
+    the refresh raises (FMP quota cooldown included), a stale cache row is
+    served with a warning; with no cache at all the §19.8 quota warning (or
+    the generic discovery failure) is recorded and the list stays empty.
+    """
+    cached = peers_crud.get_peers_cache(db, ticker)
+    if cached is not None and peers_crud.is_fresh(cached):
+        return list(cached.payload)
+    try:
+        raw_peers = source(ticker) or []
+    except ProviderError as exc:
+        if cached is not None:
+            fetched = peers_crud._as_utc(cached.fetched_at).date().isoformat()
+            warnings.append(
+                f"Peer list served from cache fetched {fetched} "
+                f"(refresh failed: {exc})"
+            )
+            return list(cached.payload)
+        if isinstance(exc, FmpQuotaExceededError):
+            warnings.append(str(exc))  # the literal §19.8 quota warning
+        else:
+            warnings.append(f"Peer discovery failed: {exc}")
+        return []
+    peers_crud.upsert_peers_cache(db, ticker, raw_peers)
+    return raw_peers
+
+
 def _quantile(sorted_values: list[float], q: float) -> float:
     """Linearly interpolated quantile over an ascending-sorted list."""
     n = len(sorted_values)
@@ -200,11 +244,14 @@ def get_peers(
     raw_peers: PeerPayload = []
     if source is None:
         warnings.append(NO_SOURCE_WARNING)
-    else:
+    elif isinstance(provider, MockProvider):
+        # Mock is instant and quota-free: never cached (matches §11 policy).
         try:
             raw_peers = source(ticker) or []
         except ProviderError as exc:
             warnings.append(f"Peer discovery failed: {exc}")
+    else:
+        raw_peers = _discover_with_cache(ticker, db, source, warnings)
     if source is not None and not raw_peers and not warnings:
         warnings.append(f"No peers found for {ticker}.")
 

@@ -3,6 +3,10 @@
 // App sidebar (DESIGN.md Aesthetic v2): sits on --bg with a hairline right
 // border in both themes (navy retired). Brand block, dashed-divider section
 // rhythm, 16px 1.5px-stroke nav icons, and a raised-card active item.
+// Manually collapsible (BUILD_SPEC section 19.8 app chrome): a chevron in
+// the brand block toggles a 64px icon rail (title-attr tooltips, raised
+// active icon card, icon-only theme toggle), persisted in
+// localStorage("sidebar_collapsed"); never auto-collapses.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -155,6 +159,22 @@ function MoonIcon({ className }: IconProps) {
   );
 }
 
+function ChevronLeftIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M10 3 5 8l5 5" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="m6 3 5 5-5 5" />
+    </svg>
+  );
+}
+
 const COMPANY_PAGES: {
   slug: string;
   label: string;
@@ -175,8 +195,9 @@ const COMPANY_PAGES: {
  * Theme toggle for the sidebar footer. Cycles light → dark → light and shows
  * the current state. The label is gated on mount: the server renders a
  * neutral placeholder because the active theme is only known on the client.
+ * Collapsed rail: icon-only with the label moved to title/aria-label.
  */
-function ThemeToggle() {
+function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const { theme, toggle } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -185,34 +206,48 @@ function ThemeToggle() {
   }, []);
 
   const isDark = mounted && theme === "dark";
+  const label = mounted
+    ? `Switch to ${isDark ? "light" : "dark"} theme`
+    : "Toggle theme";
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={
-        mounted
-          ? `Switch to ${isDark ? "light" : "dark"} theme`
-          : "Toggle theme"
-      }
-      className="flex w-full items-center gap-2.5 rounded-full px-3 py-1.5 text-xs text-ink-muted transition-colors duration-150 hover:bg-brand-soft hover:text-ink"
+      aria-label={label}
+      title={collapsed ? label : undefined}
+      className={`flex items-center rounded-full text-xs text-ink-muted transition-colors duration-150 hover:bg-brand-soft hover:text-ink ${
+        collapsed
+          ? "mx-auto h-8 w-8 justify-center"
+          : "w-full gap-2.5 px-3 py-1.5"
+      }`}
     >
       {isDark ? <MoonIcon /> : <SunIcon />}
-      <span>{mounted ? (isDark ? "Dark theme" : "Light theme") : "Theme"}</span>
+      {!collapsed && (
+        <span>
+          {mounted ? (isDark ? "Dark theme" : "Light theme") : "Theme"}
+        </span>
+      )}
     </button>
   );
 }
 
 // Active item: raised card (surface, hairline border, card shadow, 8px
 // radius). Inactive: quiet ink-muted with a soft hover. The transparent
-// border on inactive items keeps geometry stable across states.
-function linkClass(active: boolean): string {
-  return `flex items-center gap-2.5 rounded border px-3 py-1.5 text-sm transition-colors duration-150 ${
+// border on inactive items keeps geometry stable across states. The
+// collapsed rail keeps both treatments on a centered icon square.
+function linkClass(active: boolean, collapsed: boolean): string {
+  const shape = collapsed
+    ? "h-9 w-10 justify-center"
+    : "gap-2.5 px-3 py-1.5";
+  return `flex items-center rounded border text-sm transition-colors duration-150 ${shape} ${
     active
       ? "border-line bg-surface font-medium text-ink shadow-card"
       : "border-transparent text-ink-muted hover:bg-brand-soft hover:text-ink"
   }`;
 }
+
+const COLLAPSE_KEY = "sidebar_collapsed";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -222,6 +257,29 @@ export default function Sidebar() {
   const routeTicker = match ? decodeURIComponent(match[1]).toUpperCase() : null;
 
   const [storedTicker, setStoredTicker] = useState<string | null>(null);
+
+  // Collapse state restores from localStorage after mount (the server cannot
+  // know it); the width transition only arms after that restore so a reload
+  // into a collapsed rail does not animate.
+  const [collapsed, setCollapsed] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === "1");
+    setRestored(true);
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((value) => {
+      const next = !value;
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      } catch {
+        // Persistence is best-effort; the in-session state still applies.
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (routeTicker) {
@@ -234,43 +292,82 @@ export default function Sidebar() {
 
   const ticker = routeTicker ?? storedTicker;
 
-  return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-line bg-bg">
-      <div className="px-5 pb-4 pt-6">
-        <Link href="/" className="block">
-          <div className="text-base font-semibold text-ink">
-            LBO Deal Screener
-          </div>
-          <div className="mt-0.5 text-xs text-ink-muted">
-            PE screening for public companies
-          </div>
-        </Link>
-      </div>
-      <div className="divider-dashed mx-5" />
+  const toggleButton = (
+    <button
+      type="button"
+      onClick={toggleCollapsed}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-ink-muted transition-colors duration-150 hover:bg-brand-soft hover:text-ink"
+    >
+      {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+    </button>
+  );
 
-      <nav className="flex-1 px-3 py-4">
-        <div>
-          <Link href="/" className={linkClass(pathname === "/")}>
-            <SearchIcon className="shrink-0" />
-            <span>Search</span>
-          </Link>
-        </div>
+  return (
+    <aside
+      className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-line bg-bg ${
+        collapsed ? "w-16" : "w-60"
+      } ${restored ? "transition-[width] duration-200 ease-out" : ""}`}
+    >
+      <div className={collapsed ? "px-2 pb-4 pt-6" : "px-5 pb-4 pt-6"}>
+        {collapsed ? (
+          <div className="flex justify-center">{toggleButton}</div>
+        ) : (
+          <div className="flex items-start justify-between gap-2">
+            <Link href="/" className="block min-w-0">
+              <div className="whitespace-nowrap text-base font-semibold text-ink">
+                LBO Deal Screener
+              </div>
+              <div className="mt-0.5 whitespace-nowrap text-xs text-ink-muted">
+                PE screening for public companies
+              </div>
+            </Link>
+            {toggleButton}
+          </div>
+        )}
+      </div>
+      <div className={`divider-dashed ${collapsed ? "mx-2" : "mx-5"}`} />
+
+      <nav className={`flex-1 py-4 ${collapsed ? "px-2" : "px-3"}`}>
+        <ul className={collapsed ? "flex flex-col items-center" : undefined}>
+          <li>
+            <Link
+              href="/"
+              className={linkClass(pathname === "/", collapsed)}
+              title={collapsed ? "Search" : undefined}
+            >
+              <SearchIcon className="shrink-0" />
+              {!collapsed && <span>Search</span>}
+            </Link>
+          </li>
+        </ul>
 
         <div className="divider-dashed mx-2 my-4" />
 
         <div>
-          <div className="px-3 pb-1.5 text-[11px] font-medium text-ink-muted">
-            {ticker ? ticker : "Company"}
-          </div>
+          {!collapsed && (
+            <div className="px-3 pb-1.5 text-[11px] font-medium text-ink-muted">
+              {ticker ? ticker : "Company"}
+            </div>
+          )}
           {ticker ? (
-            <ul className="space-y-0.5">
+            <ul
+              className={`space-y-0.5 ${
+                collapsed ? "flex flex-col items-center" : ""
+              }`}
+            >
               {COMPANY_PAGES.map((page) => {
                 const href = `/company/${encodeURIComponent(ticker)}/${page.slug}`;
                 return (
                   <li key={page.slug}>
-                    <Link href={href} className={linkClass(pathname === href)}>
+                    <Link
+                      href={href}
+                      className={linkClass(pathname === href, collapsed)}
+                      title={collapsed ? page.label : undefined}
+                    >
                       <page.Icon className="shrink-0" />
-                      <span>{page.label}</span>
+                      {!collapsed && <span>{page.label}</span>}
                     </Link>
                   </li>
                 );
@@ -278,75 +375,97 @@ export default function Sidebar() {
             </ul>
           ) : (
             <>
-              <ul className="space-y-0.5">
+              <ul
+                className={`space-y-0.5 ${
+                  collapsed ? "flex flex-col items-center" : ""
+                }`}
+              >
                 {COMPANY_PAGES.map((page) => (
                   <li key={page.slug}>
                     <span
-                      className="flex cursor-not-allowed items-center gap-2.5 rounded border border-transparent px-3 py-1.5 text-sm text-ink-muted opacity-50"
-                      title="Search a company first"
+                      className={`flex cursor-not-allowed items-center rounded border border-transparent text-sm text-ink-muted opacity-50 ${
+                        collapsed
+                          ? "h-9 w-10 justify-center"
+                          : "gap-2.5 px-3 py-1.5"
+                      }`}
+                      title={
+                        collapsed
+                          ? `${page.label} — search a company first`
+                          : "Search a company first"
+                      }
                       aria-disabled="true"
                     >
                       <page.Icon className="shrink-0" />
-                      <span>{page.label}</span>
+                      {!collapsed && <span>{page.label}</span>}
                     </span>
                   </li>
                 ))}
               </ul>
-              <p className="px-3 pt-1.5 text-[11px] text-ink-muted">
-                Search a company first
-              </p>
+              {!collapsed && (
+                <p className="px-3 pt-1.5 text-[11px] text-ink-muted">
+                  Search a company first
+                </p>
+              )}
             </>
           )}
         </div>
 
         <div className="divider-dashed mx-2 my-4" />
 
-        <div>
-          <Link href="/deals" className={linkClass(pathname === "/deals")}>
-            <BookmarkIcon className="shrink-0" />
-            <span>Saved Deals</span>
-          </Link>
-        </div>
+        <ul className={collapsed ? "flex flex-col items-center" : undefined}>
+          <li>
+            <Link
+              href="/deals"
+              className={linkClass(pathname === "/deals", collapsed)}
+              title={collapsed ? "Saved Deals" : undefined}
+            >
+              <BookmarkIcon className="shrink-0" />
+              {!collapsed && <span>Saved Deals</span>}
+            </Link>
+          </li>
+        </ul>
       </nav>
 
-      <div className="divider-dashed mx-5" />
-      <div className="px-3 py-4">
-        <ThemeToggle />
-        <div className="mt-3">
-          {user ? (
-            <div className="space-y-2 px-3">
-              <div
-                className="truncate text-xs text-ink-muted"
-                title={user.email}
-              >
-                {user.email}
+      <div className={`divider-dashed ${collapsed ? "mx-2" : "mx-5"}`} />
+      <div className={`py-4 ${collapsed ? "px-2" : "px-3"}`}>
+        <ThemeToggle collapsed={collapsed} />
+        {!collapsed && (
+          <div className="mt-3">
+            {user ? (
+              <div className="space-y-2 px-3">
+                <div
+                  className="truncate text-xs text-ink-muted"
+                  title={user.email}
+                >
+                  {user.email}
+                </div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-full border border-line-strong px-2.5 py-1 text-xs text-ink-secondary transition-colors duration-150 hover:bg-surface-sunken hover:text-ink"
+                >
+                  Log out
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded-full border border-line-strong px-2.5 py-1 text-xs text-ink-secondary transition-colors duration-150 hover:bg-surface-sunken hover:text-ink"
-              >
-                Log out
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 text-sm">
-              <Link
-                href="/login"
-                className="text-ink-muted transition-colors duration-150 hover:text-ink"
-              >
-                Log in
-              </Link>
-              <span className="text-line-strong">·</span>
-              <Link
-                href="/register"
-                className="text-ink-muted transition-colors duration-150 hover:text-ink"
-              >
-                Register
-              </Link>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 text-sm">
+                <Link
+                  href="/login"
+                  className="text-ink-muted transition-colors duration-150 hover:text-ink"
+                >
+                  Log in
+                </Link>
+                <span className="text-line-strong">·</span>
+                <Link
+                  href="/register"
+                  className="text-ink-muted transition-colors duration-150 hover:text-ink"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );

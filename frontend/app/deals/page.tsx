@@ -86,7 +86,7 @@ export default function DealsPage() {
   const { user, loading } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col px-8 py-8">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-8 py-8">
       {loading ? (
         <LoadingState lines={6} />
       ) : user === null ? (

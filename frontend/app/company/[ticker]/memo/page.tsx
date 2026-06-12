@@ -16,7 +16,6 @@ import LoadingState from "@/components/ui/LoadingState";
 import RatingBadge from "@/components/ui/RatingBadge";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { ApiError, generateMemo, saveDeal } from "@/lib/api";
-import { fmtDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/hooks";
 import type { MemoSection } from "@/lib/types";
@@ -142,7 +141,7 @@ export default function MemoPage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader title="Investment memo" variant="page" />
+        <SectionHeader title="Investment memo" variant="page" as="h2" />
         <LoadingState lines={10} />
         <Disclaimer />
       </div>
@@ -152,7 +151,7 @@ export default function MemoPage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader title="Investment memo" variant="page" />
+        <SectionHeader title="Investment memo" variant="page" as="h2" />
         <ErrorState
           message={
             error !== null
@@ -171,19 +170,15 @@ export default function MemoPage() {
       <header className="mb-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-[1.375rem] font-semibold leading-snug text-ink">
+            <h2 className="font-display text-[1.375rem] font-semibold leading-snug text-ink">
               Investment memo
-            </h1>
+            </h2>
             <RatingBadge rating={data.rating} />
           </div>
           <SaveToWatchlist ticker={ticker} />
         </div>
         <p className="mt-2 text-sm text-ink-muted">
-          Generated {fmtDateTime(data.generated_at)} · Data source:{" "}
-          {profile.data_source}
-          {profile.data_as_of !== null
-            ? ` · data as of ${fmtDate(profile.data_as_of)}`
-            : ""}
+          Generated {fmtDateTime(data.generated_at)}
         </p>
         <p className="mt-1 text-sm text-ink-muted">{data.disclaimer}</p>
         <p className="mt-1 text-xs text-ink-muted">

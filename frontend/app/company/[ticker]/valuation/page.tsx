@@ -105,13 +105,12 @@ export default function ValuationPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div>
       <SectionHeader
         variant="page"
+        as="h2"
         title="Valuation"
-        subtitle={`${profile.data_source} · Data as of ${
-          profile.data_as_of !== null ? fmtDate(profile.data_as_of) : "not available"
-        }`}
+        subtitle="Trading multiples today, then an EV/EBITDA range you control."
         actions={
           recomputing ? (
             <span className="text-xs text-ink-muted">Recomputing…</span>
@@ -119,7 +118,7 @@ export default function ValuationPage() {
         }
       />
 
-      {data && data.warnings.length > 0 && <WarningList warnings={data.warnings} />}
+      {data && data.warnings.length > 0 && <WarningList warnings={data.warnings} className="mb-6" />}
 
       {loading && !data && <LoadingState lines={6} />}
       {error && !assumptions && (
@@ -137,10 +136,10 @@ export default function ValuationPage() {
       )}
 
       {assumptions && (
-        <section>
+        <section className="divider-dashed mt-8 pt-8">
           <SectionHeader
             title="Valuation range"
-            subtitle="EV/EBITDA multiples applied to latest fiscal year EBITDA. Implied equity = implied EV less net debt."
+            subtitle="EV/EBITDA multiples applied to latest fiscal year EBITDA. Implied equity = implied EV less net debt. The football field draws the same range."
           />
           <Card>
             <div className="grid max-w-md grid-cols-3 gap-3">
@@ -208,3 +207,4 @@ export default function ValuationPage() {
     </div>
   );
 }
+

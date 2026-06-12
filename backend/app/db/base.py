@@ -2,7 +2,8 @@
 
 from typing import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
@@ -41,14 +42,45 @@ def get_db() -> Iterator[Session]:
         db.close()
 
 
-def init_db() -> None:
-    """Create all tables. Imports models so they register on Base.metadata.
+# Columns added to existing tables after their first release (spec §19.8).
+# create_all only creates MISSING tables, so pre-existing databases need a
+# lightweight additive migration: (table, column, SQL type) triples applied
+# via ALTER TABLE ADD COLUMN, which both SQLite and Postgres support.
+_ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
+    ("companies", "description", "TEXT"),
+]
 
-    Guarded with try/ImportError because app.db.models is added by a later
-    build phase (spec §11).
+
+def run_additive_migrations(target_engine: Engine | None = None) -> None:
+    """Add any §19.8 columns missing from pre-existing tables.
+
+    Inspects the live schema via the SQLAlchemy inspector and issues plain
+    ``ALTER TABLE <t> ADD COLUMN <c> <type>`` for absent columns — additive
+    and idempotent, works on SQLite and Postgres alike.
+    """
+    target_engine = target_engine or engine
+    inspector = inspect(target_engine)
+    table_names = set(inspector.get_table_names())
+    for table, column, sql_type in _ADDITIVE_COLUMNS:
+        if table not in table_names:
+            continue  # create_all will create it with the full schema
+        existing = {col["name"] for col in inspector.get_columns(table)}
+        if column in existing:
+            continue
+        with target_engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
+
+
+def init_db() -> None:
+    """Create all tables and apply additive migrations (spec §11, §19.8).
+
+    Imports models so they register on Base.metadata. Guarded with
+    try/ImportError because app.db.models is added by a later build phase
+    (spec §11).
     """
     try:
         import app.db.models  # noqa: F401
     except ImportError:
         pass
+    run_additive_migrations()  # before create_all: alters pre-existing tables
     Base.metadata.create_all(bind=engine)

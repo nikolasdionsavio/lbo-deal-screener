@@ -35,6 +35,26 @@ class FiscalYearFinancials(BaseModel):
     total_equity: float | None = None
     shares_outstanding: float | None = None
 
+    # Extended statement fields (spec §19.8) — additive, optional, None
+    # default. KPIs/score/LBO/memo never read them; they surface on the
+    # /statements endpoint (and pass through /financials untouched).
+    research_development: float | None = None
+    selling_general_admin: float | None = None
+    pretax_income: float | None = None
+    eps_basic: float | None = None  # per-share (reporting currency / share)
+    eps_diluted: float | None = None  # per-share (reporting currency / share)
+    shares_diluted: float | None = None  # weighted-average diluted share count
+    stock_based_compensation: float | None = None
+    total_assets: float | None = None
+    total_liabilities: float | None = None
+    goodwill: float | None = None
+    intangible_assets: float | None = None
+    ppe_net: float | None = None
+    long_term_debt: float | None = None
+    retained_earnings: float | None = None
+    investing_cash_flow: float | None = None
+    financing_cash_flow: float | None = None
+
     derived_fields: list[str] = Field(default_factory=list)
 
 

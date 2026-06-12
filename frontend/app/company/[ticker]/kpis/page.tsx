@@ -23,7 +23,6 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { getKpis } from "@/lib/api";
 import {
   fmtCurrency,
-  fmtDate,
   fmtDays,
   fmtMultiple,
   fmtNumber,
@@ -298,8 +297,9 @@ export default function KpisPage() {
       <section>
         <SectionHeader
           variant="page"
+          as="h2"
           title="Key performance indicators"
-          subtitle={`Source: ${data.data_source} · Data as of ${fmtDate(data.as_of)}`}
+          subtitle="Fourteen traced metrics; every value carries its formula, inputs, and period."
         />
         <Card>
           <GroupedKpiTable kpis={data.kpis} currency={currency} />
@@ -310,7 +310,7 @@ export default function KpisPage() {
       </section>
 
       {diagnostics.length > 0 && (
-        <section className="mt-10">
+        <section className="divider-dashed mt-8 pt-8">
           <SectionHeader
             title="PE diagnostics"
             subtitle="Working-capital efficiency and capital-return metrics, latest fiscal year"
@@ -329,7 +329,7 @@ export default function KpisPage() {
       )}
 
       {showCharts && (
-        <section className="mt-10">
+        <section className="divider-dashed mt-8 pt-8">
           <SectionHeader
             title="Trends"
             subtitle="Fiscal-year series from reported and derived financials"

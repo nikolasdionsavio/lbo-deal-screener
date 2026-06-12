@@ -1,4 +1,4 @@
-"""SQLAlchemy 2.x ORM models — the nine tables from spec §11.
+"""SQLAlchemy 2.x ORM models — the spec §11 tables plus peers_cache (§19.8).
 
 JSON payload columns use ``sqlalchemy.JSON`` (works on SQLite and Postgres).
 All datetime columns are UTC; on SQLite the timezone offset is dropped on
@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -58,6 +59,10 @@ class Company(Base):
     industry: Mapped[str | None] = mapped_column(String(128))
     exchange: Mapped[str | None] = mapped_column(String(64))
     cik: Mapped[str | None] = mapped_column(String(16))
+    # Company business description (§19.8): kept in the cache so cache hits
+    # retain the dashboard description. Added by an additive migration in
+    # init_db for databases created before this column existed.
+    description: Mapped[str | None] = mapped_column(Text)
     # Financial reporting currency of the cached bundle (spec §4); None ≡ USD.
     currency: Mapped[str | None] = mapped_column(String(8))
     data_source: Mapped[str | None] = mapped_column(String(128))
@@ -88,6 +93,25 @@ class FinancialStatement(Base):
     fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     company: Mapped[Company] = relationship(back_populates="financial_statements")
+
+
+class PeersCache(Base):
+    """Cached FMP peer-discovery payload per ticker (spec §19.8, 7-day TTL).
+
+    ``payload`` is the raw §19.2 peers list ``[{symbol, name, price, mktCap}]``
+    so a quota-hit refresh can serve the stale list with a warning.
+    """
+
+    __tablename__ = "peers_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ticker: Mapped[str] = mapped_column(
+        String(16), unique=True, nullable=False, index=True
+    )
+    payload: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
 
 class KpiSnapshot(Base):

@@ -4,7 +4,7 @@ Tickers are case-insensitive (uppercased in the services layer). Unknown
 tickers -> 404, provider failures -> 502, body validation -> 422.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_provider_dep, provider_errors_to_http
@@ -169,7 +169,11 @@ def get_filings(
 @router.get("/{ticker}/news")
 def get_news(
     ticker: str,
+    limit: int = Query(
+        default=news_service.DEFAULT_LIMIT,
+        description="Max headlines (1..60, default 30); out-of-range values are clamped.",
+    ),
     provider: DataProvider = Depends(get_provider_dep),
 ) -> NewsResponse:
     with provider_errors_to_http():
-        return news_service.get_news(ticker, provider)
+        return news_service.get_news(ticker, provider, limit=limit)

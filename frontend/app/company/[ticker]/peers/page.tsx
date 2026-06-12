@@ -32,7 +32,7 @@ export default function PeersPage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader variant="page" title="Peer comparables" />
+        <SectionHeader variant="page" as="h2" title="Peer comparables" />
         <p className="mb-4 text-sm text-ink-muted">
           Pulling peer fundamentals from SEC filings. The first load can take
           half a minute; later visits come from cache.
@@ -46,7 +46,7 @@ export default function PeersPage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader variant="page" title="Peer comparables" />
+        <SectionHeader variant="page" as="h2" title="Peer comparables" />
         <ErrorState
           message={
             error !== null
@@ -67,6 +67,7 @@ export default function PeersPage() {
       <section>
         <SectionHeader
           variant="page"
+          as="h2"
           title="Peer comparables"
           subtitle={`Peer source: ${data.peer_source} · Data as of ${fmtDate(data.as_of)}`}
         />
@@ -84,23 +85,24 @@ export default function PeersPage() {
 
       {hasPeers && (
         <>
-          <section className="mt-8">
-            <SectionHeader
-              title="Comparables table"
-              subtitle="Target pinned to the top; figures in each company's reporting currency"
-            />
-            <Card>
-              <PeersTable target={data.target} peers={data.peers} />
-            </Card>
-          </section>
-
-          <section className="mt-8">
+          {/* Shape first (where the target sits in the group), detail second. */}
+          <section className="divider-dashed mt-8 pt-8">
             <SectionHeader
               title="EV / EBITDA"
               subtitle="Target shown in the accent color"
             />
             <Card>
               <EvEbitdaChart target={data.target} peers={data.peers} />
+            </Card>
+          </section>
+
+          <section className="divider-dashed mt-8 pt-8">
+            <SectionHeader
+              title="Comparables table"
+              subtitle="Target pinned to the top; figures in each company's reporting currency"
+            />
+            <Card>
+              <PeersTable target={data.target} peers={data.peers} />
             </Card>
           </section>
         </>

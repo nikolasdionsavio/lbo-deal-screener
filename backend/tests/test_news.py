@@ -45,14 +45,17 @@ def _fmp_with(handler) -> FmpProvider:
 
 
 def _install_fake_yfinance(
-    monkeypatch: pytest.MonkeyPatch, news: list | Exception
+    monkeypatch: pytest.MonkeyPatch,
+    news: list | Exception,
+    seen_counts: list[int] | None = None,
 ) -> None:
     class FakeTicker:
         def __init__(self, ticker: str) -> None:
             self.ticker = ticker
 
-        @property
-        def news(self) -> list:
+        def get_news(self, count: int = 10) -> list:
+            if seen_counts is not None:
+                seen_counts.append(count)
             if isinstance(news, Exception):
                 raise news
             return news
@@ -203,12 +206,14 @@ def test_yfinance_items_parsed_sorted_and_capped(
     raw.append({"content": {"summary": "no title or url"}})
     raw.reverse()  # oldest-first input: the service must re-sort
 
-    _install_fake_yfinance(monkeypatch, raw)
+    seen_counts: list[int] = []
+    _install_fake_yfinance(monkeypatch, raw, seen_counts)
     response = news_service.get_news(
-        "AAPL", StubLiveProvider(), app_settings=_settings("")  # no FMP key
+        "AAPL", StubLiveProvider(), app_settings=_settings(""), limit=12  # no FMP key
     )
+    assert seen_counts == [12]  # §19.8: limit forwarded as get_news(count=...)
     assert response.provider == "Yahoo Finance (unofficial endpoints, via yfinance)"
-    assert len(response.items) == 12  # capped
+    assert len(response.items) == 12  # capped at the requested limit
     dates = [i.published_at for i in response.items]
     assert dates == sorted(dates, reverse=True)  # newest first
     newest = response.items[0]
@@ -260,3 +265,43 @@ def test_news_item_shape(api: TestClient, monkeypatch: pytest.MonkeyPatch) -> No
     )
     item = response.items[0].model_dump()
     assert set(item) == {"title", "url", "source", "published_at", "summary"}
+
+
+# ---------------------------------------------------------------------------
+# §19.8 limit param (1..60, default 30, clamped)
+# ---------------------------------------------------------------------------
+
+
+def test_limit_clamped_and_forwarded_to_fmp(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen_limits: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_limits.append(request.url.params.get("limit"))
+        return httpx.Response(200, json=FMP_NEWS)
+
+    monkeypatch.setattr(
+        news_service, "_build_fmp", lambda app_settings: _fmp_with(handler)
+    )
+    settings = _settings("test-key")
+    news_service.get_news("AAPL", StubLiveProvider(), app_settings=settings, limit=999)
+    news_service.get_news("AAPL", StubLiveProvider(), app_settings=settings, limit=-5)
+    news_service.get_news("AAPL", StubLiveProvider(), app_settings=settings)
+    assert seen_limits == ["60", "1", "30"]  # clamped high, clamped low, default
+
+
+def test_limit_clamped_for_yfinance_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen_counts: list[int] = []
+    _install_fake_yfinance(monkeypatch, [], seen_counts)
+    news_service.get_news(
+        "AAPL", StubLiveProvider(), app_settings=_settings(""), limit=200
+    )
+    assert seen_counts == [60]
+
+
+def test_news_route_accepts_limit_param(api: TestClient) -> None:
+    # Mock mode short-circuits before any source, but the route must accept
+    # (and clamp, not reject) any integer limit.
+    for limit in (1, 30, 60, 999, -3):
+        resp = api.get(f"/api/companies/TESTCO/news?limit={limit}")
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []

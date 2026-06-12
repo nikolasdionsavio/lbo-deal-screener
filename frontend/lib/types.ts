@@ -84,6 +84,26 @@ export interface FiscalYearFinancials {
   receivables?: number | null;
   inventory?: number | null;
   accounts_payable?: number | null;
+  // Section 19.8 additions (additive, None default on the backend).
+  research_development?: number | null;
+  selling_general_admin?: number | null;
+  pretax_income?: number | null;
+  /** Per-share figure in the reporting currency (not currency-scaled). */
+  eps_basic?: number | null;
+  /** Per-share figure in the reporting currency (not currency-scaled). */
+  eps_diluted?: number | null;
+  /** Weighted-average diluted share count (a count, not a monetary value). */
+  shares_diluted?: number | null;
+  stock_based_compensation?: number | null;
+  total_assets?: number | null;
+  total_liabilities?: number | null;
+  goodwill?: number | null;
+  intangible_assets?: number | null;
+  ppe_net?: number | null;
+  long_term_debt?: number | null;
+  retained_earnings?: number | null;
+  investing_cash_flow?: number | null;
+  financing_cash_flow?: number | null;
   derived_fields: string[];
 }
 
@@ -160,16 +180,27 @@ export interface FinancialsResponse {
 // Financial statements (section 19.7)
 // ---------------------------------------------------------------------------
 
+// Section 19.8 fields are optional so payloads from older backends (which
+// omit them) remain valid; the table hides rows that are null everywhere.
 export interface IncomeStatementLines {
   revenue: number | null;
   cost_of_revenue: number | null;
   gross_profit: number | null;
+  research_development?: number | null;
+  selling_general_admin?: number | null;
   operating_income: number | null;
   depreciation_amortization: number | null;
   ebitda: number | null;
   interest_expense: number | null;
+  pretax_income?: number | null;
   tax_expense: number | null;
   net_income: number | null;
+  /** Per-share figure in the reporting currency (not currency-scaled). */
+  eps_basic?: number | null;
+  /** Per-share figure in the reporting currency (not currency-scaled). */
+  eps_diluted?: number | null;
+  /** Weighted-average diluted share count (a count, not a monetary value). */
+  shares_diluted?: number | null;
 }
 
 export interface BalanceSheetLines {
@@ -177,18 +208,28 @@ export interface BalanceSheetLines {
   receivables: number | null;
   inventory: number | null;
   current_assets: number | null;
+  ppe_net?: number | null;
+  goodwill?: number | null;
+  intangible_assets?: number | null;
+  total_assets?: number | null;
   accounts_payable: number | null;
   current_liabilities: number | null;
+  long_term_debt?: number | null;
   total_debt: number | null;
+  total_liabilities?: number | null;
+  retained_earnings?: number | null;
   total_equity: number | null;
 }
 
 export interface CashFlowLines {
+  stock_based_compensation?: number | null;
   operating_cash_flow: number | null;
   capex: number | null;
-  free_cash_flow: number | null;
+  investing_cash_flow?: number | null;
   dividends_paid: number | null;
   share_buybacks: number | null;
+  financing_cash_flow?: number | null;
+  free_cash_flow: number | null;
 }
 
 export interface StatementYear {
@@ -299,7 +340,7 @@ export interface NewsItem {
 
 export interface NewsResponse {
   ticker: string;
-  /** Up to 12 items, newest first. */
+  /** Newest first; the backend caps at the requested limit (≤60, default 30). */
   items: NewsItem[];
   provider: string;
   warnings: string[];

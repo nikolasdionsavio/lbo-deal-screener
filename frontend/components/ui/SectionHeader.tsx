@@ -7,11 +7,16 @@ interface SectionHeaderProps {
   subtitle?: ReactNode;
   actions?: ReactNode;
   /**
-   * "page": the route's h1 title, set in the display serif (one per page).
+   * "page": the route's page title, set in the display serif.
    * "document": memo-style serif section heading (document character).
    * "section" (default): quiet UI section heading in the body face.
    */
   variant?: Variant;
+  /**
+   * Heading element override. Company pages pass "h2" on their page-variant
+   * titles because the company layout already renders the page's single h1.
+   */
+  as?: "h1" | "h2" | "h3";
   className?: string;
 }
 
@@ -26,9 +31,10 @@ export default function SectionHeader({
   subtitle,
   actions,
   variant = "section",
+  as,
   className = "",
 }: SectionHeaderProps) {
-  const Heading = variant === "page" ? "h1" : "h2";
+  const Heading = as ?? (variant === "page" ? "h1" : "h2");
   return (
     <div className={`mb-4 flex items-end justify-between gap-4 ${className}`}>
       <div>

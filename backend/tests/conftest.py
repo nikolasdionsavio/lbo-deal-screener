@@ -18,6 +18,27 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 SAMPLE_DIR = BACKEND_DIR / "data" / "sample"
 
 
+@pytest.fixture(autouse=True)
+def _reset_fmp_quota_cooldown() -> Iterator[None]:
+    """The §19.8 FMP quota cooldown is module-level state; never let one
+    test's quota hit bleed into another."""
+    from app.providers import fmp
+
+    fmp.reset_quota_cooldown()
+    yield
+    fmp.reset_quota_cooldown()
+
+
+@pytest.fixture(autouse=True)
+def _stub_yfinance_profile_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The §19.8 live-composite profile fallback calls yfinance Ticker.info;
+    no pytest test may hit the live network, so it is stubbed to "no data"
+    suite-wide. Tests of the fallback monkeypatch their own fake on top."""
+    monkeypatch.setattr(
+        "app.providers.live._yfinance_profile_info", lambda ticker: None
+    )
+
+
 @pytest.fixture()
 def testco_bundle() -> CompanyDataBundle:
     """The hand-checkable TESTCO fixture parsed into the canonical bundle."""

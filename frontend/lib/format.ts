@@ -39,6 +39,33 @@ export function fmtCurrency(
   })}`;
 }
 
+/**
+ * Per-share figures (EPS): exact two decimals in the reporting currency,
+ * never magnitude-scaled ("$6.13", "-$0.42", "SEK 12.40").
+ */
+export function fmtPerShare(
+  value: number | null | undefined,
+  currency?: string | null,
+): string {
+  if (isMissing(value)) return NOT_AVAILABLE;
+  const sign = value < 0 ? "-" : "";
+  return `${sign}${currencyPrefix(currency)}${Math.abs(value).toFixed(2)}`;
+}
+
+/**
+ * Share counts in millions with an "m" suffix ("15,408m"), never
+ * currency-scaled (BUILD_SPEC section 19.8 statements rendering).
+ */
+export function fmtShareCount(value: number | null | undefined): string {
+  if (isMissing(value)) return NOT_AVAILABLE;
+  const millions = value / 1e6;
+  const digits = Math.abs(millions) < 10 ? 1 : 0;
+  return `${millions.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}m`;
+}
+
 export function fmtPercent(
   value: number | null | undefined,
   options: { digits?: number; signed?: boolean } = {},

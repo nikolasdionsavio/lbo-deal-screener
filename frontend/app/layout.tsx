@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import TopBar from "@/components/chrome/TopBar";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
@@ -46,7 +47,10 @@ export default function RootLayout({
           <AuthProvider>
             <div className="flex min-h-screen">
               <Sidebar />
-              <main className="min-w-0 flex-1">{children}</main>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopBar />
+                <main className="min-w-0 flex-1">{children}</main>
+              </div>
             </div>
           </AuthProvider>
         </ThemeProvider>

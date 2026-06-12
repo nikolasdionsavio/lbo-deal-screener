@@ -138,7 +138,7 @@ export default function ScorePage() {
   if (loading) {
     return (
       <div>
-        <SectionHeader variant="page" title="Deal score" />
+        <SectionHeader variant="page" as="h2" title="Deal score" />
         <LoadingState lines={8} />
         <Disclaimer />
       </div>
@@ -148,7 +148,7 @@ export default function ScorePage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader variant="page" title="Deal score" />
+        <SectionHeader variant="page" as="h2" title="Deal score" />
         <ErrorState
           message={
             error !== null
@@ -167,8 +167,9 @@ export default function ScorePage() {
       <section>
         <SectionHeader
           variant="page"
+          as="h2"
           title="Deal score"
-          subtitle={`Data source: ${profile.data_source} · Score as of ${fmtDate(data.as_of)}`}
+          subtitle={`Computed ${fmtDate(data.as_of)} from the traced figures on these pages.`}
         />
         <Card>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -184,7 +185,7 @@ export default function ScorePage() {
         </Card>
       </section>
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
           title="Components"
           subtitle="Each component is scored 0–100 and contributes its weight to the total."
@@ -200,7 +201,7 @@ export default function ScorePage() {
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader title="Methodology" />
         <Card>
           <p className="text-sm leading-relaxed text-ink-secondary">

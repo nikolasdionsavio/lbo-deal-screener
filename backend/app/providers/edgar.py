@@ -67,6 +67,14 @@ ANNUAL_FORMS = {"10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
 # Monetary units in companyfacts are plain ISO currency codes ("USD", "EUR");
 # non-monetary units ("shares", "USD/shares", "pure") never carry financials.
 _MONETARY_UNIT_RE = re.compile(r"^[A-Z]{3}$")
+# §19.8 unit exceptions for exactly the per-share and share-count fields:
+# eps_basic/eps_diluted accept "<CCY>/shares" (the currency prefix is kept for
+# the reporting-currency pass); shares_diluted accepts the bare "shares" unit
+# (currency-neutral, exempt from the reporting-currency pass).
+_PER_SHARE_UNIT_RE = re.compile(r"^([A-Z]{3})/shares$")
+_SHARES_UNIT = "shares"
+PER_SHARE_FIELDS = frozenset({"eps_basic", "eps_diluted"})
+SHARE_COUNT_FIELDS = frozenset({"shares_diluted"})
 
 # Tag preference lists per spec §5 — merged per period, earlier tags win.
 # Each tag resolves from us-gaap first, then ifrs-full; the IFRS tags are
@@ -74,6 +82,8 @@ _MONETARY_UNIT_RE = re.compile(r"^[A-Z]{3}$")
 TAG_PREFERENCES: dict[str, list[str]] = {
     "revenue": [
         "RevenueFromContractWithCustomerExcludingAssessedTax",
+        # CRWD-class filers (§19.8) tag only the Including variant.
+        "RevenueFromContractWithCustomerIncludingAssessedTax",
         "Revenues",
         "SalesRevenueNet",
         # IFRS
@@ -192,8 +202,86 @@ TAG_PREFERENCES: dict[str, list[str]] = {
         "EquityAttributableToOwnersOfParent",
         "Equity",
     ],
+    # ----- extended statement fields (spec §19.8) -----
+    # Tag names shared by us-gaap and ifrs-full (Assets, Liabilities,
+    # Goodwill, ResearchAndDevelopmentExpense) resolve from either taxonomy
+    # via _payload; explicit IFRS tags are listed after every us-gaap tag.
+    "research_development": ["ResearchAndDevelopmentExpense"],
+    "selling_general_admin": [
+        "SellingGeneralAndAdministrativeExpense",
+        # else GeneralAndAdministrativeExpense + SellingAndMarketingExpense
+        # summed per period (component fallback below, like D&A).
+    ],
+    "pretax_income": [
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+        "ExtraordinaryItemsNoncontrollingInterest",
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+        "MinorityInterestAndIncomeLossFromEquityMethodInvestments",
+    ],
+    "eps_basic": ["EarningsPerShareBasic"],  # unit "USD/shares" (§19.8 exception)
+    "eps_diluted": ["EarningsPerShareDiluted"],  # unit "USD/shares" (§19.8 exception)
+    "shares_diluted": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding",  # unit "shares"
+    ],
+    "stock_based_compensation": ["ShareBasedCompensation"],
+    "total_assets": ["Assets"],  # same tag in ifrs-full
+    "total_liabilities": ["Liabilities"],  # same tag in ifrs-full
+    "goodwill": ["Goodwill"],  # same tag in ifrs-full
+    "intangible_assets": [
+        "IntangibleAssetsNetExcludingGoodwill",
+        "FiniteLivedIntangibleAssetsNet",
+    ],
+    "ppe_net": [
+        "PropertyPlantAndEquipmentNet",
+        # IFRS
+        "PropertyPlantAndEquipment",
+    ],
+    "long_term_debt": ["LongTermDebtNoncurrent", "LongTermDebt"],
+    "retained_earnings": ["RetainedEarningsAccumulatedDeficit"],
+    "investing_cash_flow": [
+        "NetCashProvidedByUsedInInvestingActivities",
+        # IFRS
+        "CashFlowsFromUsedInInvestingActivities",
+    ],
+    "financing_cash_flow": [
+        "NetCashProvidedByUsedInFinancingActivities",
+        # IFRS
+        "CashFlowsFromUsedInFinancingActivities",
+    ],
 }
 _ABS_VALUE_TAGS = {"InterestIncomeExpenseNet"}
+
+# §19.8 extended fields are additive/optional: missing tags simply leave the
+# field None — they never add "<field> unavailable from SEC EDGAR" warnings
+# (which stay scoped to the §5 core field set).
+EXTENDED_STATEMENT_FIELDS = frozenset(
+    {
+        "research_development",
+        "selling_general_admin",
+        "pretax_income",
+        "eps_basic",
+        "eps_diluted",
+        "shares_diluted",
+        "stock_based_compensation",
+        "total_assets",
+        "total_liabilities",
+        "goodwill",
+        "intangible_assets",
+        "ppe_net",
+        "long_term_debt",
+        "retained_earnings",
+        "investing_cash_flow",
+        "financing_cash_flow",
+    }
+)
+
+# selling_general_admin component fallback (§19.8): when no combined SG&A tag
+# is filed (e.g. Microsoft, CrowdStrike), sum the two components per period —
+# BOTH must be present for a period to count (a lone G&A would understate).
+SGA_COMPONENT_TAGS = [
+    "GeneralAndAdministrativeExpense",
+    "SellingAndMarketingExpense",
+]
 
 # total_debt (spec §5): LongTermDebtNoncurrent + a current component, where the
 # current component is DebtCurrent when present, ELSE LongTermDebtCurrent +
@@ -210,12 +298,20 @@ IFRS_BORROWINGS_COMPONENT_TAGS = ["NoncurrentBorrowings", "CurrentBorrowings"]
 SHARES_TAG = "EntityCommonStockSharesOutstanding"  # dei taxonomy, latest value
 
 # D&A component fallback when no combined tag is filed (e.g. Microsoft):
-# Depreciation is the required anchor; amortization components add when present.
+# an anchor tag is required per period; the other components add when present.
+# Anchors are tried in order (§19.8): "Depreciation" (Microsoft-class), else
+# "CapitalizedContractCostAmortization" (CrowdStrike-class — CRWD files no
+# standard depreciation/D&A flow tag at all, only amortization components;
+# its property depreciation lives in a custom extension tag that companyfacts
+# does not expose under us-gaap).
 DA_COMPONENT_TAGS = [
     "Depreciation",
     "AmortizationOfIntangibleAssets",
     "FinanceLeaseRightOfUseAssetAmortization",
+    "CapitalizedContractCostAmortization",
+    "CapitalizedComputerSoftwareAmortization1",
 ]
+DA_ANCHOR_TAGS = ["Depreciation", "CapitalizedContractCostAmortization"]
 
 # Operating-income derivation inputs (§19.7) for periods no operating-income
 # tag covers (e.g. Coherent's FY2025 10-K files CostsAndExpenses but no
@@ -235,7 +331,11 @@ OPERATING_INCOME_DERIVED_FROM_OPEX_WARNING = (
 
 
 def _select_annual_values(
-    tag_payload: dict[str, Any], tag: str, warnings: list[str] | None = None
+    tag_payload: dict[str, Any],
+    tag: str,
+    warnings: list[str] | None = None,
+    *,
+    unit_kind: str = "monetary",
 ) -> tuple[dict[str, float], str | None]:
     """Return ({period_end: value}, unit) for annual-report FY facts.
 
@@ -243,14 +343,30 @@ def _select_annual_values(
     facts must span >= 300 days (annual filings also embed quarterly periods);
     values are deduped by ``end`` preferring the latest ``filed``.
 
-    Unit selection: prefer "USD"; else the single monetary unit present; else
-    the monetary unit with the most annual periods (recording a warning when a
-    warnings list is supplied). Returns ({}, None) when no monetary unit has
-    annual data.
+    ``unit_kind`` (§19.8 exceptions): "monetary" (default) accepts plain ISO
+    currency units; "per_share" accepts "<CCY>/shares" units (eps fields) and
+    reports the currency prefix as the unit so the reporting-currency pass
+    applies; "shares" accepts the bare "shares" unit (share counts) and
+    reports unit None (currency-neutral).
+
+    Unit selection: prefer "USD" (or "USD/shares"); else the single accepted
+    unit present; else the accepted unit with the most annual periods
+    (recording a warning when a warnings list is supplied). Returns ({}, None)
+    when no accepted unit has annual data.
     """
+
+    def _accept(unit: str) -> bool:
+        if unit_kind == "per_share":
+            return _PER_SHARE_UNIT_RE.match(unit) is not None
+        if unit_kind == "shares":
+            return unit == _SHARES_UNIT
+        return _MONETARY_UNIT_RE.match(unit) is not None
+
+    preferred_unit = "USD/shares" if unit_kind == "per_share" else "USD"
+
     per_unit: dict[str, dict[str, dict[str, Any]]] = {}
     for unit, entries in (tag_payload.get("units") or {}).items():
-        if not _MONETARY_UNIT_RE.match(unit):
+        if not _accept(unit):
             continue
         best: dict[str, dict[str, Any]] = {}
         for entry in entries:
@@ -276,8 +392,8 @@ def _select_annual_values(
 
     if not per_unit:
         return {}, None
-    if "USD" in per_unit:
-        unit = "USD"
+    if preferred_unit in per_unit:
+        unit = preferred_unit
     elif len(per_unit) == 1:
         unit = next(iter(per_unit))
     else:
@@ -291,6 +407,13 @@ def _select_annual_values(
     values = {end: float(entry["val"]) for end, entry in per_unit[unit].items()}
     if tag in _ABS_VALUE_TAGS:
         values = {end: abs(v) for end, v in values.items()}
+    if unit_kind == "per_share":
+        # Report the currency prefix ("USD" from "USD/shares") so the bundle
+        # reporting-currency pass treats eps like any monetary field.
+        match = _PER_SHARE_UNIT_RE.match(unit)
+        return values, match.group(1) if match else unit
+    if unit_kind == "shares":
+        return values, None  # share counts are currency-neutral
     return values, unit
 
 
@@ -435,6 +558,13 @@ class SecEdgarProvider(DataProvider):
             # ones miss. A single first-tag-wins rule fails on filers whose
             # preferred tag has stale partial history (e.g. Microsoft's
             # CostOfRevenue stops years before CostOfGoodsAndServicesSold).
+            unit_kind = (
+                "per_share"
+                if field in PER_SHARE_FIELDS
+                else "shares"
+                if field in SHARE_COUNT_FIELDS
+                else "monetary"
+            )
             values: dict[str, float] = {}
             unit: str | None = None
             contributing: list[str] = []
@@ -442,7 +572,9 @@ class SecEdgarProvider(DataProvider):
                 payload = _payload(tag)
                 if not payload:
                     continue
-                tag_values, tag_unit = _select_annual_values(payload, tag, warnings)
+                tag_values, tag_unit = _select_annual_values(
+                    payload, tag, warnings, unit_kind=unit_kind
+                )
                 if not tag_values:
                     continue
                 if unit is not None and tag_unit != unit:
@@ -463,14 +595,22 @@ class SecEdgarProvider(DataProvider):
                     f"({', '.join(contributing)}); periods may not be like-for-like."
                 )
             if not values and field == "depreciation_amortization":
-                # Some filers (e.g. Microsoft) report no combined D&A tag and
-                # split it across components instead; sum them per year when
-                # the depreciation component exists.
-                values = self._sum_component_values(gaap, DA_COMPONENT_TAGS, anchor=DA_COMPONENT_TAGS[0])
-                if values:
+                # Some filers (e.g. Microsoft, CrowdStrike) report no combined
+                # D&A tag and split it across components instead; sum them per
+                # year when an anchor component exists (§19.8 anchor order).
+                values, anchor_used = self._sum_component_values(
+                    gaap, DA_COMPONENT_TAGS, anchors=DA_ANCHOR_TAGS
+                )
+                if values and anchor_used is not None:
                     _anchor, unit = _select_annual_values(
-                        gaap[DA_COMPONENT_TAGS[0]], DA_COMPONENT_TAGS[0]
+                        gaap[anchor_used], anchor_used
                     )
+            if not values and field == "selling_general_admin":
+                # §19.8 component fallback: G&A + S&M summed per period when
+                # no combined SG&A tag is filed; both components required.
+                values, unit = self._sum_required_components(
+                    gaap, SGA_COMPONENT_TAGS
+                )
             if field == "operating_income":
                 # §19.7 per-period derivation for periods no operating-income
                 # tag covers; periods the preferred tags already fill are
@@ -482,7 +622,9 @@ class SecEdgarProvider(DataProvider):
                 if extra:
                     values.update(extra)
                     derived_operating_income.update(routes)
-            if not values:
+            if not values and field not in EXTENDED_STATEMENT_FIELDS:
+                # §19.8 extended fields are optional and never warn; the §5
+                # core fields keep their per-field unavailability warning.
                 warnings.append(f"{field} unavailable from SEC EDGAR")
             field_maps[field] = values
             field_units[field] = unit
@@ -586,12 +728,14 @@ class SecEdgarProvider(DataProvider):
     # ----- field helpers -----
 
     def _sum_component_values(
-        self, gaap: dict[str, Any], tags: list[str], *, anchor: str
-    ) -> dict[str, float]:
-        """Per-period sum of component tags; empty unless the anchor tag has data.
+        self, gaap: dict[str, Any], tags: list[str], *, anchors: list[str]
+    ) -> tuple[dict[str, float], str | None]:
+        """Per-period sum of component tags, anchored (§5, §19.8).
 
-        Used for D&A when no combined tag is filed: the depreciation component
-        must exist for a period to count, amortization components are additive.
+        Used for D&A when no combined tag is filed: the first anchor tag (in
+        ``anchors`` order) with data fixes the periods; the other components
+        are additive where present. Returns ({}, None) when no anchor has
+        data, else (per-period sums, anchor tag used).
         """
         component_values: dict[str, dict[str, float]] = {}
         for tag in tags:
@@ -599,13 +743,47 @@ class SecEdgarProvider(DataProvider):
                 values, _unit = _select_annual_values(gaap[tag], tag)
                 if values:
                     component_values[tag] = values
-        anchor_values = component_values.get(anchor, {})
-        if not anchor_values:
-            return {}
-        return {
-            end: sum(values[end] for values in component_values.values() if end in values)
-            for end in anchor_values
-        }
+        for anchor in anchors:
+            anchor_values = component_values.get(anchor, {})
+            if not anchor_values:
+                continue
+            sums = {
+                end: sum(
+                    values[end]
+                    for values in component_values.values()
+                    if end in values
+                )
+                for end in anchor_values
+            }
+            return sums, anchor
+        return {}, None
+
+    def _sum_required_components(
+        self, gaap: dict[str, Any], tags: list[str]
+    ) -> tuple[dict[str, float], str | None]:
+        """Per-period sum requiring EVERY component tag (§19.8 SG&A fallback).
+
+        Periods only count when all components report them in one shared
+        unit; otherwise the sum would understate (e.g. G&A without S&M).
+        """
+        maps: list[dict[str, float]] = []
+        unit: str | None = None
+        for tag in tags:
+            payload = gaap.get(tag)
+            if not payload:
+                return {}, None
+            values, tag_unit = _select_annual_values(payload, tag)
+            if not values:
+                return {}, None
+            if unit is None:
+                unit = tag_unit
+            elif tag_unit != unit:
+                return {}, None  # never mix currencies inside one field
+            maps.append(values)
+        ends = set(maps[0])
+        for values in maps[1:]:
+            ends &= set(values)
+        return {end: sum(m[end] for m in maps) for end in sorted(ends)}, unit
 
     @staticmethod
     def _derive_missing_operating_income(

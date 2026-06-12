@@ -571,17 +571,35 @@ def test_edgar_da_component_fallback_sums_split_tags(tmp_path) -> None:
     }
     client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(404)))
     provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
-    values = provider._sum_component_values(
+    values, anchor_used = provider._sum_component_values(
         gaap, ["Depreciation", "AmortizationOfIntangibleAssets", "FinanceLeaseRightOfUseAssetAmortization"],
-        anchor="Depreciation",
+        anchors=["Depreciation"],
     )
+    assert anchor_used == "Depreciation"
     assert values["2025-06-30"] == pytest.approx(31.408e9)
     assert values["2024-06-30"] == pytest.approx(15.2e9)  # missing components just absent
     # no anchor -> empty
     assert provider._sum_component_values(
         {"AmortizationOfIntangibleAssets": gaap["AmortizationOfIntangibleAssets"]},
-        ["Depreciation", "AmortizationOfIntangibleAssets"], anchor="Depreciation",
-    ) == {}
+        ["Depreciation", "AmortizationOfIntangibleAssets"], anchors=["Depreciation"],
+    ) == ({}, None)
+    # §19.8 second anchor (CRWD-class: no Depreciation tag at all) — the
+    # amortization components sum, anchored on CapitalizedContractCostAmortization.
+    crwd_gaap = {
+        "CapitalizedContractCostAmortization": {"units": {"USD": [entry("2026-01-31", 449.413e6)]}},
+        "AmortizationOfIntangibleAssets": {"units": {"USD": [entry("2026-01-31", 31.233e6)]}},
+        "CapitalizedComputerSoftwareAmortization1": {"units": {"USD": [entry("2026-01-31", 79.6e6)]}},
+    }
+    values, anchor_used = provider._sum_component_values(
+        crwd_gaap,
+        ["Depreciation", "AmortizationOfIntangibleAssets",
+         "FinanceLeaseRightOfUseAssetAmortization",
+         "CapitalizedContractCostAmortization",
+         "CapitalizedComputerSoftwareAmortization1"],
+        anchors=["Depreciation", "CapitalizedContractCostAmortization"],
+    )
+    assert anchor_used == "CapitalizedContractCostAmortization"
+    assert values["2026-01-31"] == pytest.approx(560.246e6)
 
 
 def test_edgar_merges_partial_history_across_preference_tags(tmp_path) -> None:

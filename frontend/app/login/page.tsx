@@ -63,7 +63,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col px-8 py-8">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-8 py-8">
       <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-sm">
           <h1 className="font-display text-lg font-semibold text-ink">Log in</h1>

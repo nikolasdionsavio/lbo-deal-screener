@@ -105,6 +105,7 @@ export default function FinancialsPage() {
       <div>
         <SectionHeader
           variant="page"
+          as="h2"
           title="Financial statements"
           subtitle="Pulling the filed annual history. EDGAR carries up to fifteen years."
         />
@@ -119,7 +120,7 @@ export default function FinancialsPage() {
   if (error !== null || data === null) {
     return (
       <div>
-        <SectionHeader variant="page" title="Financial statements" />
+        <SectionHeader variant="page" as="h2" title="Financial statements" />
         <ErrorState
           message={
             error !== null
@@ -143,6 +144,7 @@ export default function FinancialsPage() {
       <section>
         <SectionHeader
           variant="page"
+          as="h2"
           title="Financial statements"
           subtitle={`${data.data_source} · ${yearCount} fiscal ${
             yearCount === 1 ? "year" : "years"
