@@ -310,6 +310,8 @@ DA_COMPONENT_TAGS = [
     "FinanceLeaseRightOfUseAssetAmortization",
     "CapitalizedContractCostAmortization",
     "CapitalizedComputerSoftwareAmortization1",
+    "OtherDepreciationAndAmortization",
+    "OperatingLeaseRightOfUseAssetAmortizationExpense",
 ]
 DA_ANCHOR_TAGS = ["Depreciation", "CapitalizedContractCostAmortization"]
 
@@ -589,22 +591,45 @@ class SecEdgarProvider(DataProvider):
                     values.update(added)
                     contributing.append(tag)
                     unit = unit or tag_unit
+            if field == "depreciation_amortization":
+                # Some filers (e.g. Microsoft, CrowdStrike) report no combined
+                # D&A tag and split it across components instead; others (e.g.
+                # Marvell) file a combined tag with stale partial history that
+                # stops years before the components do. Sum the components per
+                # year when an anchor component exists (§19.8 anchor order)
+                # and fill ONLY the periods the combined tags missed —
+                # combined-tag values are never overwritten.
+                component_sums, anchor_used = self._sum_component_values(
+                    gaap, DA_COMPONENT_TAGS, anchors=DA_ANCHOR_TAGS
+                )
+                if component_sums and anchor_used is not None:
+                    _anchor, component_unit = _select_annual_values(
+                        gaap[anchor_used], anchor_used
+                    )
+                    if unit is not None and component_unit != unit:
+                        # Never mix currencies inside one field's history.
+                        warnings.append(
+                            f"{field}: component tags reported in "
+                            f"{component_unit} while earlier tags use {unit}; "
+                            "skipping them."
+                        )
+                    else:
+                        added = {
+                            end: v
+                            for end, v in component_sums.items()
+                            if end not in values
+                        }
+                        if added:
+                            values.update(added)
+                            contributing.append(
+                                f"components anchored on {anchor_used}"
+                            )
+                            unit = unit or component_unit
             if len(contributing) > 1:
                 warnings.append(
                     f"{field} assembled from multiple SEC tags "
                     f"({', '.join(contributing)}); periods may not be like-for-like."
                 )
-            if not values and field == "depreciation_amortization":
-                # Some filers (e.g. Microsoft, CrowdStrike) report no combined
-                # D&A tag and split it across components instead; sum them per
-                # year when an anchor component exists (§19.8 anchor order).
-                values, anchor_used = self._sum_component_values(
-                    gaap, DA_COMPONENT_TAGS, anchors=DA_ANCHOR_TAGS
-                )
-                if values and anchor_used is not None:
-                    _anchor, unit = _select_annual_values(
-                        gaap[anchor_used], anchor_used
-                    )
             if not values and field == "selling_general_admin":
                 # §19.8 component fallback: G&A + S&M summed per period when
                 # no combined SG&A tag is filed; both components required.

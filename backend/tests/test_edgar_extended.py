@@ -158,6 +158,82 @@ def test_extended_fields_missing_stay_none_without_warnings(tmp_path: Path) -> N
 
 
 # ---------------------------------------------------------------------------
+# MRVL regression: a combined D&A tag with stale partial history must not
+# block the per-period component fill (tests/fixtures/
+# edgar_companyfacts_mrvl_sample.json is trimmed verbatim from the real
+# Marvell companyfacts — FY2025/FY2026 filings plus DepreciationAndAmortization's
+# real stale history, which stops at FY2023).
+# ---------------------------------------------------------------------------
+
+MRVL_FIXTURE = FIXTURES_DIR / "edgar_companyfacts_mrvl_sample.json"
+MRVL_CIK = 1835632
+
+
+def _mrvl_handler(request: httpx.Request) -> httpx.Response:
+    url = str(request.url)
+    if url == TICKER_MAP_URL:
+        return httpx.Response(
+            200,
+            json={
+                "0": {
+                    "cik_str": MRVL_CIK,
+                    "ticker": "MRVL",
+                    "title": "Marvell Technology, Inc.",
+                }
+            },
+        )
+    if url == COMPANYFACTS_URL.format(cik=MRVL_CIK):
+        return httpx.Response(200, json=json.loads(MRVL_FIXTURE.read_text()))
+    return httpx.Response(404, json={"detail": "not found"})
+
+
+@pytest.fixture()
+def mrvl_bundle(tmp_path: Path):
+    client = httpx.Client(transport=httpx.MockTransport(_mrvl_handler))
+    provider = SecEdgarProvider(
+        TEST_USER_AGENT, client=client, cache_dir=tmp_path / "cache"
+    )
+    return provider.get_company("MRVL")
+
+
+def test_mrvl_fy2026_da_and_ebitda_filled_from_components(mrvl_bundle) -> None:
+    """MRVL files DepreciationAndAmortization only through FY2023, so FY2026
+    D&A must come from the per-period component sum: Depreciation 221.7m +
+    AmortizationOfIntangibleAssets 942.0m + OtherDepreciationAndAmortization
+    348.6m + OperatingLeaseRightOfUseAssetAmortizationExpense 44.4m = 1,556.7m,
+    and EBITDA = OperatingIncomeLoss 1,322.9m + 1,556.7m = 2,879.6m."""
+    fy2026 = mrvl_bundle.financials[-1]
+    assert fy2026.fiscal_year == 2026
+    assert fy2026.period_end == "2026-01-31"
+    assert fy2026.revenue == pytest.approx(8_194_600_000.0, rel=REL_TOL)
+    assert fy2026.depreciation_amortization == pytest.approx(1557e6, abs=1e6)
+    assert fy2026.ebitda == pytest.approx(2880e6, abs=1e6)
+    assert "ebitda" in fy2026.derived_fields
+    assert any(
+        w.startswith("depreciation_amortization assembled from multiple SEC tags")
+        for w in mrvl_bundle.warnings
+    )
+    assert (
+        "depreciation_amortization unavailable from SEC EDGAR"
+        not in mrvl_bundle.warnings
+    )
+
+
+def test_mrvl_combined_tag_keeps_its_own_periods(mrvl_bundle) -> None:
+    """Per-period precedence: the combined tag still owns FY2023 (304.9m as
+    filed); only the years it misses are component-filled."""
+    by_year = {y.fiscal_year: y for y in mrvl_bundle.financials}
+    assert by_year[2023].depreciation_amortization == pytest.approx(
+        304_900_000.0, rel=REL_TOL
+    )
+    # FY2025 (missed by the combined tag) is component-filled: 177.0m +
+    # 1,052.6m + 304.3m + 34.3m.
+    assert by_year[2025].depreciation_amortization == pytest.approx(
+        1_568_200_000.0, rel=REL_TOL
+    )
+
+
+# ---------------------------------------------------------------------------
 # /statements endpoint exposes the extended fields (CRWD-fixture-backed)
 # ---------------------------------------------------------------------------
 

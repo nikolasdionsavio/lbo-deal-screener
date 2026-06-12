@@ -637,6 +637,53 @@ def test_edgar_merges_partial_history_across_preference_tags(tmp_path) -> None:
     assert any("assembled from multiple SEC tags" in w for w in bundle.warnings)
 
 
+def test_edgar_da_components_fill_periods_combined_tag_misses(tmp_path) -> None:
+    """A combined D&A tag with stale partial history (e.g. MRVL's
+    DepreciationAndAmortization stops years early) must not block the
+    component fallback: the per-period component sum fills ONLY the years the
+    combined tag misses, the combined tag keeps its own years (no sentinel
+    leak), and the multi-tag assembly warning fires."""
+    entry = lambda end, val: {  # noqa: E731
+        "form": "10-K", "fp": "FY", "start": str(int(end[:4]) - 1) + end[4:],
+        "end": end, "val": val, "filed": end,
+    }
+    facts = {
+        "facts": {
+            "us-gaap": {
+                "Revenues": {"units": {"USD": [entry("2024-06-30", 100.0), entry("2025-06-30", 120.0)]}},
+                # Combined D&A tag stops in 2024; components cover 2025.
+                "DepreciationAndAmortization": {"units": {"USD": [entry("2024-06-30", 9.0)]}},
+                "Depreciation": {"units": {"USD": [entry("2024-06-30", 999.0), entry("2025-06-30", 6.0)]}},
+                "AmortizationOfIntangibleAssets": {"units": {"USD": [entry("2025-06-30", 3.0)]}},
+                # The two MRVL-class component tags must participate in the sum.
+                "OtherDepreciationAndAmortization": {"units": {"USD": [entry("2025-06-30", 2.0)]}},
+                "OperatingLeaseRightOfUseAssetAmortizationExpense": {"units": {"USD": [entry("2025-06-30", 1.0)]}},
+            },
+            "dei": {},
+        },
+        "entityName": "DA Merge Test Corp",
+    }
+    tickmap = {"0": {"cik_str": 2, "ticker": "DAM", "title": "DA Merge Test Corp"}}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "company_tickers" in str(request.url):
+            return httpx.Response(200, json=tickmap)
+        return httpx.Response(200, json=facts)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = SecEdgarProvider("test agent@example.com", client=client, cache_dir=tmp_path)
+    bundle = provider.get_company("DAM")
+    by_year = {y.fiscal_year: y for y in bundle.financials}
+    # Combined tag wins where present (the 999 component sentinel never leaks).
+    assert by_year[2024].depreciation_amortization == 9.0
+    # Component sum fills the newest year the combined tag missed.
+    assert by_year[2025].depreciation_amortization == pytest.approx(12.0)
+    assert any(
+        w.startswith("depreciation_amortization assembled from multiple SEC tags")
+        for w in bundle.warnings
+    )
+
+
 def test_fmp_search_finds_ticker_via_symbol_endpoint() -> None:
     """'nvda'-style ticker queries must hit search-symbol, not just search-name."""
     def handler(request: httpx.Request) -> httpx.Response:
