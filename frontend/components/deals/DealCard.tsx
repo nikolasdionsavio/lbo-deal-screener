@@ -170,7 +170,7 @@ export default function DealCard({ deal, onDeleted }: DealCardProps) {
         <div className="mt-4 rounded-lg border border-line bg-surface-sunken p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-ink">
-              Memo snapshot — {deal.memo.ticker}
+              Memo snapshot · {deal.memo.ticker}
             </h3>
             <span className="text-xs text-ink-muted">
               Generated {fmtDate(deal.memo.generated_at)}

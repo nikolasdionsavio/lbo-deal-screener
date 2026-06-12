@@ -17,6 +17,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import SectionHeader from "@/components/ui/SectionHeader";
 import WarningList from "@/components/ui/WarningList";
 import { getPeers } from "@/lib/api";
+import { fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 export default function PeersPage() {
@@ -33,9 +34,8 @@ export default function PeersPage() {
       <div>
         <SectionHeader variant="page" title="Peer comparables" />
         <p className="mb-4 text-sm text-ink-muted">
-          Loading peer comparables. The first load fetches financials for each
-          peer and can take around 30 seconds; later visits are served from
-          cache.
+          Pulling peer fundamentals from SEC filings. The first load can take
+          half a minute; later visits come from cache.
         </p>
         <LoadingState lines={8} />
         <Disclaimer />
@@ -68,7 +68,7 @@ export default function PeersPage() {
         <SectionHeader
           variant="page"
           title="Peer comparables"
-          subtitle={`Peer source: ${data.peer_source} · Data as of ${data.as_of}`}
+          subtitle={`Peer source: ${data.peer_source} · Data as of ${fmtDate(data.as_of)}`}
         />
         <WarningList warnings={data.warnings} className="mb-4" />
         {hasPeers ? (

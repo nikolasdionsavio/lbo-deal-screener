@@ -66,8 +66,11 @@ class CompositeLiveProvider(DataProvider):
                 pass
         return self.edgar.search(query)
 
-    def get_company(self, ticker: str) -> CompanyDataBundle:
-        bundle = self.edgar.get_company(ticker)
+    def get_company(self, ticker: str, max_years: int = 5) -> CompanyDataBundle:
+        # max_years (§19.7) forwards to EDGAR's year-selection cap; the
+        # 5-year default keeps every regular bundle unchanged, the statements
+        # endpoint asks for up to 15.
+        bundle = self.edgar.get_company(ticker, max_years=max_years)
 
         if not self.market_adapters and self.fmp is None:
             bundle.warnings.append(_NO_ADAPTER_WARNING)

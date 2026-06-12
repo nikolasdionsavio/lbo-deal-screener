@@ -17,7 +17,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import StatCard from "@/components/ui/StatCard";
 import WarningList from "@/components/ui/WarningList";
 import { getFilings } from "@/lib/api";
-import { fmtCurrency } from "@/lib/format";
+import { fmtCurrency, fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import type { Filing } from "@/lib/types";
 
@@ -254,7 +254,7 @@ export default function DashboardPage() {
           title="Market"
           subtitle={
             profile.data_as_of !== null
-              ? `As of ${profile.data_as_of}`
+              ? `As of ${fmtDate(profile.data_as_of)}`
               : "Data date not available"
           }
         />
@@ -302,7 +302,7 @@ export default function DashboardPage() {
       <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
           title="Price chart"
-          subtitle="Interactive chart by TradingView (its own market data, independent of the figures above)"
+          subtitle="TradingView chart. Its market data is independent of the figures above."
         />
         <TradingViewChart ticker={profile.ticker} exchange={profile.exchange} />
       </section>
@@ -320,7 +320,11 @@ export default function DashboardPage() {
         <DataSourceRow
           icon={<CalendarIcon />}
           label="Data as of"
-          value={profile.data_as_of ?? "Not available"}
+          value={
+            profile.data_as_of !== null
+              ? fmtDate(profile.data_as_of)
+              : "Not available"
+          }
         />
       </section>
 

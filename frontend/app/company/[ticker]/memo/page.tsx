@@ -16,6 +16,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import RatingBadge from "@/components/ui/RatingBadge";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { ApiError, generateMemo, saveDeal } from "@/lib/api";
+import { fmtDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/hooks";
 import type { MemoSection } from "@/lib/types";
@@ -180,12 +181,14 @@ export default function MemoPage() {
         <p className="mt-2 text-sm text-ink-muted">
           Generated {fmtDateTime(data.generated_at)} · Data source:{" "}
           {profile.data_source}
-          {profile.data_as_of !== null ? ` · data as of ${profile.data_as_of}` : ""}
+          {profile.data_as_of !== null
+            ? ` · data as of ${fmtDate(profile.data_as_of)}`
+            : ""}
         </p>
         <p className="mt-1 text-sm text-ink-muted">{data.disclaimer}</p>
         <p className="mt-1 text-xs text-ink-muted">
-          Generated from deterministic templates over computed data at default
-          LBO assumptions. Missing data is stated as missing, never invented.
+          Built from the figures on these pages at default LBO assumptions.
+          Anything missing is stated as missing.
         </p>
       </header>
 

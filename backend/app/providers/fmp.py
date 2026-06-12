@@ -13,6 +13,7 @@ ProviderError with readable messages (API key is never echoed in messages).
 
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -40,31 +41,46 @@ class FmpProvider:
 
     def _request_json(self, path: str, params: dict[str, str], *, what: str) -> Any:
         params = {**params, "apikey": self.api_key}
-        try:
-            response = self._client.get(
-                f"{BASE_URL}{path}", params=params, timeout=TIMEOUT_SECONDS
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as exc:
-            status = exc.response.status_code
-            if status in (401, 403):
+        # FMP free-plan rate limits surface as transient 429s; retry briefly
+        # (2 retries, 2s/4s backoff) before failing — mirrors EDGAR (§19.7).
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            try:
+                response = self._client.get(
+                    f"{BASE_URL}{path}", params=params, timeout=TIMEOUT_SECONDS
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                if status in (401, 403):
+                    raise ProviderError(
+                        f"{what} failed: Financial Modeling Prep rejected the API key "
+                        f"(HTTP {status})."
+                    ) from None  # severed: chained httpx error embeds the API key URL
+                if status == 429 and attempt < attempts:
+                    time.sleep(attempt * 2.0)
+                    continue
+                if status == 429:
+                    raise ProviderError(
+                        f"{what} failed: Financial Modeling Prep is rate limiting "
+                        "requests (HTTP 429). Try again in a minute."
+                    ) from None  # severed: chained httpx error embeds the API key URL
                 raise ProviderError(
-                    f"{what} failed: Financial Modeling Prep rejected the API key "
-                    f"(HTTP {status})."
+                    f"{what} failed: Financial Modeling Prep returned HTTP {status}."
                 ) from None  # severed: chained httpx error embeds the API key URL
-            raise ProviderError(
-                f"{what} failed: Financial Modeling Prep returned HTTP {status}."
-            ) from None  # severed: chained httpx error embeds the API key URL
-        except httpx.HTTPError as exc:
-            raise ProviderError(
-                f"{what} failed: could not reach Financial Modeling Prep "
-                f"({exc.__class__.__name__})."
-            ) from None  # severed: chained httpx error embeds the API key URL
-        except ValueError as exc:
-            raise ProviderError(
-                f"{what} failed: Financial Modeling Prep returned invalid JSON."
-            ) from None  # severed: chained httpx error embeds the API key URL
+            except httpx.HTTPError as exc:
+                raise ProviderError(
+                    f"{what} failed: could not reach Financial Modeling Prep "
+                    f"({exc.__class__.__name__})."
+                ) from None  # severed: chained httpx error embeds the API key URL
+            except ValueError as exc:
+                raise ProviderError(
+                    f"{what} failed: Financial Modeling Prep returned invalid JSON."
+                ) from None  # severed: chained httpx error embeds the API key URL
+        raise ProviderError(
+            f"{what} failed: Financial Modeling Prep retries exhausted."
+        )
 
     def get_profile(self, ticker: str) -> CompanyInfo | None:
         """Company profile, or None when FMP has no record for the ticker."""

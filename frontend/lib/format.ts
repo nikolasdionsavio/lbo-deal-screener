@@ -72,3 +72,17 @@ export function fmtDays(value: number | null | undefined): string {
   if (isMissing(value)) return NOT_AVAILABLE;
   return `${value.toFixed(1)} days`;
 }
+
+/**
+ * Date-only rendering for API date strings (BUILD_SPEC section 19.7
+ * presentation pass): ISO timestamps ("2026-06-12T09:14:03Z") truncate to
+ * YYYY-MM-DD; plain dates pass through; anything unrecognised is returned
+ * as-is rather than mangled. Null renders as —.
+ */
+export function fmtDate(value: string | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return NOT_AVAILABLE;
+  }
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value);
+  return match !== null ? match[1] : value;
+}

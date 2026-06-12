@@ -21,6 +21,7 @@ from app.schemas.memo import MemoRequest, MemoResponse
 from app.schemas.news import NewsResponse
 from app.schemas.peers import PeersResponse
 from app.schemas.score import ScoreResponse
+from app.schemas.statements import StatementsResponse
 from app.schemas.valuation import ValuationRequest, ValuationResponse
 from app.scoring import compute_score
 from app.services import (
@@ -29,6 +30,7 @@ from app.services import (
     filings_service,
     news_service,
     peers_service,
+    statements_service,
 )
 from app.valuation import compute_valuation
 
@@ -63,6 +65,17 @@ def get_financials(
         fetched_at=bundle.fetched_at,
         warnings=bundle.warnings,
     )
+
+
+@router.get("/{ticker}/statements")
+def get_statements(
+    ticker: str,
+    db: Session = Depends(get_db),
+    provider: DataProvider = Depends(get_provider_dep),
+) -> StatementsResponse:
+    """Full-history financial statements (spec §19.7), years descending."""
+    with provider_errors_to_http():
+        return statements_service.get_statements(ticker, db, provider)
 
 
 @router.get("/{ticker}/kpis")

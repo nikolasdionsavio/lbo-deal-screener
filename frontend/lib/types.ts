@@ -157,6 +157,62 @@ export interface FinancialsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Financial statements (section 19.7)
+// ---------------------------------------------------------------------------
+
+export interface IncomeStatementLines {
+  revenue: number | null;
+  cost_of_revenue: number | null;
+  gross_profit: number | null;
+  operating_income: number | null;
+  depreciation_amortization: number | null;
+  ebitda: number | null;
+  interest_expense: number | null;
+  tax_expense: number | null;
+  net_income: number | null;
+}
+
+export interface BalanceSheetLines {
+  cash_and_equivalents: number | null;
+  receivables: number | null;
+  inventory: number | null;
+  current_assets: number | null;
+  accounts_payable: number | null;
+  current_liabilities: number | null;
+  total_debt: number | null;
+  total_equity: number | null;
+}
+
+export interface CashFlowLines {
+  operating_cash_flow: number | null;
+  capex: number | null;
+  free_cash_flow: number | null;
+  dividends_paid: number | null;
+  share_buybacks: number | null;
+}
+
+export interface StatementYear {
+  fiscal_year: number;
+  period_end: string | null;
+  /** Canonical field names whose values were derived rather than filed. */
+  derived_fields: string[];
+  income_statement: IncomeStatementLines;
+  balance_sheet: BalanceSheetLines;
+  cash_flow: CashFlowLines;
+}
+
+export interface StatementsResponse {
+  ticker: string;
+  /** Financial reporting currency (ISO code); null means USD. */
+  currency: string | null;
+  data_source: string;
+  fetched_at: string;
+  /** All available fiscal years, descending (newest first). */
+  years: StatementYear[];
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
 // KPIs (section 6)
 // ---------------------------------------------------------------------------
 

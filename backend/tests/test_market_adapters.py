@@ -430,7 +430,7 @@ FMP_QUOTE_PAYLOAD = [
 class _StubEdgar:
     """Fundamentals stand-in: the chain tests only exercise market data."""
 
-    def get_company(self, ticker: str) -> CompanyDataBundle:
+    def get_company(self, ticker: str, max_years: int = 5) -> CompanyDataBundle:
         return CompanyDataBundle(
             info=CompanyInfo(ticker=ticker.upper(), name="Fixture Manufacturing Corp"),
             data_source="SEC EDGAR",

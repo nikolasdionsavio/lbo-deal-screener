@@ -112,7 +112,7 @@ export default function FootballFieldChart({
             labelFormatter={(label: string) => {
               const row = rows.find((r) => r.label === label);
               return row
-                ? `${row.label} — ${fmtMultiple(row.multiple)} EV/EBITDA`
+                ? `${row.label} · ${fmtMultiple(row.multiple)} EV/EBITDA`
                 : label;
             }}
             contentStyle={chart.tooltip.contentStyle}

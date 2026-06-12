@@ -16,6 +16,7 @@ import type {
   SaveDealRequest,
   ScoreResponse,
   SearchResult,
+  StatementsResponse,
   TokenResponse,
   User,
   ValuationRequest,
@@ -107,6 +108,12 @@ export function getProfile(ticker: string): Promise<CompanyProfile> {
 export function getFinancials(ticker: string): Promise<FinancialsResponse> {
   return request<FinancialsResponse>(
     `/api/companies/${encodeURIComponent(ticker)}/financials`,
+  );
+}
+
+export function getStatements(ticker: string): Promise<StatementsResponse> {
+  return request<StatementsResponse>(
+    `/api/companies/${encodeURIComponent(ticker)}/statements`,
   );
 }
 

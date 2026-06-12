@@ -13,7 +13,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import WarningList from "@/components/ui/WarningList";
 import MultiplesGrid from "@/components/valuation/MultiplesGrid";
 import { runValuation } from "@/lib/api";
-import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
 import type { ValuationAssumptions, ValuationCase } from "@/lib/types";
 
@@ -110,7 +110,7 @@ export default function ValuationPage() {
         variant="page"
         title="Valuation"
         subtitle={`${profile.data_source} · Data as of ${
-          profile.data_as_of ?? "not available"
+          profile.data_as_of !== null ? fmtDate(profile.data_as_of) : "not available"
         }`}
         actions={
           recomputing ? (
@@ -130,7 +130,7 @@ export default function ValuationPage() {
         <section>
           <SectionHeader
             title="Current multiples"
-            subtitle={`As of ${data.as_of}`}
+            subtitle={`As of ${fmtDate(data.as_of)}`}
           />
           <MultiplesGrid multiples={data.multiples} currency={currency} />
         </section>

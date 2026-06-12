@@ -3,7 +3,10 @@
 // KPI dashboard: traceable KPI table (KPI / Value / Period / Formula, with
 // inputs shown via title tooltip and warnings as inline amber badges) plus
 // fiscal-year trend charts. Data from GET /api/companies/{ticker}/kpis.
+// The 14 KPIs render as one table with four quiet group subheads
+// (BUILD_SPEC section 19.7): Growth, Margins, Cash flow, Leverage & returns.
 
+import { Fragment } from "react";
 import CapitalReturnsChart from "@/components/charts/CapitalReturnsChart";
 import MarginChart, {
   type MarginSeries,
@@ -20,6 +23,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { getKpis } from "@/lib/api";
 import {
   fmtCurrency,
+  fmtDate,
   fmtDays,
   fmtMultiple,
   fmtNumber,
@@ -119,6 +123,108 @@ function kpiColumns(currency: string | null): Column<TracedValue>[] {
   ];
 }
 
+// Section 19.7 grouping of the 14 KPIs. Keys missing from a payload are
+// skipped; keys outside the groups fall into a trailing "Other" section so
+// nothing the API sends is silently dropped.
+const KPI_GROUPS: { label: string; keys: string[] }[] = [
+  { label: "Growth", keys: ["revenue_growth_yoy", "revenue_cagr_3y"] },
+  {
+    label: "Margins",
+    keys: ["gross_margin", "ebitda_margin", "net_income_margin", "fcf_margin"],
+  },
+  {
+    label: "Cash flow",
+    keys: ["fcf_conversion", "capex_pct_revenue", "nwc_pct_revenue"],
+  },
+  {
+    label: "Leverage & returns",
+    keys: [
+      "net_debt_to_ebitda",
+      "debt_to_ebitda",
+      "interest_coverage",
+      "roic",
+      "current_ratio",
+    ],
+  },
+];
+
+/** One table, four sections: quiet subhead rows between the traced rows. */
+function GroupedKpiTable({
+  kpis,
+  currency,
+}: {
+  kpis: TracedValue[];
+  currency: string | null;
+}) {
+  const columns = kpiColumns(currency);
+  const byKey = new Map(kpis.map((kpi) => [kpi.key, kpi]));
+  const groups = KPI_GROUPS.map((group) => ({
+    label: group.label,
+    rows: group.keys.flatMap((key) => {
+      const kpi = byKey.get(key);
+      return kpi !== undefined ? [kpi] : [];
+    }),
+  })).filter((group) => group.rows.length > 0);
+
+  const groupedKeys = new Set(KPI_GROUPS.flatMap((group) => group.keys));
+  const leftover = kpis.filter((kpi) => !groupedKeys.has(kpi.key));
+  if (leftover.length > 0) groups.push({ label: "Other", rows: leftover });
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-line">
+            {columns.map((col) => (
+              <th
+                key={col.key}
+                scope="col"
+                className={`px-3 py-2 text-xs font-medium text-ink-muted ${
+                  col.numeric ? "text-right" : "text-left"
+                }`}
+              >
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((group) => (
+            <Fragment key={group.label}>
+              <tr>
+                <th
+                  colSpan={columns.length}
+                  scope="colgroup"
+                  className="px-3 pb-1.5 pt-4 text-left text-[11px] font-medium uppercase tracking-wide text-ink-muted"
+                >
+                  {group.label}
+                </th>
+              </tr>
+              {group.rows.map((kpi) => (
+                <tr
+                  key={kpi.key}
+                  className="border-b border-line transition-colors duration-150 last:border-b-0 hover:bg-brand-soft"
+                >
+                  {columns.map((col, index) => (
+                    <td
+                      key={col.key}
+                      className={`px-3 py-2 ${
+                        col.numeric ? "text-right tabular-nums" : "text-left"
+                      }`}
+                    >
+                      {col.render(kpi, index)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const CURRENCY_CHARTS = [
   { key: "revenue", title: "Revenue" },
   { key: "ebitda", title: "EBITDA" },
@@ -193,14 +299,10 @@ export default function KpisPage() {
         <SectionHeader
           variant="page"
           title="Key performance indicators"
-          subtitle={`Source: ${data.data_source} · Data as of ${data.as_of}`}
+          subtitle={`Source: ${data.data_source} · Data as of ${fmtDate(data.as_of)}`}
         />
         <Card>
-          <DataTable
-            columns={kpiColumns(currency)}
-            rows={data.kpis}
-            rowKey={(kpi) => kpi.key}
-          />
+          <GroupedKpiTable kpis={data.kpis} currency={currency} />
           <p className="mt-3 text-xs text-ink-muted">
             Hover a KPI name to see the inputs behind the calculation.
           </p>

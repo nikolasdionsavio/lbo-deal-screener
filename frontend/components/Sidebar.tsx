@@ -61,6 +61,15 @@ function PercentIcon({ className }: IconProps) {
   );
 }
 
+function TableIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
+      <path d="M1.5 6h13M1.5 9.75h13M6 6v7.5" />
+    </svg>
+  );
+}
+
 function ScalesIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -153,6 +162,7 @@ const COMPANY_PAGES: {
 }[] = [
   { slug: "dashboard", label: "Dashboard", Icon: GridIcon },
   { slug: "kpis", label: "KPIs", Icon: PercentIcon },
+  { slug: "financials", label: "Financials", Icon: TableIcon },
   { slug: "valuation", label: "Valuation", Icon: ScalesIcon },
   { slug: "peers", label: "Peer Comps", Icon: PeopleIcon },
   { slug: "lbo", label: "LBO Model", Icon: CalculatorIcon },

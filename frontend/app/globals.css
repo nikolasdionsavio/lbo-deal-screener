@@ -51,9 +51,12 @@
 .dark {
   color-scheme: dark;
 
-  --bg: #0b1322;
-  --surface: #121c30;
-  --surface-sunken: #0d1626;
+  /* Deepened per BUILD_SPEC section 19.7 (Sanjaya reference). --ink-muted
+     #8e99ac measures ~6.6:1 on --surface #0e1116, comfortably over the
+     4.5:1 floor, so the ink scale carries over unchanged. */
+  --bg: #07090d;
+  --surface: #0e1116;
+  --surface-sunken: #0a0d12;
 
   --ink: #e7ebf3;
   --ink-secondary: #b6c0d0;

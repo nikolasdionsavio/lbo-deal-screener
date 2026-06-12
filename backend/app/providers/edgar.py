@@ -19,6 +19,9 @@
   reported in a non-dominant unit are dropped with a warning (no FX
   conversion in the MVP).
 - Missing tags -> field None + warning "<field> unavailable from SEC EDGAR".
+- Operating income (§19.7): periods no operating-income tag covers are derived
+  per period as revenue − CostsAndExpenses (else gross_profit −
+  OperatingExpenses), recorded in derived_fields with a bundle warning.
 - All HTTP: 15s timeout, errors mapped to ProviderError with readable messages.
 """
 
@@ -30,7 +33,7 @@ import time
 from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 
@@ -110,6 +113,7 @@ TAG_PREFERENCES: dict[str, list[str]] = {
         "InterestAndDebtExpense",
         "InterestExpenseNonoperating",
         "InterestIncomeExpenseNet",  # taken as absolute value
+        "InterestPaidNet",  # cash-flow proxy; some filers (e.g. COHR) tag no IS interest
         "InterestPaid",  # cash-flow proxy; last resort for filers with no IS tag
         # IFRS
         "FinanceCosts",
@@ -212,6 +216,22 @@ DA_COMPONENT_TAGS = [
     "AmortizationOfIntangibleAssets",
     "FinanceLeaseRightOfUseAssetAmortization",
 ]
+
+# Operating-income derivation inputs (§19.7) for periods no operating-income
+# tag covers (e.g. Coherent's FY2025 10-K files CostsAndExpenses but no
+# OperatingIncomeLoss): (1) revenue − CostsAndExpenses, else
+# (2) gross_profit − OperatingExpenses. Like the D&A component fallback, the
+# helper tag maps are captured internally and never become fields themselves.
+OPERATING_INCOME_TOTAL_COSTS_TAG = "CostsAndExpenses"
+OPERATING_INCOME_OPEX_TAG = "OperatingExpenses"
+OPERATING_INCOME_DERIVED_WARNING = (
+    "operating_income derived as revenue − total costs and expenses "
+    "(no operating income tag filed)"
+)
+OPERATING_INCOME_DERIVED_FROM_OPEX_WARNING = (
+    "operating_income derived as gross profit − operating expenses "
+    "(no operating income tag filed)"
+)
 
 
 def _select_annual_values(
@@ -382,7 +402,13 @@ class SecEdgarProvider(DataProvider):
                     break
         return results
 
-    def get_company(self, ticker: str) -> CompanyDataBundle:
+    def get_company(self, ticker: str, max_years: int = _MAX_YEARS) -> CompanyDataBundle:
+        """Company bundle from companyfacts (spec §5).
+
+        ``max_years`` caps the returned fiscal years at year-selection (§19.7):
+        the regular bundle keeps the 5-year default everywhere; the statements
+        endpoint asks for up to 15.
+        """
         cik, title = self._resolve_cik(ticker)
         facts_doc = self._request_json(
             COMPANYFACTS_URL.format(cik=cik),
@@ -402,6 +428,7 @@ class SecEdgarProvider(DataProvider):
 
         field_maps: dict[str, dict[str, float]] = {}
         field_units: dict[str, str | None] = {}
+        derived_operating_income: dict[str, str] = {}  # period end -> derivation route
         for field, tags in TAG_PREFERENCES.items():
             # Merge per period across the preference list: earlier tags win for
             # any period they cover, later tags only fill periods the earlier
@@ -444,6 +471,17 @@ class SecEdgarProvider(DataProvider):
                     _anchor, unit = _select_annual_values(
                         gaap[DA_COMPONENT_TAGS[0]], DA_COMPONENT_TAGS[0]
                     )
+            if field == "operating_income":
+                # §19.7 per-period derivation for periods no operating-income
+                # tag covers; periods the preferred tags already fill are
+                # never overwritten. Relies on dict order: revenue and
+                # gross_profit precede operating_income in TAG_PREFERENCES.
+                extra, unit, routes = self._derive_missing_operating_income(
+                    values, unit, field_maps, field_units, _payload
+                )
+                if extra:
+                    values.update(extra)
+                    derived_operating_income.update(routes)
             if not values:
                 warnings.append(f"{field} unavailable from SEC EDGAR")
             field_maps[field] = values
@@ -465,8 +503,23 @@ class SecEdgarProvider(DataProvider):
             for field, values in field_maps.items():
                 if end in values:
                     setattr(row, field, values[end])
+            if end in derived_operating_income and end in field_maps["operating_income"]:
+                # The currency pass may have dropped the whole field; only
+                # periods that kept their derived value are marked derived.
+                row.derived_fields.append("operating_income")
             rows_by_year[fiscal_year] = row
-        years = [rows_by_year[fy] for fy in sorted(rows_by_year)][-_MAX_YEARS:]
+        years = [rows_by_year[fy] for fy in sorted(rows_by_year)][-max(1, max_years):]
+
+        derived_routes = {
+            derived_operating_income[row.period_end]
+            for row in years
+            if row.period_end in derived_operating_income
+            and "operating_income" in row.derived_fields
+        }
+        if "total_costs" in derived_routes:
+            warnings.append(OPERATING_INCOME_DERIVED_WARNING)
+        if "opex" in derived_routes:
+            warnings.append(OPERATING_INCOME_DERIVED_FROM_OPEX_WARNING)
 
         shares = self._latest_shares(facts_doc)
         if shares is None:
@@ -553,6 +606,55 @@ class SecEdgarProvider(DataProvider):
             end: sum(values[end] for values in component_values.values() if end in values)
             for end in anchor_values
         }
+
+    @staticmethod
+    def _derive_missing_operating_income(
+        existing: dict[str, float],
+        existing_unit: str | None,
+        field_maps: dict[str, dict[str, float]],
+        field_units: dict[str, str | None],
+        payload: Callable[[str], dict[str, Any] | None],
+    ) -> tuple[dict[str, float], str | None, dict[str, str]]:
+        """Per-period operating-income derivation (spec §19.7).
+
+        Only fills periods the operating-income tags miss:
+        (1) revenue − CostsAndExpenses, else (2) gross_profit −
+        OperatingExpenses. Returns (derived values, field unit, {period end:
+        route}). Currencies are never mixed: a derived period must match the
+        unit the field already carries, and both derivation inputs must agree.
+        """
+        derived: dict[str, float] = {}
+        routes: dict[str, str] = {}
+        unit = existing_unit
+
+        def _tag_values(tag: str) -> tuple[dict[str, float], str | None]:
+            tag_payload = payload(tag)
+            if not tag_payload:
+                return {}, None
+            return _select_annual_values(tag_payload, tag)
+
+        total_costs, total_costs_unit = _tag_values(OPERATING_INCOME_TOTAL_COSTS_TAG)
+        opex, opex_unit = _tag_values(OPERATING_INCOME_OPEX_TAG)
+
+        inputs = [
+            ("total_costs", field_maps.get("revenue", {}),
+             field_units.get("revenue"), total_costs, total_costs_unit),
+            ("opex", field_maps.get("gross_profit", {}),
+             field_units.get("gross_profit"), opex, opex_unit),
+        ]
+        for route, minuend, minuend_unit, subtrahend, subtrahend_unit in inputs:
+            for end, value in minuend.items():
+                if end in existing or end in derived or end not in subtrahend:
+                    continue
+                if minuend_unit and subtrahend_unit and minuend_unit != subtrahend_unit:
+                    continue  # inputs reported in different currencies
+                candidate_unit = minuend_unit or subtrahend_unit
+                if unit is not None and candidate_unit != unit:
+                    continue  # never mix currencies inside one field's history
+                derived[end] = value - subtrahend[end]
+                routes[end] = route
+                unit = unit or candidate_unit
+        return derived, unit, routes
 
     def _total_debt_values(
         self, gaap: dict[str, Any], warnings: list[str], ifrs: dict[str, Any] | None = None

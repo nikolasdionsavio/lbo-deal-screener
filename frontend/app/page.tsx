@@ -60,7 +60,7 @@ function MemoIcon() {
 const POINTS = [
   {
     title: "Screen",
-    body: "Company dashboard, traceable KPIs, valuation multiples, and a transparent 0-100 deal score. Every figure shows its formula, inputs, and period.",
+    body: "Company dashboard, traceable KPIs, filed statements, valuation multiples, and a 0–100 deal score. Every figure shows its formula, inputs, and period.",
     Icon: ScreenIcon,
   },
   {
@@ -70,40 +70,88 @@ const POINTS = [
   },
   {
     title: "Memo",
-    body: "An auto-generated investment memo built only from computed figures. Missing data is stated as missing, never invented.",
+    body: "An investment memo assembled from the computed figures on these pages. Missing data is stated as missing, never invented.",
     Icon: MemoIcon,
   },
 ];
+
+/**
+ * Decorative orbit arcs for the hero (BUILD_SPEC section 19.7): three 1px
+ * partial circles in --line-strong, offset like orbit lines, positioned
+ * behind the hero content. Purely ornamental, hidden from assistive tech.
+ */
+function HeroArcs() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 720 480"
+      preserveAspectRatio="xMidYMid slice"
+      fill="none"
+    >
+      <g stroke="var(--line-strong)" strokeWidth="1">
+        <circle
+          cx="360"
+          cy="700"
+          r="520"
+          pathLength="100"
+          strokeDasharray="22 78"
+          strokeDashoffset="-64"
+        />
+        <circle
+          cx="330"
+          cy="730"
+          r="600"
+          pathLength="100"
+          strokeDasharray="28 72"
+          strokeDashoffset="-58"
+        />
+        <circle
+          cx="400"
+          cy="760"
+          r="680"
+          pathLength="100"
+          strokeDasharray="16 84"
+          strokeDashoffset="-69"
+        />
+      </g>
+    </svg>
+  );
+}
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col px-8">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-16">
         <Reveal>
-          <section className="rounded-3xl bg-surface-sunken px-6 py-12 text-center sm:px-12 sm:py-14">
-            <span className="inline-flex items-center rounded-full border border-line-strong px-3 py-1 text-[11px] font-medium tracking-wide text-ink-muted">
-              DEAL SCREENING
-            </span>
-            <h1 className="mt-5 font-display text-[2.5rem] font-semibold leading-tight text-ink">
-              LBO Deal Screener
-            </h1>
-            <p className="mt-3 text-base text-ink-secondary">
-              A private equity style deal screening tool for public companies.
-            </p>
+          <section className="relative overflow-hidden rounded-3xl bg-surface-sunken px-6 py-12 text-center sm:px-12 sm:py-14">
+            <HeroArcs />
+            <div className="relative">
+              <span className="inline-flex items-center rounded-full border border-line-strong px-3 py-1 text-[11px] font-medium tracking-wide text-ink-muted">
+                DEAL SCREENING
+              </span>
+              <h1 className="mt-5 font-display text-[2.5rem] font-semibold leading-tight text-ink">
+                LBO Deal Screener
+              </h1>
+              <p className="mt-3 text-base text-ink-secondary">
+                Screen any US-listed company as a buyout candidate: traceable
+                fundamentals, a five-year LBO model, and a memo you can defend.
+              </p>
 
-            <SearchBar
-              className="mx-auto mt-8 w-full max-w-xl text-left"
-              autoFocus
-              footer={SAMPLE_TICKERS.map((ticker) => (
-                <Link
-                  key={ticker}
-                  href={`/company/${ticker}/dashboard`}
-                  className="rounded-full border border-line px-2.5 py-1 text-xs font-medium tabular-nums text-ink-muted transition-colors duration-150 hover:border-line-strong hover:text-ink"
-                >
-                  {ticker}
-                </Link>
-              ))}
-            />
+              <SearchBar
+                className="mx-auto mt-8 w-full max-w-xl text-left"
+                autoFocus
+                footer={SAMPLE_TICKERS.map((ticker) => (
+                  <Link
+                    key={ticker}
+                    href={`/company/${ticker}/dashboard`}
+                    className="rounded-full border border-line px-2.5 py-1 text-xs font-medium tabular-nums text-ink-muted transition-colors duration-150 hover:border-line-strong hover:text-ink"
+                  >
+                    {ticker}
+                  </Link>
+                ))}
+              />
+            </div>
           </section>
         </Reveal>
 

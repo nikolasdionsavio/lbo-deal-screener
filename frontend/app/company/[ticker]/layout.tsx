@@ -9,6 +9,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import LoadingState from "@/components/ui/LoadingState";
 import WarningList from "@/components/ui/WarningList";
 import { getProfile } from "@/lib/api";
+import { fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 
 export default function CompanyLayout({
@@ -86,7 +87,7 @@ export default function CompanyLayout({
             >
               {profile.data_source}
               {profile.data_as_of !== null
-                ? ` · as of ${profile.data_as_of}`
+                ? ` · as of ${fmtDate(profile.data_as_of)}`
                 : ""}
               {profile.currency != null && profile.currency !== "USD"
                 ? ` · reported in ${profile.currency}`

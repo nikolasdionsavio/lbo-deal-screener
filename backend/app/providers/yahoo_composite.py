@@ -42,14 +42,16 @@ class YahooCompositeProvider(DataProvider):
     def search(self, query: str) -> list[SearchResult]:
         return self.yahoo.search(query)
 
-    def get_company(self, ticker: str) -> CompanyDataBundle:
+    def get_company(self, ticker: str, max_years: int = 5) -> CompanyDataBundle:
+        # max_years (§19.7) applies to the EDGAR fundamentals only; Yahoo
+        # serves at most 4-5 fiscal years and simply ignores larger asks.
         symbol = ticker.strip().upper()
         bundle = self.yahoo.get_company(symbol)
         if self.edgar is None or not _is_us_style(symbol):
             return bundle
 
         try:
-            edgar_bundle = self.edgar.get_company(symbol)
+            edgar_bundle = self.edgar.get_company(symbol, max_years=max_years)
         except ProviderError as exc:  # includes CompanyNotFoundError
             bundle.warnings.append(
                 f"SEC EDGAR fundamentals unavailable ({exc}); using Yahoo "

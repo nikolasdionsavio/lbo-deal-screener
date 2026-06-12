@@ -20,7 +20,7 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "LBO Deal Screener",
   description:
-    "A private equity style deal screening tool for US-listed public companies.",
+    "Screen US-listed companies as buyout candidates: traceable fundamentals, a five-year LBO model, and a memo you can defend.",
 };
 
 // Applies the persisted (or system) theme class before first paint so the

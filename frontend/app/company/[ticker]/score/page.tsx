@@ -16,6 +16,7 @@ import WarningList from "@/components/ui/WarningList";
 import { getScore } from "@/lib/api";
 import {
   fmtCurrency,
+  fmtDate,
   fmtDays,
   fmtMultiple,
   fmtNumber,
@@ -167,7 +168,7 @@ export default function ScorePage() {
         <SectionHeader
           variant="page"
           title="Deal score"
-          subtitle={`Data source: ${profile.data_source} · Score as of ${data.as_of}`}
+          subtitle={`Data source: ${profile.data_source} · Score as of ${fmtDate(data.as_of)}`}
         />
         <Card>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">

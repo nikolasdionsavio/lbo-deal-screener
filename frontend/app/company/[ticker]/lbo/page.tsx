@@ -15,7 +15,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import StatCard from "@/components/ui/StatCard";
 import WarningList from "@/components/ui/WarningList";
 import { getLboDefaults, runLbo } from "@/lib/api";
-import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
 import type { LboAssumptions, LboResponse, LboYear } from "@/lib/types";
 
@@ -145,7 +145,7 @@ export default function LboPage() {
       variant="page"
       title="LBO Model"
       subtitle={`${profile.data_source} · Data as of ${
-        profile.data_as_of ?? "not available"
+        profile.data_as_of !== null ? fmtDate(profile.data_as_of) : "not available"
       }`}
       actions={
         recomputing ? (

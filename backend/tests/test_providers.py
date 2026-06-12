@@ -11,7 +11,13 @@ import httpx
 import pytest
 
 from app.core.config import Settings
-from app.providers.edgar import COMPANYFACTS_URL, TICKER_MAP_URL, SecEdgarProvider
+from app.providers.edgar import (
+    COMPANYFACTS_URL,
+    OPERATING_INCOME_DERIVED_FROM_OPEX_WARNING,
+    OPERATING_INCOME_DERIVED_WARNING,
+    TICKER_MAP_URL,
+    SecEdgarProvider,
+)
 from app.providers.exceptions import (
     CompanyNotFoundError,
     ProviderConfigError,
@@ -633,3 +639,206 @@ def test_fmp_search_finds_ticker_via_symbol_endpoint() -> None:
 
     results = _make_fmp(handler).search("nvda")
     assert [r.ticker for r in results] == ["NVDA", "NVD"]  # deduped, symbol hit first
+
+
+# ---------------------------------------------------------------------------
+# §19.7 COHR-class tag fixes: operating-income derivation, InterestPaidNet,
+# FMP 429 retry, max_years year-selection cap
+# ---------------------------------------------------------------------------
+
+
+def _annual_fact(end: str, val: float) -> dict[str, Any]:
+    """An annual 10-K duration fact (start one year before end)."""
+    return {
+        "start": str(int(end[:4]) - 1) + end[4:],
+        "end": end,
+        "val": val,
+        "fy": int(end[:4]),
+        "fp": "FY",
+        "form": "10-K",
+        "filed": f"{int(end[:4])}-08-15",
+    }
+
+
+def _usd_tag(*facts: dict[str, Any]) -> dict[str, Any]:
+    return {"units": {"USD": list(facts)}}
+
+
+def _synthetic_edgar(tmp_path: Path, gaap: dict[str, Any]) -> SecEdgarProvider:
+    """SecEdgarProvider over synthetic us-gaap facts for ticker SYN."""
+    tickmap = {"0": {"cik_str": 777, "ticker": "SYN", "title": "Synthetic Corp"}}
+    facts = {"facts": {"us-gaap": gaap, "dei": {}}, "entityName": "Synthetic Corp"}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "company_tickers" in str(request.url):
+            return httpx.Response(200, json=tickmap)
+        return httpx.Response(200, json=facts)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    return SecEdgarProvider(TEST_USER_AGENT, client=client, cache_dir=tmp_path / "cache")
+
+
+# COHR-class FY2025 facts: no OperatingIncomeLoss, GrossProfit, CostOfRevenue
+# or InterestExpense; CostsAndExpenses and InterestPaidNet ARE filed.
+_COHR_LIKE_GAAP: dict[str, Any] = {
+    "RevenueFromContractWithCustomerExcludingAssessedTax": _usd_tag(
+        _annual_fact("2025-06-30", 5.810115e9)
+    ),
+    "CostsAndExpenses": _usd_tag(_annual_fact("2025-06-30", 5.715934e9)),
+    "CostOfGoodsAndServicesSold": _usd_tag(_annual_fact("2025-06-30", 3.766793e9)),
+    "DepreciationAndAmortization": _usd_tag(_annual_fact("2025-06-30", 5.53598e8)),
+    "InterestPaidNet": _usd_tag(_annual_fact("2025-06-30", 2.56704e8)),
+    "NetIncomeLoss": _usd_tag(_annual_fact("2025-06-30", -0.064e9)),
+}
+
+
+def test_edgar_operating_income_derived_from_costs_and_expenses(tmp_path: Path) -> None:
+    """No operating-income tag + CostsAndExpenses -> per-period derivation,
+    derived_fields entry, the §19.7 warning, and EBITDA derives on top."""
+    bundle = _synthetic_edgar(tmp_path, _COHR_LIKE_GAAP).get_company("SYN")
+    (fy2025,) = bundle.financials
+    assert fy2025.fiscal_year == 2025
+    # operating_income = revenue - CostsAndExpenses.
+    assert fy2025.operating_income == pytest.approx(94.181e6, rel=REL_TOL)
+    assert "operating_income" in fy2025.derived_fields
+    # EBITDA then derives normally from the derived operating income.
+    assert fy2025.ebitda == pytest.approx(94.181e6 + 553.598e6, rel=REL_TOL)
+    assert "ebitda" in fy2025.derived_fields
+    # Exact §19.7 warning text, and no contradictory "unavailable" warning.
+    assert (
+        "operating_income derived as revenue − total costs and expenses "
+        "(no operating income tag filed)"
+    ) in bundle.warnings
+    assert OPERATING_INCOME_DERIVED_WARNING in bundle.warnings
+    assert "operating_income unavailable from SEC EDGAR" not in bundle.warnings
+
+
+def test_edgar_interest_paid_net_fallback(tmp_path: Path) -> None:
+    """InterestPaidNet fills periods the income-statement tags miss (COHR
+    files no InterestExpense at all in FY2025) without overriding them."""
+    bundle = _synthetic_edgar(tmp_path, _COHR_LIKE_GAAP).get_company("SYN")
+    assert bundle.financials[-1].interest_expense == pytest.approx(
+        2.56704e8, rel=REL_TOL
+    )
+    # interest_expense is reported (cash proxy), not derived.
+    assert "interest_expense" not in bundle.financials[-1].derived_fields
+
+    # Per-period merge: a real IS tag keeps its periods, InterestPaidNet only
+    # fills the gaps (999m sentinel must never override 15m).
+    gaap = dict(_COHR_LIKE_GAAP)
+    gaap["InterestExpense"] = _usd_tag(_annual_fact("2024-06-30", 15e6))
+    gaap["InterestPaidNet"] = _usd_tag(
+        _annual_fact("2024-06-30", 999e6), _annual_fact("2025-06-30", 2.56704e8)
+    )
+    bundle = _synthetic_edgar(tmp_path / "merge", gaap).get_company("SYN")
+    by_year = {y.fiscal_year: y for y in bundle.financials}
+    assert by_year[2024].interest_expense == pytest.approx(15e6, rel=REL_TOL)
+    assert by_year[2025].interest_expense == pytest.approx(2.56704e8, rel=REL_TOL)
+    assert any(
+        "interest_expense assembled from multiple SEC tags" in w
+        for w in bundle.warnings
+    )
+
+
+def test_edgar_operating_income_derivation_only_fills_missing_periods(
+    tmp_path: Path,
+) -> None:
+    """A filed OperatingIncomeLoss period is never overwritten; only the
+    period the tag misses is derived (and only that row is marked derived)."""
+    gaap = {
+        "Revenues": _usd_tag(
+            _annual_fact("2024-06-30", 4.0e9), _annual_fact("2025-06-30", 5.0e9)
+        ),
+        "OperatingIncomeLoss": _usd_tag(_annual_fact("2024-06-30", 0.8e9)),
+        "CostsAndExpenses": _usd_tag(
+            _annual_fact("2024-06-30", 999e9),  # sentinel: must not be used
+            _annual_fact("2025-06-30", 4.7e9),
+        ),
+    }
+    bundle = _synthetic_edgar(tmp_path, gaap).get_company("SYN")
+    by_year = {y.fiscal_year: y for y in bundle.financials}
+    assert by_year[2024].operating_income == pytest.approx(0.8e9, rel=REL_TOL)
+    assert "operating_income" not in by_year[2024].derived_fields
+    assert by_year[2025].operating_income == pytest.approx(0.3e9, rel=REL_TOL)
+    assert "operating_income" in by_year[2025].derived_fields
+    assert OPERATING_INCOME_DERIVED_WARNING in bundle.warnings
+
+
+def test_edgar_operating_income_opex_fallback(tmp_path: Path) -> None:
+    """Without CostsAndExpenses the derivation falls back to gross_profit −
+    OperatingExpenses, with its own warning."""
+    gaap = {
+        "Revenues": _usd_tag(_annual_fact("2025-12-31", 500e6)),
+        "GrossProfit": _usd_tag(_annual_fact("2025-12-31", 200e6)),
+        "OperatingExpenses": _usd_tag(_annual_fact("2025-12-31", 120e6)),
+    }
+    bundle = _synthetic_edgar(tmp_path, gaap).get_company("SYN")
+    (fy2025,) = bundle.financials
+    assert fy2025.operating_income == pytest.approx(80e6, rel=REL_TOL)
+    assert "operating_income" in fy2025.derived_fields
+    assert OPERATING_INCOME_DERIVED_FROM_OPEX_WARNING in bundle.warnings
+    assert OPERATING_INCOME_DERIVED_WARNING not in bundle.warnings
+
+
+def test_edgar_no_derivation_inputs_keeps_unavailable_warning(tmp_path: Path) -> None:
+    """No operating-income tag and no derivation inputs -> None + the spec
+    'unavailable' warning, never the derived warning."""
+    gaap = {"Revenues": _usd_tag(_annual_fact("2025-12-31", 500e6))}
+    bundle = _synthetic_edgar(tmp_path, gaap).get_company("SYN")
+    assert bundle.financials[-1].operating_income is None
+    assert "operating_income unavailable from SEC EDGAR" in bundle.warnings
+    assert OPERATING_INCOME_DERIVED_WARNING not in bundle.warnings
+
+
+def test_edgar_max_years_caps_at_year_selection(tmp_path: Path) -> None:
+    """get_company keeps the 5-year default; max_years widens (or narrows)
+    the window at year-selection (§19.7 statements path asks for 15)."""
+    gaap = {
+        "Revenues": _usd_tag(
+            *[_annual_fact(f"{fy}-12-31", fy * 1e6) for fy in range(2019, 2026)]
+        )
+    }
+    provider = _synthetic_edgar(tmp_path, gaap)
+    default_years = provider.get_company("SYN").financials
+    assert [y.fiscal_year for y in default_years] == [2021, 2022, 2023, 2024, 2025]
+    full_years = provider.get_company("SYN", max_years=15).financials
+    assert [y.fiscal_year for y in full_years] == list(range(2019, 2026))
+    assert [y.fiscal_year for y in provider.get_company("SYN", max_years=2).financials] == [
+        2024,
+        2025,
+    ]
+
+
+def test_fmp_retries_transient_429(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 429 followed by success must be retried (2s/4s backoff), mirroring
+    the EDGAR retry; time.sleep is monkeypatched, never actually slept."""
+    import app.providers.fmp as fmp_mod
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(fmp_mod.time, "sleep", sleeps.append)
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params.get("apikey") == "test-key"
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return httpx.Response(429, json={})
+        return httpx.Response(200, json=[FMP_QUOTE])
+
+    quote = _make_fmp(handler).get_quote("FIXT")
+    assert quote is not None
+    assert quote.share_price == pytest.approx(25.0, rel=REL_TOL)
+    assert calls["n"] == 3
+    assert sleeps == [2.0, 4.0]
+
+
+def test_fmp_429_exhausted_raises_readable_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import app.providers.fmp as fmp_mod
+
+    monkeypatch.setattr(fmp_mod.time, "sleep", lambda _s: None)
+    provider = _make_fmp(lambda request: httpx.Response(429, json={}))
+    with pytest.raises(ProviderError) as excinfo:
+        provider.get_quote("FIXT")
+    message = str(excinfo.value)
+    assert "HTTP 429" in message
+    assert "test-key" not in message  # never leak the API key
