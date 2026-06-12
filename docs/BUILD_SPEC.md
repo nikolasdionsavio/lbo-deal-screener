@@ -778,3 +778,61 @@ line, null = em dash. Dense, bank-grade, no charts inside the table block.
   sunken ≈ #0a0d12, hairlines stay token-driven; light theme unchanged (Fluence). The
   landing hero may carry ONE subtle decorative SVG arc set (thin 1px orbit lines,
   line-strong color, both themes, landing only).
+
+### 19.8 Full statements, quota resilience, news ranges, app chrome (2026-06-12)
+
+**Extended statement fields** — `FiscalYearFinancials` gains optional fields (additive,
+None default; KPIs/score/LBO unchanged): `research_development, selling_general_admin,
+pretax_income, eps_basic, eps_diluted, shares_diluted, stock_based_compensation,
+total_assets, total_liabilities, goodwill, intangible_assets, ppe_net, long_term_debt,
+retained_earnings, investing_cash_flow, financing_cash_flow`. EDGAR tags (us-gaap then
+IFRS where standard): ResearchAndDevelopmentExpense; SellingGeneralAndAdministrative-
+Expense (else GeneralAndAdministrativeExpense + SellingAndMarketingExpense summed);
+IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrolling-
+Interest (+MinorityInterest variant); EarningsPerShareBasic/Diluted (unit "USD/shares" —
+the monetary-unit regex gets a per-share exception for exactly these fields);
+WeightedAverageNumberOfDilutedSharesOutstanding (unit "shares" exception);
+ShareBasedCompensation; Assets; Liabilities; Goodwill; IntangibleAssetsNetExcluding-
+Goodwill/FiniteLivedIntangibleAssetsNet; PropertyPlantAndEquipmentNet; LongTermDebt-
+Noncurrent/LongTermDebt; RetainedEarningsAccumulatedDeficit; NetCashProvidedByUsedIn-
+InvestingActivities; NetCashProvidedByUsedInFinancingActivities (+ IFRS equivalents:
+Assets/Liabilities/Goodwill/PropertyPlantAndEquipment/CashFlowsFromUsedInInvesting-
+Activities/CashFlowsFromUsedInFinancingActivities). Statements endpoint exposes them in
+filing order with the existing fields; statements page groups with indented line items
+and quiet subtotal rows (gross profit, operating income, pretax, net income; total
+assets/liabilities/equity; net change groups).
+
+**CRWD-class tag fixes** (ground truth /tmp/crwd_facts.json): revenue +=
+`RevenueFromContractWithCustomerIncludingAssessedTax` (after the Excluding variant);
+D&A component fallback gains a second anchor — probe the CRWD facts for its actual
+depreciation tag(s) and extend DA_COMPONENT_TAGS/anchors so CRWD FY2026 yields EBITDA
+(its amortization components incl. CapitalizedContractCostAmortization 449m,
+AmortizationOfIntangibleAssets 31m, CapitalizedComputerSoftwareAmortization1 80m plus
+its property depreciation tag).
+
+**FMP quota resilience:** (1) detect the "Limit Reach" body (and any
+plan/quota message) → treat as quota-exhausted: skip FMP for the rest of the process
+lifetime (module-level cooldown flag with 10-min recheck), warning "FMP daily request
+limit reached; using fallbacks until the daily reset." (2) Peers DB cache: new table
+`peers_cache(id, ticker unique, payload JSON, fetched_at)` — 7-day TTL, serve cache
+first, refresh in background-free style (on expiry only); quota-hit + cache present →
+serve stale with warning. (3) Live composites fill sector/industry/description from
+yfinance `Ticker.info` when FMP profile is unavailable (source noted). (4) `companies`
+cache table gains a `description` column (init_db runs a lightweight ALTER TABLE ADD
+COLUMN IF NOT EXISTS-equivalent for sqlite+postgres) so cache hits keep the description.
+
+**News upgrade:** backend `get_news`/news service accept `limit` (≤60, default 30;
+yfinance `get_news(count=…)`) and return items with ISO timestamps (existing shape).
+Frontend news page: range chips 1d / 3d / 1w / 1m / 6m (client-side filter on
+published_at; default 1w), item count per range shown, oldest-available note when the
+source window is shorter than the range, manual refresh button with "Updated HH:MM",
+and each story as a distinct card (surface bg, line border, hover raise) so items no
+longer blend together; source + relative time prominent.
+
+**App chrome:** (1) persistent top bar on ALL pages (sticky, surface bg, hairline
+bottom): compact global search (reusing the SearchBar dropdown logic, pill input,
+keyboard shortcut "/" focuses it) + current company name/ticker when in company
+context; landing keeps its hero search too. (2) Sidebar manually collapsible: toggle
+button (chevron) in the brand block collapses to a 64px icon rail (icons + tooltips
+via title attr, active card preserved), state persisted in localStorage
+("sidebar_collapsed"), no auto-collapse; content area reflows.
