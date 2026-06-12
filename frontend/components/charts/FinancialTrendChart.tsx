@@ -85,7 +85,7 @@ export default function FinancialTrendChart({
   };
 
   return (
-    <section className="mt-8">
+    <section className="divider-dashed mt-8 pt-8">
       <SectionHeader
         title="Financial trend"
         subtitle={`Revenue and EBITDA margin by fiscal year · Source: ${data.data_source}`}

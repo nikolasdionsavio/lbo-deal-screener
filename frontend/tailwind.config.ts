@@ -52,16 +52,17 @@ const config: Config = {
           text: "var(--warn-text)",
           soft: "var(--warn-soft)",
         },
-        sidebar: "var(--sidebar)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
       },
-      // Radius scale per DESIGN.md: 6px controls, 10px cards, 999px pills.
+      // Radius scale per DESIGN.md Aesthetic v2: 8px controls, 14px cards,
+      // 999px pills. Tailwind defaults supply 16px (2xl, hero prompt box)
+      // and 24px (3xl, hero container).
       borderRadius: {
-        DEFAULT: "6px",
-        lg: "10px",
+        DEFAULT: "8px",
+        lg: "14px",
       },
       boxShadow: {
         card: "var(--shadow-card)",

@@ -19,8 +19,9 @@ from app.providers.yahoo import YahooProvider
 from app.schemas.company import CompanyDataBundle, MarketData, SearchResult
 
 COMBINED_DATA_SOURCE = "SEC EDGAR + Yahoo Finance"
-# SEC EDGAR USD facts are served when EDGAR fundamentals are used, so the
-# reporting currency of the merged bundle is USD by construction.
+# Default reporting currency when the EDGAR bundle carries none (legacy
+# payloads). EDGAR bundles now derive their own currency (20-F filers may
+# report in non-USD units), which takes precedence.
 _EDGAR_REPORTING_CURRENCY = "USD"
 
 
@@ -57,9 +58,10 @@ class YahooCompositeProvider(DataProvider):
             return bundle
 
         # Official EDGAR fundamentals replace Yahoo's; Yahoo keeps market data
-        # and the profile (sector/industry/exchange/description).
+        # and the profile (sector/industry/exchange/description). The reporting
+        # currency follows the EDGAR fundamentals (USD for legacy payloads).
         bundle.financials = edgar_bundle.financials
-        bundle.currency = _EDGAR_REPORTING_CURRENCY
+        bundle.currency = edgar_bundle.currency or _EDGAR_REPORTING_CURRENCY
         bundle.info.cik = bundle.info.cik or edgar_bundle.info.cik
         bundle.data_source = COMBINED_DATA_SOURCE
         for warning in edgar_bundle.warnings:

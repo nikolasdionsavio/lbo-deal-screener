@@ -3,11 +3,21 @@
 - Ticker -> CIK via https://www.sec.gov/files/company_tickers.json, cached
   in memory and on disk under backend/data/cache/.
 - Fundamentals via https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json.
-- Annual fact selection: ``form == "10-K"`` and ``fp == "FY"``; duration facts
-  must span a roughly annual period (10-K filings also contain quarterly
-  periods); values are deduped by ``end`` date preferring the latest ``filed``
-  (so restatements in later filings win). Fiscal year label = calendar year of
-  the period end date.
+- Annual fact selection: ``form`` in ANNUAL_FORMS (10-K, 20-F, 40-F and their
+  amendments — foreign private issuers file 20-F/40-F, never 10-K) and
+  ``fp == "FY"``; duration facts must span a roughly annual period (annual
+  filings also contain quarterly periods); values are deduped by ``end`` date
+  preferring the latest ``filed`` (so restatements in later filings win).
+  Interim forms (10-Q, 6-K) are always excluded. Fiscal year label = calendar
+  year of the period end date.
+- Taxonomies: each tag resolves from ``us-gaap`` first, then ``ifrs-full``
+  (foreign private issuers report under IFRS). The per-field preference lists
+  put every us-gaap tag before the IFRS ones, so US filers are unaffected.
+- Units: per tag, prefer "USD"; else the single monetary unit present; else
+  the monetary unit with the most annual periods (with a warning). The bundle
+  reporting currency is the dominant unit across populated fields; fields
+  reported in a non-dominant unit are dropped with a warning (no FX
+  conversion in the MVP).
 - Missing tags -> field None + warning "<field> unavailable from SEC EDGAR".
 - All HTTP: 15s timeout, errors mapped to ProviderError with readable messages.
 """
@@ -15,7 +25,9 @@
 from __future__ import annotations
 
 import json
+import re
 import time
+from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,30 +52,58 @@ TICKER_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
 COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 
 TIMEOUT_SECONDS = 15.0
-_MIN_ANNUAL_PERIOD_DAYS = 300  # excludes quarterly periods reported inside 10-Ks
+_MIN_ANNUAL_PERIOD_DAYS = 300  # excludes quarterly periods reported inside annual filings
 _MAX_YEARS = 5
 _MAX_SEARCH_RESULTS = 20
 
-# us-gaap tag preference lists per spec §5 — first tag with annual data wins.
+# Annual-report forms (plus amendments). Foreign private issuers file 20-F
+# (IFRS) or 40-F (Canadian MJDS) instead of 10-K. Interim forms (10-Q, 6-K)
+# are never accepted.
+ANNUAL_FORMS = {"10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
+
+# Monetary units in companyfacts are plain ISO currency codes ("USD", "EUR");
+# non-monetary units ("shares", "USD/shares", "pure") never carry financials.
+_MONETARY_UNIT_RE = re.compile(r"^[A-Z]{3}$")
+
+# Tag preference lists per spec §5 — merged per period, earlier tags win.
+# Each tag resolves from us-gaap first, then ifrs-full; the IFRS tags are
+# listed AFTER every us-gaap tag so US filers are unaffected.
 TAG_PREFERENCES: dict[str, list[str]] = {
     "revenue": [
         "RevenueFromContractWithCustomerExcludingAssessedTax",
         "Revenues",
         "SalesRevenueNet",
+        # IFRS
+        "Revenue",
+        "RevenueFromContractsWithCustomers",
     ],
     "cost_of_revenue": [
         "CostOfRevenue",
         "CostOfGoodsAndServicesSold",
         "CostOfGoodsSold",
+        # IFRS
+        "CostOfSales",
     ],
-    "gross_profit": ["GrossProfit"],
-    "operating_income": ["OperatingIncomeLoss"],
+    "gross_profit": ["GrossProfit"],  # same tag name in us-gaap and ifrs-full
+    "operating_income": [
+        "OperatingIncomeLoss",
+        # IFRS
+        "ProfitLossFromOperatingActivities",
+    ],
     "depreciation_amortization": [
         "DepreciationDepletionAndAmortization",
         "DepreciationAmortizationAndAccretionNet",
         "DepreciationAndAmortization",
+        # IFRS
+        "DepreciationAndAmortisationExpense",
+        "AdjustmentsForDepreciationAndAmortisationExpense",
     ],
-    "net_income": ["NetIncomeLoss"],
+    "net_income": [
+        "NetIncomeLoss",
+        # IFRS
+        "ProfitLossAttributableToOwnersOfParent",
+        "ProfitLoss",
+    ],
     "interest_expense": [
         "InterestExpense",
         "InterestExpenseDebt",
@@ -71,40 +111,82 @@ TAG_PREFERENCES: dict[str, list[str]] = {
         "InterestExpenseNonoperating",
         "InterestIncomeExpenseNet",  # taken as absolute value
         "InterestPaid",  # cash-flow proxy; last resort for filers with no IS tag
+        # IFRS
+        "FinanceCosts",
+        "InterestPaidClassifiedAsOperatingActivities",
     ],
-    "tax_expense": ["IncomeTaxExpenseBenefit"],
+    "tax_expense": [
+        "IncomeTaxExpenseBenefit",
+        # IFRS
+        "IncomeTaxExpenseContinuingOperations",
+        "AdjustmentsForIncomeTaxExpense",
+    ],
     "operating_cash_flow": [
         "NetCashProvidedByUsedInOperatingActivities",
         "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+        # IFRS
+        "CashFlowsFromUsedInOperatingActivities",
     ],
     "capex": [
         "PaymentsToAcquirePropertyPlantAndEquipment",
         "PaymentsToAcquireProductiveAssets",
+        # IFRS
+        "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+        "PurchaseOfPropertyPlantAndEquipment",
     ],
     # Cash outflows reported positive in companyfacts; stored positive (§19.1).
     "dividends_paid": [
         "PaymentsOfDividends",
         "PaymentsOfDividendsCommonStock",
+        # IFRS
+        "DividendsPaidClassifiedAsFinancingActivities",
+        "DividendsPaid",
     ],
-    "share_buybacks": ["PaymentsForRepurchaseOfCommonStock"],
+    "share_buybacks": [
+        "PaymentsForRepurchaseOfCommonStock",
+        # IFRS
+        "PurchaseOfTreasuryShares",
+        "PaymentsToAcquireOrRedeemEntitysShares",
+    ],
     "receivables": [
         "AccountsReceivableNetCurrent",
         "ReceivablesNetCurrent",
+        # IFRS
+        "TradeAndOtherCurrentReceivables",
     ],
-    "inventory": ["InventoryNet"],
+    "inventory": [
+        "InventoryNet",
+        # IFRS
+        "Inventories",
+    ],
     "accounts_payable": [
         "AccountsPayableCurrent",
         "AccountsPayableAndAccruedLiabilitiesCurrent",
+        # IFRS
+        "TradeAndOtherCurrentPayables",
     ],
     "cash_and_equivalents": [
         "CashAndCashEquivalentsAtCarryingValue",
         "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+        # IFRS
+        "CashAndCashEquivalents",
     ],
-    "current_assets": ["AssetsCurrent"],
-    "current_liabilities": ["LiabilitiesCurrent"],
+    "current_assets": [
+        "AssetsCurrent",
+        # IFRS
+        "CurrentAssets",
+    ],
+    "current_liabilities": [
+        "LiabilitiesCurrent",
+        # IFRS
+        "CurrentLiabilities",
+    ],
     "total_equity": [
         "StockholdersEquity",
         "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+        # IFRS
+        "EquityAttributableToOwnersOfParent",
+        "Equity",
     ],
 }
 _ABS_VALUE_TAGS = {"InterestIncomeExpenseNet"}
@@ -117,6 +199,10 @@ TOTAL_DEBT_NONCURRENT_TAG = "LongTermDebtNoncurrent"
 TOTAL_DEBT_CURRENT_TAG = "DebtCurrent"
 TOTAL_DEBT_CURRENT_COMPONENT_TAGS = ["LongTermDebtCurrent", "ShortTermBorrowings"]
 TOTAL_DEBT_FALLBACK_TAG = "LongTermDebt"
+# IFRS total debt (only after the us-gaap rule yields nothing): "Borrowings"
+# alone, else NoncurrentBorrowings + CurrentBorrowings summed per period.
+IFRS_BORROWINGS_TAG = "Borrowings"
+IFRS_BORROWINGS_COMPONENT_TAGS = ["NoncurrentBorrowings", "CurrentBorrowings"]
 SHARES_TAG = "EntityCommonStockSharesOutstanding"  # dei taxonomy, latest value
 
 # D&A component fallback when no combined tag is filed (e.g. Microsoft):
@@ -128,32 +214,64 @@ DA_COMPONENT_TAGS = [
 ]
 
 
-def _select_annual_values(tag_payload: dict[str, Any], tag: str) -> dict[str, float]:
-    """Return {period_end: value} for 10-K FY facts, deduped preferring latest filed."""
-    entries = tag_payload.get("units", {}).get("USD", [])
-    best: dict[str, dict[str, Any]] = {}
-    for entry in entries:
-        if entry.get("form") != "10-K" or entry.get("fp") != "FY":
+def _select_annual_values(
+    tag_payload: dict[str, Any], tag: str, warnings: list[str] | None = None
+) -> tuple[dict[str, float], str | None]:
+    """Return ({period_end: value}, unit) for annual-report FY facts.
+
+    Facts must come from an ANNUAL_FORMS filing with ``fp == "FY"``; duration
+    facts must span >= 300 days (annual filings also embed quarterly periods);
+    values are deduped by ``end`` preferring the latest ``filed``.
+
+    Unit selection: prefer "USD"; else the single monetary unit present; else
+    the monetary unit with the most annual periods (recording a warning when a
+    warnings list is supplied). Returns ({}, None) when no monetary unit has
+    annual data.
+    """
+    per_unit: dict[str, dict[str, dict[str, Any]]] = {}
+    for unit, entries in (tag_payload.get("units") or {}).items():
+        if not _MONETARY_UNIT_RE.match(unit):
             continue
-        end = entry.get("end")
-        val = entry.get("val")
-        if not end or val is None:
-            continue
-        start = entry.get("start")
-        if start:
-            try:
-                span = (date.fromisoformat(end) - date.fromisoformat(start)).days
-            except ValueError:
+        best: dict[str, dict[str, Any]] = {}
+        for entry in entries:
+            if entry.get("form") not in ANNUAL_FORMS or entry.get("fp") != "FY":
                 continue
-            if span < _MIN_ANNUAL_PERIOD_DAYS:
+            end = entry.get("end")
+            val = entry.get("val")
+            if not end or val is None:
                 continue
-        current = best.get(end)
-        if current is None or str(entry.get("filed") or "") > str(current.get("filed") or ""):
-            best[end] = entry
-    values = {end: float(entry["val"]) for end, entry in best.items()}
+            start = entry.get("start")
+            if start:
+                try:
+                    span = (date.fromisoformat(end) - date.fromisoformat(start)).days
+                except ValueError:
+                    continue
+                if span < _MIN_ANNUAL_PERIOD_DAYS:
+                    continue
+            current = best.get(end)
+            if current is None or str(entry.get("filed") or "") > str(current.get("filed") or ""):
+                best[end] = entry
+        if best:
+            per_unit[unit] = best
+
+    if not per_unit:
+        return {}, None
+    if "USD" in per_unit:
+        unit = "USD"
+    elif len(per_unit) == 1:
+        unit = next(iter(per_unit))
+    else:
+        unit = sorted(per_unit, key=lambda u: (-len(per_unit[u]), u))[0]
+        if warnings is not None:
+            warnings.append(
+                f"{tag} reported in multiple currencies "
+                f"({', '.join(sorted(per_unit))}); using {unit} "
+                "(most annual periods)."
+            )
+    values = {end: float(entry["val"]) for end, entry in per_unit[unit].items()}
     if tag in _ABS_VALUE_TAGS:
         values = {end: abs(v) for end, v in values.items()}
-    return values
+    return values, unit
 
 
 class SecEdgarProvider(DataProvider):
@@ -270,10 +388,20 @@ class SecEdgarProvider(DataProvider):
             COMPANYFACTS_URL.format(cik=cik),
             what=f"SEC EDGAR company facts for {ticker.upper()}",
         )
-        gaap = facts_doc.get("facts", {}).get("us-gaap", {})
+        facts = facts_doc.get("facts", {})
+        gaap = facts.get("us-gaap") or {}
+        ifrs = facts.get("ifrs-full") or {}
         warnings: list[str] = []
 
+        def _payload(tag: str) -> dict[str, Any] | None:
+            # Taxonomy resolution order: us-gaap first, then ifrs-full. A
+            # filer populates (essentially) one of the two, and the shared
+            # tag names (e.g. GrossProfit) must keep preferring us-gaap so
+            # US filers are unaffected.
+            return gaap.get(tag) or ifrs.get(tag) or None
+
         field_maps: dict[str, dict[str, float]] = {}
+        field_units: dict[str, str | None] = {}
         for field, tags in TAG_PREFERENCES.items():
             # Merge per period across the preference list: earlier tags win for
             # any period they cover, later tags only fill periods the earlier
@@ -281,16 +409,27 @@ class SecEdgarProvider(DataProvider):
             # preferred tag has stale partial history (e.g. Microsoft's
             # CostOfRevenue stops years before CostOfGoodsAndServicesSold).
             values: dict[str, float] = {}
+            unit: str | None = None
             contributing: list[str] = []
             for tag in tags:
-                payload = gaap.get(tag)
+                payload = _payload(tag)
                 if not payload:
                     continue
-                tag_values = _select_annual_values(payload, tag)
+                tag_values, tag_unit = _select_annual_values(payload, tag, warnings)
+                if not tag_values:
+                    continue
+                if unit is not None and tag_unit != unit:
+                    # Never mix currencies inside one field's history.
+                    warnings.append(
+                        f"{field}: tag {tag} reported in {tag_unit} while "
+                        f"earlier tags use {unit}; skipping it."
+                    )
+                    continue
                 added = {end: v for end, v in tag_values.items() if end not in values}
                 if added:
                     values.update(added)
                     contributing.append(tag)
+                    unit = unit or tag_unit
             if len(contributing) > 1:
                 warnings.append(
                     f"{field} assembled from multiple SEC tags "
@@ -301,11 +440,22 @@ class SecEdgarProvider(DataProvider):
                 # split it across components instead; sum them per year when
                 # the depreciation component exists.
                 values = self._sum_component_values(gaap, DA_COMPONENT_TAGS, anchor=DA_COMPONENT_TAGS[0])
+                if values:
+                    _anchor, unit = _select_annual_values(
+                        gaap[DA_COMPONENT_TAGS[0]], DA_COMPONENT_TAGS[0]
+                    )
             if not values:
                 warnings.append(f"{field} unavailable from SEC EDGAR")
             field_maps[field] = values
+            field_units[field] = unit
 
-        field_maps["total_debt"] = self._total_debt_values(gaap, warnings)
+        debt_values, debt_unit = self._total_debt_values_with_unit(
+            gaap, ifrs, warnings
+        )
+        field_maps["total_debt"] = debt_values
+        field_units["total_debt"] = debt_unit
+
+        currency = self._apply_reporting_currency(field_maps, field_units, warnings)
 
         rows_by_year: dict[int, FiscalYearFinancials] = {}
         all_ends = sorted({end for values in field_maps.values() for end in values})
@@ -326,7 +476,10 @@ class SecEdgarProvider(DataProvider):
 
         normalize_financials(years)
         if not years:
-            warnings.append("No annual 10-K facts found on SEC EDGAR for this company.")
+            warnings.append(
+                "No annual report facts (10-K/20-F/40-F) found on SEC EDGAR "
+                "for this company."
+            )
 
         info = CompanyInfo(
             ticker=ticker.strip().upper(),
@@ -339,10 +492,43 @@ class SecEdgarProvider(DataProvider):
             info=info,
             market=None,
             financials=years,
+            currency=currency,
             data_source="SEC EDGAR",
             fetched_at=datetime.now(timezone.utc).isoformat(),
             warnings=warnings,
         )
+
+    @staticmethod
+    def _apply_reporting_currency(
+        field_maps: dict[str, dict[str, float]],
+        field_units: dict[str, str | None],
+        warnings: list[str],
+    ) -> str:
+        """Pick the bundle reporting currency and drop off-currency fields.
+
+        The reporting currency is the dominant unit across populated fields
+        (ties prefer USD, then alphabetical). Fields reported in any other
+        unit are dropped with a warning — there is no FX conversion in the
+        MVP, so mixing them would corrupt derived figures. Defaults to "USD"
+        (the legacy assumption) when nothing is populated.
+        """
+        populated = {
+            field: unit
+            for field, unit in field_units.items()
+            if field_maps.get(field) and unit
+        }
+        if not populated:
+            return "USD"
+        counts = Counter(populated.values())
+        dominant = sorted(counts, key=lambda u: (-counts[u], u != "USD", u))[0]
+        for field, unit in populated.items():
+            if unit != dominant:
+                warnings.append(
+                    f"{field} dropped: reported in {unit} while the bundle "
+                    f"reporting currency is {dominant} (no FX conversion)."
+                )
+                field_maps[field] = {}
+        return dominant
 
     # ----- field helpers -----
 
@@ -354,9 +540,12 @@ class SecEdgarProvider(DataProvider):
         Used for D&A when no combined tag is filed: the depreciation component
         must exist for a period to count, amortization components are additive.
         """
-        component_values = {
-            tag: _select_annual_values(gaap[tag], tag) for tag in tags if gaap.get(tag)
-        }
+        component_values: dict[str, dict[str, float]] = {}
+        for tag in tags:
+            if gaap.get(tag):
+                values, _unit = _select_annual_values(gaap[tag], tag)
+                if values:
+                    component_values[tag] = values
         anchor_values = component_values.get(anchor, {})
         if not anchor_values:
             return {}
@@ -366,17 +555,39 @@ class SecEdgarProvider(DataProvider):
         }
 
     def _total_debt_values(
-        self, gaap: dict[str, Any], warnings: list[str]
+        self, gaap: dict[str, Any], warnings: list[str], ifrs: dict[str, Any] | None = None
     ) -> dict[str, float]:
-        """Per-period total debt with the §5 non-double-counting current rule."""
+        """Per-period total debt (values only); see _total_debt_values_with_unit."""
+        values, _unit = self._total_debt_values_with_unit(gaap, ifrs or {}, warnings)
+        return values
 
-        def _values(tag: str) -> dict[str, float]:
-            payload = gaap.get(tag)
-            return _select_annual_values(payload, tag) if payload else {}
+    def _total_debt_values_with_unit(
+        self, gaap: dict[str, Any], ifrs: dict[str, Any], warnings: list[str]
+    ) -> tuple[dict[str, float], str | None]:
+        """Per-period total debt with the §5 non-double-counting current rule.
 
-        noncurrent = _values(TOTAL_DEBT_NONCURRENT_TAG)
-        debt_current = _values(TOTAL_DEBT_CURRENT_TAG)
-        current_components = [_values(tag) for tag in TOTAL_DEBT_CURRENT_COMPONENT_TAGS]
+        us-gaap first; only when the whole us-gaap rule (including the
+        LongTermDebt fallback) yields nothing, the IFRS rule applies:
+        "Borrowings" alone, else NoncurrentBorrowings + CurrentBorrowings
+        summed per period.
+        """
+
+        def _values(
+            source: dict[str, Any], tag: str
+        ) -> tuple[dict[str, float], str | None]:
+            payload = source.get(tag)
+            if not payload:
+                return {}, None
+            return _select_annual_values(payload, tag, warnings)
+
+        noncurrent, nc_unit = _values(gaap, TOTAL_DEBT_NONCURRENT_TAG)
+        debt_current, dc_unit = _values(gaap, TOTAL_DEBT_CURRENT_TAG)
+        current_components: list[dict[str, float]] = []
+        component_units: list[str | None] = []
+        for tag in TOTAL_DEBT_CURRENT_COMPONENT_TAGS:
+            values, unit = _values(gaap, tag)
+            current_components.append(values)
+            component_units.append(unit)
 
         ends = set(noncurrent) | set(debt_current)
         ends.update(end for values in current_components for end in values)
@@ -392,15 +603,32 @@ class SecEdgarProvider(DataProvider):
                 else:
                     parts.extend(m[end] for m in current_components if end in m)
                 totals[end] = sum(parts)
-            return totals
+            unit = next(
+                (u for u in [nc_unit, dc_unit, *component_units] if u), None
+            )
+            return totals, unit
 
-        fallback = gaap.get(TOTAL_DEBT_FALLBACK_TAG)
+        fallback, fb_unit = _values(gaap, TOTAL_DEBT_FALLBACK_TAG)
         if fallback:
-            values = _select_annual_values(fallback, TOTAL_DEBT_FALLBACK_TAG)
-            if values:
-                return values
+            return fallback, fb_unit
+
+        # IFRS filers (20-F): Borrowings alone, else the noncurrent + current
+        # split summed per period.
+        borrowings, b_unit = _values(ifrs, IFRS_BORROWINGS_TAG)
+        if borrowings:
+            return borrowings, b_unit
+        ifrs_noncurrent, inc_unit = _values(ifrs, IFRS_BORROWINGS_COMPONENT_TAGS[0])
+        ifrs_current, ic_unit = _values(ifrs, IFRS_BORROWINGS_COMPONENT_TAGS[1])
+        ends = set(ifrs_noncurrent) | set(ifrs_current)
+        if ends:
+            totals = {
+                end: ifrs_noncurrent.get(end, 0.0) + ifrs_current.get(end, 0.0)
+                for end in ends
+            }
+            return totals, inc_unit or ic_unit
+
         warnings.append("total_debt unavailable from SEC EDGAR")
-        return {}
+        return {}, None
 
     @staticmethod
     def _latest_shares(facts_doc: dict[str, Any]) -> float | None:

@@ -27,6 +27,64 @@ const NOT_AVAILABLE = (
   </span>
 );
 
+// 16px, 1.5px-stroke icons for the Data section tile rows.
+function dataIconAttrs() {
+  return {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+  };
+}
+
+function DatabaseIcon() {
+  return (
+    <svg {...dataIconAttrs()}>
+      <ellipse cx="8" cy="3.5" rx="5.5" ry="2" />
+      <path d="M2.5 3.5V8c0 1.1 2.46 2 5.5 2s5.5-.9 5.5-2V3.5" />
+      <path d="M2.5 8v4.5c0 1.1 2.46 2 5.5 2s5.5-.9 5.5-2V8" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg {...dataIconAttrs()}>
+      <rect x="2" y="3" width="12" height="11.5" rx="1.5" />
+      <path d="M2 6.5h12M5.25 1.5V4M10.75 1.5V4" />
+    </svg>
+  );
+}
+
+/** Data-section tile row (Aesthetic v2): rounded-square icon tile + label
+ *  + value, separated from siblings by dashed dividers. */
+function DataSourceRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-4 py-3.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface text-ink-secondary">
+        {icon}
+      </span>
+      <span className="text-sm font-semibold text-ink">{label}</span>
+      <span className="ml-auto text-right text-sm tabular-nums text-ink-secondary">
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function text(value: string | null): ReactNode {
   return value === null || value === "" ? NOT_AVAILABLE : value;
 }
@@ -118,7 +176,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
   const { data, error, loading } = useApi(() => getFilings(ticker), [ticker]);
 
   return (
-    <section className="mt-8">
+    <section className="divider-dashed mt-8 pt-8">
       <SectionHeader
         title="Recent SEC filings"
         subtitle={data !== null ? `Source: ${data.source}` : undefined}
@@ -191,7 +249,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
           title="Market"
           subtitle={
@@ -211,7 +269,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
           title="Financials"
           subtitle={
@@ -241,7 +299,7 @@ export default function DashboardPage() {
 
       <FinancialTrendChart ticker={profile.ticker} currency={currency} />
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader
           title="Price chart"
           subtitle="Interactive chart by TradingView (its own market data, independent of the figures above)"
@@ -251,21 +309,19 @@ export default function DashboardPage() {
 
       <RecentFilings ticker={profile.ticker} />
 
-      <section className="mt-8">
+      <section className="divider-dashed mt-8 pt-8">
         <SectionHeader title="Data" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Data source"
-            value={
-              <span className="text-base">{profile.data_source}</span>
-            }
-            sub={
-              profile.data_as_of !== null
-                ? `Data as of ${profile.data_as_of}`
-                : "Data date not available"
-            }
-          />
-        </div>
+        <DataSourceRow
+          icon={<DatabaseIcon />}
+          label="Data source"
+          value={profile.data_source}
+        />
+        <div className="divider-dashed" />
+        <DataSourceRow
+          icon={<CalendarIcon />}
+          label="Data as of"
+          value={profile.data_as_of ?? "Not available"}
+        />
       </section>
 
       <Disclaimer />

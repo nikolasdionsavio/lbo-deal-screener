@@ -83,7 +83,7 @@ function BridgeTooltip({ active, payload, currency }: BridgeTooltipProps) {
       ? `+${fmtCurrency(row.display, currency)}`
       : fmtCurrency(row.display, currency);
   return (
-    <div className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs shadow-card">
+    <div className="rounded border border-line-strong bg-surface px-3 py-2 text-xs shadow-card">
       <div className="font-medium text-ink">{row.label}</div>
       <div className="mt-0.5 tabular-nums text-ink-secondary">{signed}</div>
     </div>

@@ -25,6 +25,7 @@ from app.providers.tiingo import TiingoProvider
 from app.providers.mock import MockProvider
 from app.providers.yahoo import YahooProvider
 from app.providers.yahoo_composite import YahooCompositeProvider
+from app.providers.yahoo_quote import YahooQuoteProvider
 
 MOCK_MODE_WARNING = (
     "Using bundled sample data; set SEC_EDGAR_USER_AGENT and FMP_API_KEY "
@@ -41,8 +42,10 @@ def _yfinance_importable() -> bool:
 
 
 def _build_market_adapters(settings: Settings) -> list[MarketDataAdapter]:
-    """Key-gated quote fallbacks for the §19.4 market-data chain, in chain
-    order after FMP: Polygon, Alpha Vantage, Tiingo."""
+    """Quote fallbacks for the §19.4 market-data chain, in chain order after
+    FMP: Polygon, Alpha Vantage, Tiingo (key-gated), then the keyless
+    yfinance tail — always present so ADRs/foreign listings still get a quote
+    when every key-gated adapter fails (e.g. FMP free plan returns HTTP 402)."""
     adapters: list[MarketDataAdapter] = []
     if settings.polygon_api_key.strip():
         adapters.append(PolygonProvider(settings.polygon_api_key))
@@ -50,6 +53,7 @@ def _build_market_adapters(settings: Settings) -> list[MarketDataAdapter]:
         adapters.append(AlphaVantageProvider(settings.alphavantage_api_key))
     if settings.tiingo_api_key.strip():
         adapters.append(TiingoProvider(settings.tiingo_api_key))
+    adapters.append(YahooQuoteProvider())  # keyless tail, always last
     return adapters
 
 

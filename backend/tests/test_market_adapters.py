@@ -1,9 +1,12 @@
-"""Market-data adapters: Polygon, Alpha Vantage, Tiingo + the live chain (spec §19.4).
+"""Market-data adapters: Polygon, Alpha Vantage, Tiingo, the keyless Yahoo
+quote tail + the live chain (spec §19.4).
 
-No live network calls: all HTTP goes through httpx.MockTransport. Every error
-path asserts the API key never leaks into ProviderError messages.
+No live network calls: all HTTP goes through httpx.MockTransport and yfinance
+is replaced by a fake module. Every error path asserts the API key never
+leaks into ProviderError messages.
 """
 
+import types
 from typing import Any, Callable
 
 import httpx
@@ -17,6 +20,8 @@ from app.providers.fmp import FmpProvider
 from app.providers.live import CompositeLiveProvider
 from app.providers.polygon import PolygonProvider
 from app.providers.tiingo import TiingoProvider
+from app.providers.yahoo import DATA_SOURCE as YAHOO_DATA_SOURCE
+from app.providers.yahoo_quote import YahooQuoteProvider
 from app.schemas.company import CompanyDataBundle, CompanyInfo
 
 REL_TOL = 1e-6
@@ -315,6 +320,99 @@ def test_tiingo_http_error_maps_to_provider_error_without_key() -> None:
 
 
 # ---------------------------------------------------------------------------
+# YahooQuoteProvider (keyless tail; fake yfinance module, no network)
+# ---------------------------------------------------------------------------
+
+
+class _FakeYfTicker:
+    registry: dict[str, Any] = {}
+
+    def __init__(self, symbol: str) -> None:
+        data = self.registry.get(symbol.upper())
+        if isinstance(data, Exception):
+            raise data
+        self._data = data or {}
+
+    @property
+    def fast_info(self) -> Any:
+        value = self._data.get("fast_info")
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    @property
+    def info(self) -> Any:
+        value = self._data.get("info")
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+
+def _make_yahoo_quote(registry: dict[str, Any]) -> YahooQuoteProvider:
+    ticker_cls = type("_BoundTicker", (_FakeYfTicker,), {"registry": dict(registry)})
+    return YahooQuoteProvider(yf_module=types.SimpleNamespace(Ticker=ticker_cls))
+
+
+def _fast(price: float, currency: str = "USD") -> types.SimpleNamespace:
+    return types.SimpleNamespace(
+        last_price=price, market_cap=1.25e9, shares=50e6, currency=currency
+    )
+
+
+def test_yahoo_quote_happy_path_via_fast_info() -> None:
+    provider = _make_yahoo_quote({"FIXT": {"fast_info": _fast(25.0)}})
+    quote = provider.get_quote("fixt")
+    assert quote is not None
+    assert quote.share_price == pytest.approx(25.0, rel=REL_TOL)
+    assert quote.market_cap == pytest.approx(1.25e9, rel=REL_TOL)
+    assert quote.shares_outstanding == pytest.approx(50e6, rel=REL_TOL)
+    assert quote.currency == "USD"
+    assert quote.source == YAHOO_DATA_SOURCE
+    assert provider.name == "yahoo_quote"
+
+
+def test_yahoo_quote_normalizes_gbp_pence() -> None:
+    provider = _make_yahoo_quote(
+        {"TSCO.L": {"fast_info": _fast(250.0, currency="GBp")}}
+    )
+    quote = provider.get_quote("TSCO.L")
+    assert quote is not None
+    assert quote.share_price == pytest.approx(2.50, rel=REL_TOL)
+    assert quote.currency == "GBP"
+
+
+def test_yahoo_quote_falls_back_to_info_when_fast_info_empty() -> None:
+    info = {"currentPrice": 25.0, "marketCap": 1.25e9,
+            "sharesOutstanding": 50e6, "currency": "USD"}
+    provider = _make_yahoo_quote({"FIXT": {"fast_info": None, "info": info}})
+    quote = provider.get_quote("FIXT")
+    assert quote is not None
+    assert quote.share_price == pytest.approx(25.0, rel=REL_TOL)
+    assert quote.source == YAHOO_DATA_SOURCE
+
+
+def test_yahoo_quote_failure_returns_none() -> None:
+    # Non-transport yfinance failures (unknown symbol quirks) -> None.
+    provider = _make_yahoo_quote({"FIXT": ValueError("boom")})
+    assert provider.get_quote("FIXT") is None
+    # No quote data at all -> None.
+    assert _make_yahoo_quote({}).get_quote("FIXT") is None
+
+
+def test_yahoo_quote_missing_yfinance_returns_none() -> None:
+    # The tail is always in the chain; a missing optional dependency must
+    # degrade to "no quote", not an error. _import_yfinance raises
+    # ProviderConfigError, which get_quote swallows.
+    provider = YahooQuoteProvider()
+
+    def _raise() -> Any:
+        raise ProviderConfigError("yfinance is not installed")
+
+    provider._yahoo._yf = _raise  # type: ignore[method-assign]
+    assert provider.get_quote("FIXT") is None
+
+
+# ---------------------------------------------------------------------------
 # CompositeLiveProvider market-data chain (FMP -> Polygon -> AV -> Tiingo)
 # ---------------------------------------------------------------------------
 
@@ -438,6 +536,37 @@ def test_chain_tiingo_only_configuration_works() -> None:
     assert bundle.data_source == "SEC EDGAR + Tiingo"
 
 
+def test_chain_yahoo_quote_tail_wins_when_fmp_plan_gates_the_quote() -> None:
+    """The ADR scenario: FMP free plan answers HTTP 402 (ProviderError), the
+    keyless yfinance tail still delivers the quote."""
+    composite = CompositeLiveProvider(
+        _StubEdgar(),
+        _make_fmp(status=402),
+        [_make_yahoo_quote({"BUD": {"fast_info": _fast(61.5)}})],
+    )
+    bundle = composite.get_company("BUD")
+    assert bundle.market is not None
+    assert bundle.market.source == YAHOO_DATA_SOURCE
+    assert bundle.market.share_price == pytest.approx(61.5, rel=REL_TOL)
+    assert bundle.market.currency == "USD"
+    assert bundle.data_source == f"SEC EDGAR + {YAHOO_DATA_SOURCE}"
+    assert any(
+        w.startswith("Market data unavailable") and "402" in w
+        for w in bundle.warnings
+    )
+
+
+def test_chain_yahoo_quote_tail_failure_keeps_market_none() -> None:
+    composite = CompositeLiveProvider(
+        _StubEdgar(),
+        _make_fmp(status=402),
+        [_make_yahoo_quote({})],  # tail has no quote either
+    )
+    bundle = composite.get_company("BUD")
+    assert bundle.market is None
+    assert bundle.data_source == "SEC EDGAR"
+
+
 def test_refresh_market_walks_the_same_chain() -> None:
     composite = CompositeLiveProvider(
         _StubEdgar(),
@@ -482,16 +611,27 @@ def test_factory_wires_configured_adapters_in_chain_order() -> None:
         )
     )
     assert isinstance(provider, CompositeLiveProvider)
+    # The keyless yfinance tail is always present, always last.
     assert [type(a) for a in provider.market_adapters] == [
         FmpProvider,
         PolygonProvider,
         AlphaVantageProvider,
         TiingoProvider,
+        YahooQuoteProvider,
     ]
 
 
-def test_factory_skips_unconfigured_adapters() -> None:
+def test_factory_skips_unconfigured_adapters_but_keeps_keyless_tail() -> None:
     provider = get_provider(_settings(tiingo_api_key="tk"))
     assert isinstance(provider, CompositeLiveProvider)
     assert provider.fmp is None
-    assert [type(a) for a in provider.market_adapters] == [TiingoProvider]
+    assert [type(a) for a in provider.market_adapters] == [
+        TiingoProvider,
+        YahooQuoteProvider,
+    ]
+
+
+def test_factory_keyless_tail_present_with_no_keys_at_all() -> None:
+    provider = get_provider(_settings())
+    assert isinstance(provider, CompositeLiveProvider)
+    assert [type(a) for a in provider.market_adapters] == [YahooQuoteProvider]

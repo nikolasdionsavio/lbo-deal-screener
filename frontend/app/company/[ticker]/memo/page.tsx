@@ -6,7 +6,7 @@
 // Save to watchlist requires auth; 409 is treated as already saved.
 
 import Link from "next/link";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import MemoRenderer from "@/components/memo/MemoRenderer";
 import Card from "@/components/ui/Card";
@@ -190,9 +190,13 @@ export default function MemoPage() {
       </header>
 
       <Card>
-        <article className="space-y-8">
-          {data.sections.map((section) => (
-            <MemoSectionBlock key={section.key} section={section} />
+        {/* Memo sections separated by dashed dividers (Aesthetic v2). */}
+        <article>
+          {data.sections.map((section, index) => (
+            <Fragment key={section.key}>
+              {index > 0 && <div className="divider-dashed my-7" />}
+              <MemoSectionBlock section={section} />
+            </Fragment>
           ))}
         </article>
       </Card>
