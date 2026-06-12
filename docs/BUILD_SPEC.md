@@ -731,3 +731,50 @@ badge, date, external link). MemoRenderer gains `[text](url)` link support
   - Dashboard `components/charts/FinancialTrendChart.tsx`: revenue bars + EBITDA-margin
     line (ComposedChart) from GET /financials, placed between Financials and Price
     chart sections.
+
+### 19.7 Statements, tag robustness, presentation pass (2026-06-12)
+
+**Tag fixes (COHR-class filers, verified against COHR companyfacts):**
+- interest_expense list += `InterestPaidNet` (after the income-statement tags, before
+  `InterestPaid`; both are cash proxies).
+- operating_income per-period derivation when no tag matches: (1) `revenue −
+  CostsAndExpenses` (COHR files CostsAndExpenses 5.716bn FY2025 → op income ≈ 97m);
+  (2) else `gross_profit − OperatingExpenses`. Implemented like the D&A component
+  fallback (per-period, derived_fields records "operating_income", warning notes the
+  derivation). EBITDA then derives normally.
+- FMP `_request_json` gains 429 retry/backoff (2 retries, 2s/4s) mirroring EDGAR's.
+
+**Financial statements endpoint:** GET `/api/companies/{ticker}/statements` →
+`{ticker, currency, data_source, fetched_at, years: list (DESCENDING fiscal_year, ALL
+available history — EDGAR is uncapped for this endpoint, up to 15 years; mock = its 5),
+warnings}`. Each year: `{fiscal_year, period_end, derived_fields, income_statement:
+{revenue, cost_of_revenue, gross_profit, operating_income, depreciation_amortization,
+ebitda, interest_expense, tax_expense, net_income}, balance_sheet: {cash_and_equivalents,
+receivables, inventory, current_assets, accounts_payable, current_liabilities,
+total_debt, total_equity}, cash_flow: {operating_cash_flow, capex, free_cash_flow,
+dividends_paid, share_buybacks}}`. Implementation: reuse the EDGAR field maps with a
+`max_years` parameter (provider method `get_company(ticker, max_years=…)` or a separate
+fetch path — keep the 5-year default everywhere else). Forward projections are NOT
+included (no free, reliable source; the LBO page carries the forward case).
+
+**Frontend Financials page** (`/company/[ticker]/financials`, sidebar between KPIs and
+Valuation): three statement blocks (Income statement / Balance sheet / Cash flow) as a
+segmented control, years as COLUMNS newest-left, line items as rows in filing order with
+the §19.7 grouping, sticky first column, horizontal scroll, values auto-scaled (m/bn) in
+the reporting currency, derived values marked with a superscript dagger and one footnote
+line, null = em dash. Dense, bank-grade, no charts inside the table block.
+
+**Presentation pass (binding):**
+- Headers showing `data_as_of`/`as_of` must render dates only (YYYY-MM-DD), never raw
+  ISO timestamps.
+- WarningList collapses beyond 3 entries ("Show all N warnings" toggle).
+- KPI page groups the 14 KPIs under four quiet subheads: Growth, Margins, Cash flow,
+  Leverage & returns (table split, same traced rows).
+- Copy pass over all UI strings (landing, section subtitles, empty states, helper text):
+  concise professional-analyst voice — concrete nouns, no buzzwords, no em-dashes, no
+  template-speak ("auto-generated", "powered by", "seamlessly"). Reads like terminal
+  help text written by a person.
+- Dark theme deepens to the Sanjaya reference: bg ≈ #07090d, surface ≈ #0e1116,
+  sunken ≈ #0a0d12, hairlines stay token-driven; light theme unchanged (Fluence). The
+  landing hero may carry ONE subtle decorative SVG arc set (thin 1px orbit lines,
+  line-strong color, both themes, landing only).
