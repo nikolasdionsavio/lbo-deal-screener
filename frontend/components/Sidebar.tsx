@@ -7,6 +7,11 @@
 // the brand block toggles a 64px icon rail (title-attr tooltips, raised
 // active icon card, icon-only theme toggle), persisted in
 // localStorage("sidebar_collapsed"); never auto-collapses.
+//
+// Two variants: "desktop" (default) is the sticky lg+ sidebar, hidden below
+// lg; "drawer" renders the same content inside the mobile off-canvas panel
+// (components/chrome/MobileNav.tsx) — always expanded, no collapse toggle,
+// sized by the panel.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -249,7 +254,12 @@ function linkClass(active: boolean, collapsed: boolean): string {
 
 const COLLAPSE_KEY = "sidebar_collapsed";
 
-export default function Sidebar() {
+interface SidebarProps {
+  variant?: "desktop" | "drawer";
+}
+
+export default function Sidebar({ variant = "desktop" }: SidebarProps) {
+  const isDrawer = variant === "drawer";
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
@@ -265,9 +275,11 @@ export default function Sidebar() {
   const [restored, setRestored] = useState(false);
 
   useEffect(() => {
+    // The drawer never collapses; only the desktop sidebar restores the rail.
+    if (isDrawer) return;
     setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === "1");
     setRestored(true);
-  }, []);
+  }, [isDrawer]);
 
   function toggleCollapsed() {
     setCollapsed((value) => {
@@ -306,9 +318,13 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-line bg-bg ${
-        collapsed ? "w-16" : "w-60"
-      } ${restored ? "transition-[width] duration-200 ease-out" : ""}`}
+      className={
+        isDrawer
+          ? "flex h-full w-full flex-col overflow-y-auto overflow-x-hidden bg-bg"
+          : `sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-line bg-bg lg:flex ${
+              collapsed ? "w-16" : "w-60"
+            } ${restored ? "transition-[width] duration-200 ease-out" : ""}`
+      }
     >
       <div className={collapsed ? "px-2 pb-4 pt-6" : "px-5 pb-4 pt-6"}>
         {collapsed ? (
@@ -323,7 +339,7 @@ export default function Sidebar() {
                 PE screening for public companies
               </div>
             </Link>
-            {toggleButton}
+            {!isDrawer && toggleButton}
           </div>
         )}
       </div>

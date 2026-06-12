@@ -8,6 +8,7 @@
 // industry) live only in the layout's company header. Profile data comes
 // from CompanyContext; filings from GET /api/companies/{ticker}/filings.
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import TradingViewChart from "@/components/company/TradingViewChart";
@@ -20,6 +21,7 @@ import WarningList from "@/components/ui/WarningList";
 import { getFilings } from "@/lib/api";
 import { fmtCurrency, fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { useCountUp } from "@/lib/useCountUp";
 import type { Filing } from "@/lib/types";
 
 const NOT_AVAILABLE = (
@@ -86,18 +88,44 @@ function DataSourceRow({
   );
 }
 
-/** Snapshot band tile: compact, value-first (the analyst's first scan). */
-function SnapshotTile({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="rounded-lg border border-line bg-surface px-4 py-3 shadow-card">
+/** Snapshot band tile: compact, value-first (the analyst's first scan).
+ *  The value counts up once on first mount (motion pass; reduced-motion
+ *  renders it directly). Linked tiles open the page detailing the figure
+ *  and carry the card hover lift to signal it. */
+function SnapshotTile({
+  label,
+  value,
+  format,
+  href,
+  hrefTitle,
+}: {
+  label: string;
+  value: number | null;
+  format: (value: number | null) => string;
+  href?: string;
+  hrefTitle?: string;
+}) {
+  const text = useCountUp(value, format);
+  const body = (
+    <>
       <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
         {label}
       </div>
       <div className="mt-0.5 text-xl font-semibold tabular-nums text-ink">
-        {value}
+        {value === null ? NOT_AVAILABLE : text}
       </div>
-    </div>
+    </>
   );
+  const surface =
+    "block rounded-lg border border-line bg-surface px-4 py-3 shadow-card";
+  if (href !== undefined && value !== null) {
+    return (
+      <Link href={href} title={hrefTitle} className={`${surface} tile-link`}>
+        {body}
+      </Link>
+    );
+  }
+  return <div className={surface}>{body}</div>;
 }
 
 /** Secondary financial tile: one register smaller than the snapshot band. */
@@ -234,14 +262,14 @@ function RecentFilings({ ticker }: { ticker: string }) {
             </p>
           </div>
         ) : (
-          <>
+          <div className="fade-in">
             <ul className="divide-y divide-line">
               {data.filings.map((filing) => (
                 <FilingRow key={filing.accession} filing={filing} />
               ))}
             </ul>
             <WarningList warnings={data.warnings} className="mt-3" />
-          </>
+          </div>
         )}
       </Card>
     </section>
@@ -251,10 +279,13 @@ function RecentFilings({ ticker }: { ticker: string }) {
 export default function DashboardPage() {
   const { profile } = useCompany();
   const currency = profile.currency ?? null;
+  const ticker = encodeURIComponent(profile.ticker);
 
   function money(value: number | null): ReactNode {
     return value === null ? NOT_AVAILABLE : fmtCurrency(value, currency);
   }
+
+  const fmtMoney = (value: number | null) => fmtCurrency(value, currency);
 
   const fiscalYearLabel =
     profile.latest_fiscal_year === null
@@ -273,16 +304,49 @@ export default function DashboardPage() {
           title="Snapshot"
           subtitle={`Price and EV at market; revenue, EBITDA and net debt from ${fyNote}. EV = market cap + net debt.`}
         />
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          <SnapshotTile label="Share price" value={money(profile.share_price)} />
-          <SnapshotTile label="Market cap" value={money(profile.market_cap)} />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <SnapshotTile
+            label="Share price"
+            value={profile.share_price}
+            format={fmtMoney}
+            href="#price-chart"
+            hrefTitle="Jump to the price chart"
+          />
+          <SnapshotTile
+            label="Market cap"
+            value={profile.market_cap}
+            format={fmtMoney}
+            href={`/company/${ticker}/valuation`}
+            hrefTitle="Open valuation"
+          />
           <SnapshotTile
             label="Enterprise value"
-            value={money(profile.enterprise_value)}
+            value={profile.enterprise_value}
+            format={fmtMoney}
+            href={`/company/${ticker}/valuation`}
+            hrefTitle="Open valuation"
           />
-          <SnapshotTile label="Revenue" value={money(profile.revenue)} />
-          <SnapshotTile label="EBITDA" value={money(profile.ebitda)} />
-          <SnapshotTile label="Net debt" value={money(profile.net_debt)} />
+          <SnapshotTile
+            label="Revenue"
+            value={profile.revenue}
+            format={fmtMoney}
+            href={`/company/${ticker}/financials`}
+            hrefTitle="Open financial statements"
+          />
+          <SnapshotTile
+            label="EBITDA"
+            value={profile.ebitda}
+            format={fmtMoney}
+            href={`/company/${ticker}/financials`}
+            hrefTitle="Open financial statements"
+          />
+          <SnapshotTile
+            label="Net debt"
+            value={profile.net_debt}
+            format={fmtMoney}
+            href={`/company/${ticker}/financials`}
+            hrefTitle="Open financial statements"
+          />
         </div>
       </section>
 
@@ -295,7 +359,7 @@ export default function DashboardPage() {
 
       <section className="divider-dashed mt-8 pt-8">
         <SectionHeader title="Financial detail" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <DetailTile label="Net income" value={money(profile.net_income)} />
           <DetailTile
             label="Free cash flow"
@@ -313,7 +377,8 @@ export default function DashboardPage() {
 
       <FinancialTrendChart ticker={profile.ticker} currency={currency} />
 
-      <section className="divider-dashed mt-8 pt-8">
+      {/* scroll-mt clears the sticky top bar for the Share price tile anchor. */}
+      <section id="price-chart" className="divider-dashed mt-8 scroll-mt-14 pt-8">
         <SectionHeader
           title="Price chart"
           subtitle="TradingView chart. Its market data is independent of the figures above."

@@ -12,6 +12,8 @@ import { useTheme } from "@/lib/theme";
 interface TradingViewChartProps {
   ticker: string;
   exchange: string | null;
+  /** Fixed pixel height override; without it the container is responsive
+   *  (~360px on mobile, 460px from sm up). */
   height?: number;
 }
 
@@ -27,7 +29,7 @@ function tvSymbol(ticker: string, exchange: string | null): string {
 export default function TradingViewChart({
   ticker,
   exchange,
-  height = 460,
+  height,
 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
@@ -70,12 +72,15 @@ export default function TradingViewChart({
   }, [ticker, exchange, theme]);
 
   // The embed script overwrites the .tradingview-widget-container element's
-  // inline style with height:100%, so the fixed height must live on an outer
-  // wrapper the script never touches.
+  // inline style with height:100%, so the height must live on an outer
+  // wrapper the script never touches. Default is responsive: full card
+  // width, ~360px tall on mobile, 460px from sm up.
   return (
     <div
-      className="overflow-hidden rounded-lg border border-line bg-surface"
-      style={{ height }}
+      className={`w-full overflow-hidden rounded-lg border border-line bg-surface ${
+        height === undefined ? "h-[360px] sm:h-[460px]" : ""
+      }`}
+      style={height !== undefined ? { height } : undefined}
     >
       <div
         className="tradingview-widget-container"

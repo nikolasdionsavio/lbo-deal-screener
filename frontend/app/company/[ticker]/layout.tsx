@@ -33,7 +33,7 @@ export default function CompanyLayout({
 
   if (loading) {
     return (
-      <div className="px-8 py-8">
+      <div className="px-4 py-8 sm:px-8">
         <LoadingState lines={6} />
       </div>
     );
@@ -41,7 +41,7 @@ export default function CompanyLayout({
 
   if (error !== null || profile === null) {
     return (
-      <div className="px-8 py-8">
+      <div className="px-4 py-8 sm:px-8">
         <ErrorState
           message={
             error !== null
@@ -60,7 +60,8 @@ export default function CompanyLayout({
 
   return (
     <CompanyContext.Provider value={{ profile, refetch: retry }}>
-      <div className="px-8 py-8">
+      {/* fade-in: the profile LoadingState resolving to the company pages. */}
+      <div className="fade-in px-4 py-8 sm:px-8">
         <header className="mb-6 border-b border-line pb-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">

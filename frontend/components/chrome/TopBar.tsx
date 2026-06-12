@@ -1,14 +1,17 @@
 "use client";
 
 // Persistent top bar (BUILD_SPEC section 19.8 app chrome): sticky h-12
-// surface bar with a hairline bottom on every page. Left: a quiet ticker
-// crumb when in /company/* context. Right: the compact pill variant of the
-// global company search (same useCompanySearch behavior as the landing
-// hero), focusable with "/" anywhere outside a text input.
+// surface bar with a hairline bottom on every page. Left: the mobile nav
+// hamburger (below lg) and a quiet ticker crumb when in /company/* context.
+// Right: the compact pill variant of the global company search (same
+// useCompanySearch behavior as the landing hero), focusable with "/"
+// anywhere outside a text input; at narrow widths the pill flexes and the
+// "/" hint hides.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import MobileNav from "@/components/chrome/MobileNav";
 import {
   SearchResultsDropdown,
   useCompanySearch,
@@ -67,7 +70,8 @@ export default function TopBar() {
   }, [inputRef]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-6">
+      <MobileNav />
       {ticker !== null && (
         <Link
           href={`/company/${encodeURIComponent(ticker)}/dashboard`}
@@ -80,7 +84,7 @@ export default function TopBar() {
 
       <div
         ref={search.containerRef}
-        className="relative ml-auto w-full max-w-[18rem]"
+        className="relative ml-auto min-w-0 flex-1 sm:w-full sm:max-w-[18rem]"
       >
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
           <SearchIcon />
@@ -93,7 +97,7 @@ export default function TopBar() {
           aria-expanded={search.showDropdown}
           aria-controls="topbar-search-results"
           aria-autocomplete="list"
-          className="h-8 w-full rounded-full border border-line bg-surface-sunken pl-8 pr-8 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft"
+          className="h-8 w-full rounded-full border border-line bg-surface-sunken pl-8 pr-3 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft md:pr-8"
           placeholder="Search companies"
           value={search.query}
           onChange={(event) => search.onQueryChange(event.target.value)}
@@ -102,14 +106,14 @@ export default function TopBar() {
         />
         <kbd
           aria-hidden="true"
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line px-1 font-sans text-[10px] leading-4 text-ink-muted"
+          className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1 font-sans text-[10px] leading-4 text-ink-muted md:block"
         >
           /
         </kbd>
         <SearchResultsDropdown
           search={search}
           id="topbar-search-results"
-          className="absolute right-0 top-full z-40 mt-2 w-full min-w-[20rem]"
+          className="absolute right-0 top-full z-40 mt-2 w-full min-w-[20rem] max-w-[calc(100vw-2rem)]"
         />
       </div>
     </header>

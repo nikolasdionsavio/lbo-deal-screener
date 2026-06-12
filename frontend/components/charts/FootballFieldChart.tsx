@@ -125,6 +125,7 @@ export default function FootballFieldChart({
             fill={chart.brand}
             barSize={22}
             radius={[0, 2, 2, 0]}
+            {...chart.animation}
           />
           {refEv !== null && (
             <ReferenceLine

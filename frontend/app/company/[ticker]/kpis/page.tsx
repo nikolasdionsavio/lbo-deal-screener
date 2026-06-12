@@ -170,7 +170,7 @@ function GroupedKpiTable({
   if (leftover.length > 0) groups.push({ label: "Other", rows: leftover });
 
   return (
-    <div className="overflow-x-auto">
+    <div className="scroll-x">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-line">
@@ -293,7 +293,8 @@ export default function KpisPage() {
   const diagnostics = data.diagnostics ?? [];
 
   return (
-    <div>
+    // fade-in: the LoadingState resolving to the KPI content.
+    <div className="fade-in">
       <section>
         <SectionHeader
           variant="page"

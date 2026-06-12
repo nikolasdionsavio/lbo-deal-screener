@@ -93,7 +93,12 @@ export default function EvEbitdaChart({
             labelStyle={chart.tooltip.labelStyle}
             cursor={{ fill: chart.cursorFill }}
           />
-          <Bar dataKey="value" name="EV / EBITDA" radius={[2, 2, 0, 0]}>
+          <Bar
+            dataKey="value"
+            name="EV / EBITDA"
+            radius={[2, 2, 0, 0]}
+            {...chart.animation}
+          >
             {rows.map((row) => (
               <Cell
                 key={row.ticker}

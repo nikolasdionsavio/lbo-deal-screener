@@ -189,8 +189,18 @@ export default function ValueCreationBridge({
                 content={<BridgeTooltip currency={currency} />}
                 cursor={{ fill: chart.cursorFill }}
               />
-              <Bar dataKey="base" stackId="bridge" fill="transparent" />
-              <Bar dataKey="size" stackId="bridge" radius={[2, 2, 0, 0]}>
+              <Bar
+                dataKey="base"
+                stackId="bridge"
+                fill="transparent"
+                {...chart.animation}
+              />
+              <Bar
+                dataKey="size"
+                stackId="bridge"
+                radius={[2, 2, 0, 0]}
+                {...chart.animation}
+              >
                 {rows.map((row) => (
                   <Cell key={row.label} fill={rowColor(row.kind, chart)} />
                 ))}

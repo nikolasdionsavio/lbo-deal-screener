@@ -28,6 +28,13 @@ export interface ChartTheme {
     contentStyle: CSSProperties;
     labelStyle: CSSProperties;
   };
+  /** Series animation (DESIGN.md Motion): 400ms ease-out, disabled under
+   *  prefers-reduced-motion. Spread onto every Bar/Line series element. */
+  animation: {
+    isAnimationActive: boolean;
+    animationDuration: number;
+    animationEasing: "ease-out";
+  };
 }
 
 export const CHART_AXIS_FONT_SIZE = 11;
@@ -49,7 +56,10 @@ const FALLBACK_VARS: Record<string, string> = {
   "--shadow-card": "0 1px 2px rgba(15, 23, 42, 0.04)",
 };
 
-function buildTheme(read: (name: string) => string): ChartTheme {
+function buildTheme(
+  read: (name: string) => string,
+  reducedMotion = false,
+): ChartTheme {
   const brand = read("--brand");
   const accent = read("--accent");
   const inkMuted = read("--ink-muted");
@@ -74,6 +84,11 @@ function buildTheme(read: (name: string) => string): ChartTheme {
       },
       labelStyle: { color: read("--ink"), fontWeight: 500 },
     },
+    animation: {
+      isAnimationActive: !reducedMotion,
+      animationDuration: 400,
+      animationEasing: "ease-out",
+    },
   };
 }
 
@@ -81,10 +96,13 @@ const FALLBACK_THEME = buildTheme((name) => FALLBACK_VARS[name] ?? "");
 
 export function readChartTheme(): ChartTheme {
   const styles = getComputedStyle(document.documentElement);
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
   return buildTheme((name) => {
     const value = styles.getPropertyValue(name).trim();
     return value !== "" ? value : (FALLBACK_VARS[name] ?? "");
-  });
+  }, reducedMotion);
 }
 
 /**
@@ -103,7 +121,14 @@ export function useChartTheme(): ChartTheme {
       attributes: true,
       attributeFilter: ["class"],
     });
-    return () => observer.disconnect();
+    // Re-read when the reduced-motion preference changes so the animation
+    // flag tracks the OS setting live.
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    media.addEventListener("change", update);
+    return () => {
+      observer.disconnect();
+      media.removeEventListener("change", update);
+    };
   }, []);
 
   return theme;

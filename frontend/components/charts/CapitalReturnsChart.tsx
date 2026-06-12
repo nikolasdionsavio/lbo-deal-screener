@@ -114,6 +114,7 @@ export default function CapitalReturnsChart({
             name="Dividends paid"
             stackId="returns"
             fill={chart.brand}
+            {...chart.animation}
           />
           <Bar
             dataKey="buybacks"
@@ -121,6 +122,7 @@ export default function CapitalReturnsChart({
             stackId="returns"
             fill={chart.accent}
             radius={[2, 2, 0, 0]}
+            {...chart.animation}
           />
         </BarChart>
       </ResponsiveContainer>

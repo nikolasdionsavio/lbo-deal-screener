@@ -237,7 +237,7 @@ export default function StatementTable({
 
   return (
     <div className={className}>
-      <div className="overflow-x-auto">
+      <div className="scroll-x">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-line">

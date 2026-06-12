@@ -126,7 +126,7 @@ export default function ValuationPage() {
       )}
 
       {data && (
-        <section>
+        <section className="fade-in">
           <SectionHeader
             title="Current multiples"
             subtitle={`As of ${fmtDate(data.as_of)}`}
@@ -136,7 +136,7 @@ export default function ValuationPage() {
       )}
 
       {assumptions && (
-        <section className="divider-dashed mt-8 pt-8">
+        <section className="divider-dashed fade-in mt-8 pt-8">
           <SectionHeader
             title="Valuation range"
             subtitle="EV/EBITDA multiples applied to latest fiscal year EBITDA. Implied equity = implied EV less net debt. The football field draws the same range."

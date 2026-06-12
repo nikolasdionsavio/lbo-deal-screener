@@ -148,7 +148,7 @@ export default function AssumptionsPanel({
           <div className="mb-1.5 text-xs font-semibold text-ink-secondary">
             Revenue growth by year
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2">
             {values.revenue_growth.map((growth, i) => (
               <AssumptionField
                 key={`growth-${i}`}
@@ -166,7 +166,7 @@ export default function AssumptionsPanel({
           <div className="mb-1.5 text-xs font-semibold text-ink-secondary">
             EBITDA margin by year
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2">
             {values.ebitda_margin.map((margin, i) => (
               <AssumptionField
                 key={`margin-${i}`}

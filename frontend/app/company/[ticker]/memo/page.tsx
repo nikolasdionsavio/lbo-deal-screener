@@ -166,7 +166,8 @@ export default function MemoPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    // key forces a remount at the loading→content swap (150ms fade-in).
+    <div key="content" className="fade-in max-w-3xl">
       <header className="mb-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">

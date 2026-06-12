@@ -140,7 +140,9 @@ export default function FinancialsPage() {
   const yearCount = years.length;
 
   return (
-    <div>
+    // key forces a remount when the loading tree resolves, so the 150ms
+    // fade-in runs exactly at the loading→content swap.
+    <div key="content" className="fade-in">
       <section>
         <SectionHeader
           variant="page"

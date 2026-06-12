@@ -77,7 +77,7 @@ export default function SensitivityTable({
   const baseColIndex = axisIndex(grid.cols, baseCol);
 
   return (
-    <div className={`overflow-x-auto ${className}`}>
+    <div className={`scroll-x ${className}`}>
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
@@ -113,7 +113,9 @@ export default function SensitivityTable({
                 return (
                   <td
                     key={j}
-                    className={`px-3 py-2 text-right tabular-nums ${
+                    // 150ms background tint transition so a recompute reads
+                    // as the grid shifting, not flashing (motion pass).
+                    className={`px-3 py-2 text-right tabular-nums transition-colors duration-150 ${
                       isBase
                         ? "font-semibold outline outline-2 -outline-offset-2 outline-brand"
                         : ""

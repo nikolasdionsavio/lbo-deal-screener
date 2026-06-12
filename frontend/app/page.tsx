@@ -122,7 +122,7 @@ function HeroArcs() {
 export default function LandingPage() {
   return (
     // Full viewport height minus the h-12 top bar.
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-8">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 sm:px-8">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-16">
         <Reveal>
           <section className="relative overflow-hidden rounded-3xl bg-surface-sunken px-6 py-12 text-center sm:px-12 sm:py-14">
@@ -131,7 +131,7 @@ export default function LandingPage() {
               <span className="inline-flex items-center rounded-full border border-line-strong px-3 py-1 text-[11px] font-medium tracking-wide text-ink-muted">
                 DEAL SCREENING
               </span>
-              <h1 className="mt-5 font-display text-[2.5rem] font-semibold leading-tight text-ink">
+              <h1 className="mt-5 font-display text-3xl font-semibold leading-tight text-ink sm:text-[2.5rem]">
                 LBO Deal Screener
               </h1>
               <p className="mt-3 text-base text-ink-secondary">

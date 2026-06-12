@@ -100,6 +100,7 @@ export default function DebtPaydownChart({
             name="Ending debt"
             fill={chart.brand}
             radius={[2, 2, 0, 0]}
+            {...chart.animation}
           />
           <Line
             dataKey="ending_cash"
@@ -107,6 +108,7 @@ export default function DebtPaydownChart({
             stroke={chart.accent}
             strokeWidth={2}
             dot={{ r: 3, fill: chart.accent, strokeWidth: 0 }}
+            {...chart.animation}
           />
         </ComposedChart>
       </ResponsiveContainer>

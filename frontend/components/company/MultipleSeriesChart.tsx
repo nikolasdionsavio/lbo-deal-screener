@@ -75,6 +75,7 @@ export default function MultipleSeriesChart({
             stroke={seriesColor}
             strokeWidth={2}
             dot={{ r: 3 }}
+            {...chart.animation}
           />
         </LineChart>
       </ResponsiveContainer>

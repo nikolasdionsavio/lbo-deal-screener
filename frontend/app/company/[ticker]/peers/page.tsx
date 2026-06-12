@@ -63,7 +63,8 @@ export default function PeersPage() {
   const hasPeers = data.peers.length > 0;
 
   return (
-    <div>
+    // key forces a remount at the loading→content swap (150ms fade-in).
+    <div key="content" className="fade-in">
       <section>
         <SectionHeader
           variant="page"

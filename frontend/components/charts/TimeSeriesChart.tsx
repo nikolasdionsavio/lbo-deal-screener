@@ -77,7 +77,12 @@ export default function TimeSeriesChart({
         {variant === "bar" ? (
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             {chartChildren}
-            <Bar dataKey="value" fill={seriesColor} radius={[2, 2, 0, 0]} />
+            <Bar
+              dataKey="value"
+              fill={seriesColor}
+              radius={[2, 2, 0, 0]}
+              {...chart.animation}
+            />
           </BarChart>
         ) : (
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -88,6 +93,7 @@ export default function TimeSeriesChart({
               stroke={seriesColor}
               strokeWidth={2}
               dot={{ r: 3 }}
+              {...chart.animation}
             />
           </LineChart>
         )}

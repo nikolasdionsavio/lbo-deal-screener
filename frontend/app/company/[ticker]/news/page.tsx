@@ -203,7 +203,8 @@ export default function NewsPage() {
     coverageDays < rangeDef.days;
 
   return (
-    <div>
+    // key forces a remount at the loading→content swap (150ms fade-in).
+    <div key="content" className="fade-in">
       <section>
         {header}
         {data.items.length === 0 ? (

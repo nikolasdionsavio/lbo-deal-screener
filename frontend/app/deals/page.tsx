@@ -74,7 +74,8 @@ function DealsList() {
   }
 
   return (
-    <div className="space-y-4">
+    // fade-in: the LoadingState resolving to the saved-deal cards.
+    <div className="fade-in space-y-4">
       {data.map((deal) => (
         <DealCard key={deal.id} deal={deal} onDeleted={retry} />
       ))}
@@ -86,7 +87,7 @@ export default function DealsPage() {
   const { user, loading } = useAuth();
 
   return (
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-8 py-8">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 py-8 sm:px-8">
       {loading ? (
         <LoadingState lines={6} />
       ) : user === null ? (

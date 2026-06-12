@@ -172,7 +172,7 @@ export function SearchResultsDropdown({
     <ul
       id={id}
       role="listbox"
-      className={`max-h-80 overflow-y-auto rounded border border-line-strong bg-surface py-1 shadow-card-hover ${className}`}
+      className={`pop-in max-h-80 overflow-y-auto rounded border border-line-strong bg-surface py-1 shadow-card-hover ${className}`}
     >
       {searchError !== null && (
         <li className="px-4 py-2.5 text-sm text-negative-text">

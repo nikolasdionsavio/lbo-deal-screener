@@ -25,7 +25,7 @@ export default function DataTable<T>({
   className = "",
 }: DataTableProps<T>) {
   return (
-    <div className={`overflow-x-auto ${className}`}>
+    <div className={`scroll-x ${className}`}>
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-line">

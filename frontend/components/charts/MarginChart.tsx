@@ -87,6 +87,7 @@ export default function MarginChart({ series, height = 260 }: MarginChartProps) 
               strokeWidth={2}
               dot={{ r: 3 }}
               connectNulls
+              {...chart.animation}
             />
           ))}
         </LineChart>

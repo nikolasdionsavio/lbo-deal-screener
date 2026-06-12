@@ -17,6 +17,7 @@ import WarningList from "@/components/ui/WarningList";
 import { getLboDefaults, runLbo } from "@/lib/api";
 import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
+import { useCountUp } from "@/lib/useCountUp";
 import type { LboAssumptions, LboResponse, LboYear } from "@/lib/types";
 
 /** MoM rendered as X.XXx per spec; fmtMultiple is one decimal, so not reused here. */
@@ -91,6 +92,19 @@ function yearColumns(currency: string | null): Column<LboYear>[] {
       render: (r) => fmtCurrency(r.ending_cash, currency),
     },
   ];
+}
+
+/** IRR/MoM hero value: counts up once on first mount (motion pass);
+ *  recomputes after edits render directly. */
+function HeroFigure({
+  value,
+  format,
+}: {
+  value: number | null;
+  format: (value: number | null) => string;
+}) {
+  const text = useCountUp(value, format);
+  return <span className="text-3xl">{text}</span>;
 }
 
 function Figure({ label, value }: { label: string; value: string }) {
@@ -208,7 +222,8 @@ export default function LboPage() {
           ) : !lbo ? (
             <LoadingState lines={10} />
           ) : (
-            <>
+            // fade-in: the outputs LoadingState resolving to the model.
+            <div className="fade-in">
               <section>
                 <SectionHeader
                   title="Entry"
@@ -258,15 +273,13 @@ export default function LboPage() {
                   <StatCard
                     label="IRR"
                     value={
-                      <span className="text-3xl">{fmtPercent(lbo.exit.irr)}</span>
+                      <HeroFigure value={lbo.exit.irr} format={fmtPercent} />
                     }
                     sub="Internal rate of return on sponsor equity"
                   />
                   <StatCard
                     label="MoM"
-                    value={
-                      <span className="text-3xl">{fmtMom(lbo.exit.mom)}</span>
-                    }
+                    value={<HeroFigure value={lbo.exit.mom} format={fmtMom} />}
                     sub="Multiple of money, exit equity over sponsor equity"
                   />
                 </div>
@@ -372,7 +385,7 @@ export default function LboPage() {
                   </Card>
                 </div>
               </section>
-            </>
+            </div>
           )}
         </div>
       </div>
