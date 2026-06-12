@@ -90,3 +90,36 @@ flows through tokens.
 
 Inline SVG, 1.5px stroke, 16/20px grid (theme toggle, external-link, form badges). No
 icon font, no emoji.
+
+## Aesthetic v2 (2026-06-12, reference-driven)
+
+User-chosen references: Framer "Fluence" and "Sanjaya" templates. Shared language to
+adopt, translated to the product register (identity stays navy/teal for data semantics;
+the references contribute geometry, surfaces, and chrome):
+
+- **Light sidebar (both themes follow surface logic now, navy retired):** sidebar =
+  `--bg` tone with a hairline right border; brand block top (wordmark + one-line
+  descriptor, dashed divider below); nav items get 16px inline 1.5px-stroke icons;
+  the ACTIVE item is a raised card (surface bg + line border + card shadow, 8px
+  radius) — Sanjaya's pattern; inactive items are quiet ink-muted with a soft hover.
+  Dark theme: same structure on dark tokens.
+- **Dashed hairline language:** section dividers (landing, dashboard between major
+  sections, memo between sections, sidebar blocks) use 1px dashed `--line-strong`
+  rules. Solid hairlines remain inside tables/cards.
+- **Pill geometry:** primary buttons become ink-filled pills (`--ink` bg, surface
+  text, rounded-full, Fluence's "Contact" button); secondary = surface pill with line
+  border. Chips/badges stay pills. Controls keep 8px radius; cards go 14px.
+- **Hero (landing only):** Fluence-style rounded container (`--surface-sunken`, 24px
+  radius, generous padding) holding the serif headline, an outlined capsule label
+  ("DEAL SCREENING", one deliberate use, landing only), and the search styled as a
+  large prompt box (white card, 16px radius, shadow, sample-ticker chips INSIDE the
+  box footer, ink pill submit affordance).
+- **Tile rows (Sanjaya "My Stack"):** landing's Screen/Model/Memo points become
+  icon-tile rows (28px rounded-square tile + name + one-line sub), and the dashboard
+  Data section adopts the same tile treatment for source rows.
+- **Motion:** landing gets one gentle fade/6px-rise reveal per section (IntersectionObserver,
+  280ms ease-out, content visible by default for no-JS/reduced-motion); app pages keep
+  hover/focus transitions only.
+- Whitespace scale up one notch on page paddings (24→32 content gutters); body bg
+  stays `--bg` cool off-white; no violet adoption — the references' airiness comes
+  from surfaces and geometry, not their accent hue.
