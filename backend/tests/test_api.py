@@ -494,3 +494,21 @@ def test_deals_of_other_users_are_invisible(api: TestClient) -> None:
     assert api.delete(f"/api/deals/{deal_id}", headers=other).status_code == 404
     # Owner still sees the deal untouched.
     assert len(api.get("/api/deals", headers=owner).json()) == 1
+
+
+def test_provider_dep_is_singleton_and_warm(monkeypatch):
+    """get_provider_dep returns one shared instance (no per-request rebuild),
+    and warm_provider builds it + its search index once at startup."""
+    import app.api.deps as deps
+    from app.providers.mock import MockProvider
+
+    # Reset any singleton from earlier tests; force mock mode for isolation.
+    deps._provider_singleton = None
+    monkeypatch.setattr(deps.settings, "data_provider", "mock", raising=False)
+
+    deps.warm_provider()
+    first = deps.get_provider_dep()
+    second = deps.get_provider_dep()
+    assert first is second  # same object across requests
+    assert isinstance(first, MockProvider)
+    deps._provider_singleton = None  # leave clean for other tests
