@@ -246,11 +246,20 @@ class DataProvider(ABC):
     FMP-specific re-fetch).
 - **factory.py** `get_provider(settings) -> DataProvider`:
   - `mock` → MockProvider.
-  - `live` → CompositeLiveProvider (EDGAR fundamentals + FMP market/profile; FMP search
-    endpoint `/api/v3/search?query=&exchange=NASDAQ,NYSE` if key present, else EDGAR
-    ticker-file search). Raise `ProviderConfigError` if `SEC_EDGAR_USER_AGENT` missing.
+  - `live` → CompositeLiveProvider (EDGAR fundamentals + FMP market/profile). Raise
+    `ProviderConfigError` if `SEC_EDGAR_USER_AGENT` missing.
   - `yahoo` → YahooCompositeProvider (global; no key required). Raise
     `ProviderConfigError` only if yfinance is not importable.
+  - **Search (all live modes, 2026-06):** autocomplete is served from the bundled SEC
+    `company_tickers.json` in memory (`SecEdgarProvider.search`, ~1ms over ~10k US
+    filers) — never a network search. Network search (Yahoo `yf.Search`, FMP
+    `/stable/search-*`) costs 10-20s from a datacenter IP and is no longer used for the
+    dropdown; both composites delegate `search()` to the local EDGAR index when an
+    EDGAR provider is present (always, when a UA is configured). Ranking, best first:
+    exact ticker, ticker prefix (shorter ticker first), name starts-with (CIK
+    ascending), ticker substring, name word-start/substring (CIK ascending). Coverage =
+    US filers (the product scope); a symbol absent from the file cannot be loaded
+    anyway (CIK resolves from the same file), so no network fallback is needed.
   - `auto` → yahoo when yfinance imports, else live if `SEC_EDGAR_USER_AGENT`
     present, else mock with the warning "Using bundled sample data; set
     SEC_EDGAR_USER_AGENT and FMP_API_KEY for live data." (auto is live-by-default

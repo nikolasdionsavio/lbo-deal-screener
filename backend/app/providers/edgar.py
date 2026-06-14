@@ -438,6 +438,13 @@ class SecEdgarProvider(DataProvider):
         self._client = client or httpx.Client(timeout=TIMEOUT_SECONDS)
         self._cache_dir = Path(cache_dir) if cache_dir is not None else DEFAULT_CACHE_DIR
         self._ticker_map_mem: dict[str, Any] | None = None
+        # Lazily built, lowercased search index: (ticker, title, cik,
+        # ticker_lower, title_lower). Built once from the in-memory ticker map
+        # so every autocomplete keystroke is a pure in-memory comparison pass
+        # (~1ms over ~10k US filers) with zero network calls. CIK is the
+        # tie-break for name matches (lower CIK = earlier SEC registrant, a
+        # free proxy for the more established / better-known company).
+        self._search_index_cache: list[tuple[str, str, int, str, str]] | None = None
 
     # ----- HTTP -----
 
@@ -511,21 +518,69 @@ class SecEdgarProvider(DataProvider):
 
     # ----- DataProvider interface -----
 
+    def _search_index(self) -> list[tuple[str, str, int, str, str]]:
+        """Cached (ticker, title, cik, ticker_lower, title_lower) list."""
+        if self._search_index_cache is None:
+            index: list[tuple[str, str, int, str, str]] = []
+            for rec in self._ticker_map().values():
+                ticker = str(rec.get("ticker", ""))
+                if not ticker:
+                    continue
+                title = str(rec.get("title", ""))
+                try:
+                    cik = int(rec.get("cik_str", 0))
+                except (TypeError, ValueError):
+                    cik = 0
+                index.append((ticker, title, cik, ticker.lower(), title.lower()))
+            self._search_index_cache = index
+        return self._search_index_cache
+
     def search(self, query: str) -> list[SearchResult]:
+        """Instant local ticker/name search over the bundled SEC ticker file.
+
+        No network call: the autocomplete dropdown must feel immediate, so
+        results come from the in-memory index of ~10k US filers. Ranking, best
+        first: exact ticker, ticker prefix, name starts-with, ticker substring,
+        name word-start or substring. Ticker buckets break ties by ticker
+        length then alpha (the primary listing over warrants/preferreds like
+        AAPLW / JPM-PC); name buckets break ties by CIK ascending (the more
+        established registrant first).
+        """
         q = query.strip().lower()
         if not q:
             return []
-        results: list[SearchResult] = []
-        for record in self._ticker_map().values():
-            ticker = str(record.get("ticker", ""))
-            title = str(record.get("title", ""))
-            if q in ticker.lower() or q in title.lower():
-                results.append(
-                    SearchResult(ticker=ticker, name=title, exchange=None, source=self.name)
-                )
-                if len(results) >= _MAX_SEARCH_RESULTS:
-                    break
-        return results
+        # Each entry kept as (ticker, title, cik) within its bucket.
+        exact: list[tuple[str, str, int]] = []
+        t_prefix: list[tuple[str, str, int]] = []
+        n_prefix: list[tuple[str, str, int]] = []
+        t_contains: list[tuple[str, str, int]] = []
+        n_other: list[tuple[str, str, int]] = []
+        for ticker, title, cik, tl, nl in self._search_index():
+            entry = (ticker, title, cik)
+            if tl == q:
+                exact.append(entry)
+            elif tl.startswith(q):
+                t_prefix.append(entry)
+            elif nl.startswith(q):
+                n_prefix.append(entry)
+            elif q in tl:
+                t_contains.append(entry)
+            elif f" {q}" in nl or q in nl:
+                n_other.append(entry)
+
+        by_ticker = lambda e: (len(e[0]), e[0])
+        by_cik = lambda e: e[2]
+        ordered = (
+            sorted(exact, key=by_ticker)
+            + sorted(t_prefix, key=by_ticker)
+            + sorted(n_prefix, key=by_cik)
+            + sorted(t_contains, key=by_ticker)
+            + sorted(n_other, key=by_cik)
+        )
+        return [
+            SearchResult(ticker=t, name=n, exchange=None, source=self.name)
+            for t, n, _cik in ordered[:_MAX_SEARCH_RESULTS]
+        ]
 
     def get_company(self, ticker: str, max_years: int = _MAX_YEARS) -> CompanyDataBundle:
         """Company bundle from companyfacts (spec §5).

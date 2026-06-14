@@ -82,12 +82,10 @@ class CompositeLiveProvider(DataProvider):
         ) + list(market_adapters or [])
 
     def search(self, query: str) -> list[SearchResult]:
-        if self.fmp is not None:
-            try:
-                return self.fmp.search(query)
-            except ProviderError:
-                # Degrade to the EDGAR ticker file rather than failing search.
-                pass
+        # Autocomplete is served from the bundled SEC ticker file (in-memory,
+        # ~1ms). FMP's network search is slower and spends daily quota, so it
+        # is no longer used here; the local index covers every US filer, which
+        # is the product scope.
         return self.edgar.search(query)
 
     def get_company(self, ticker: str, max_years: int = 5) -> CompanyDataBundle:

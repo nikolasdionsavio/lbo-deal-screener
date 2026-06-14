@@ -464,9 +464,11 @@ def test_composite_fmp_failure_degrades_to_warnings(tmp_path: Path) -> None:
     assert any(w.startswith("Market data unavailable") for w in bundle.warnings)
 
 
-def test_composite_search_prefers_fmp_then_falls_back_to_edgar(tmp_path: Path) -> None:
+def test_composite_search_uses_local_edgar_index(tmp_path: Path) -> None:
+    # Search is served from the bundled SEC ticker file (instant, in-memory),
+    # never the FMP network endpoint — regardless of whether FMP is configured.
     with_fmp = _make_composite(tmp_path)
-    assert [r.source for r in with_fmp.search("fixture")] == ["fmp"]
+    assert [r.source for r in with_fmp.search("fixture")] == ["sec_edgar"]
 
     no_fmp = _make_composite(tmp_path, with_fmp=False)
     assert [r.source for r in no_fmp.search("fixture")] == ["sec_edgar"]
@@ -907,3 +909,55 @@ def test_fmp_429_exhausted_raises_readable_error(monkeypatch: pytest.MonkeyPatch
     message = str(excinfo.value)
     assert "HTTP 429" in message
     assert "test-key" not in message  # never leak the API key
+
+
+def test_edgar_search_ranking(tmp_path: Path) -> None:
+    """Ranking: exact ticker, ticker prefix, name starts-with (CIK tie-break),
+    ticker substring, name word-start/substring (CIK tie-break)."""
+    ranked_map = {
+        "0": {"cik_str": 50, "ticker": "APP", "title": "AppLovin Corporation"},
+        "1": {"cik_str": 20, "ticker": "AAPL", "title": "Apple Inc."},
+        "2": {"cik_str": 80, "ticker": "AAPLW", "title": "Apple Hospitality Warrants"},
+        "3": {"cik_str": 10, "ticker": "ZZZ", "title": "Appian Software"},
+        "4": {"cik_str": 90, "ticker": "WXY", "title": "Wrapper Apparatus"},
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "company_tickers" in str(request.url):
+            return httpx.Response(200, json=ranked_map)
+        return httpx.Response(404)
+
+    provider = _make_edgar(tmp_path / "cache", handler)
+    order = [r.ticker for r in provider.search("app")]
+    # APP exact ticker; then name starts-with "app" ordered by CIK
+    # (ZZZ 10, AAPL 20, AAPLW 80); then WXY ("apparatus" word-start). No
+    # ticker other than APP contains "app".
+    assert order == ["APP", "ZZZ", "AAPL", "AAPLW", "WXY"]
+    # Exact ticker match wins outright over any name match.
+    assert provider.search("aapl")[0].ticker == "AAPL"
+    # Ticker prefix beats name matches; shorter ticker first within the bucket.
+    assert [r.ticker for r in provider.search("aap")] == ["AAPL", "AAPLW"]
+
+
+def test_yahoo_composite_search_uses_local_edgar(tmp_path: Path) -> None:
+    """YahooCompositeProvider serves search from EDGAR's local index, never
+    Yahoo's slow network search, whenever EDGAR is configured."""
+    from app.providers.yahoo_composite import YahooCompositeProvider
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "company_tickers" in str(request.url):
+            return httpx.Response(200, json=TICKER_MAP_PAYLOAD)
+        return httpx.Response(404)
+
+    edgar = _make_edgar(tmp_path / "cache", handler)
+
+    class _ExplodingYahoo:
+        name = "yahoo"
+
+        def search(self, query: str):  # must never be called
+            raise AssertionError("Yahoo network search must not be used")
+
+    provider = YahooCompositeProvider(_ExplodingYahoo(), edgar)  # type: ignore[arg-type]
+    results = provider.search("aapl")
+    assert [r.ticker for r in results] == ["AAPL"]
+    assert results[0].source == "sec_edgar"

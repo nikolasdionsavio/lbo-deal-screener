@@ -40,6 +40,13 @@ class YahooCompositeProvider(DataProvider):
         self.edgar = edgar
 
     def search(self, query: str) -> list[SearchResult]:
+        # Autocomplete must be instant. The bundled SEC ticker file (via the
+        # EDGAR provider) is an in-memory index of every US filer and answers
+        # in ~1ms; Yahoo's live search costs 10-20s from a datacenter IP. Use
+        # the local index whenever EDGAR is configured (always, in the deployed
+        # app); fall back to Yahoo only in the unconfigured no-UA mode.
+        if self.edgar is not None:
+            return self.edgar.search(query)
         return self.yahoo.search(query)
 
     def get_company(self, ticker: str, max_years: int = 5) -> CompanyDataBundle:
