@@ -141,10 +141,11 @@ def test_register_returns_token_and_attempts_welcome_email(
     client: TestClient, captured_emails: list[dict[str, str]]
 ) -> None:
     _register(client, "newuser@example.com")
-    assert any(
-        e["to"] == "newuser@example.com" and "Welcome" in e["subject"]
-        for e in captured_emails
-    )
+    welcome = [e for e in captured_emails if e["to"] == "newuser@example.com"]
+    assert welcome
+    # Personal welcome from Nikolas: subject mentions joining, body is signed.
+    assert "joining" in welcome[0]["subject"].lower()
+    assert "Nikolas" in welcome[0]["text"]
 
 
 def test_register_succeeds_even_if_email_send_returns_false(

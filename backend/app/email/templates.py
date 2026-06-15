@@ -32,6 +32,7 @@ def _layout(
     button_label: str,
     button_url: str,
     note: str | None = None,
+    signoff: bool = False,
 ) -> str:
     """Assemble the full branded HTML email."""
     body = "".join(
@@ -43,6 +44,15 @@ def _layout(
         f'<p style="margin:20px 0 0;font-size:13px;line-height:1.6;'
         f'color:{_MUTED};">{note}</p>'
         if note
+        else ""
+    )
+    signoff_html = (
+        f'<p style="margin:24px 0 0;font-size:15px;color:{_SECONDARY};">Thanks again,</p>'
+        f'<p style="margin:2px 0 0;font-family:Georgia,\'Times New Roman\',serif;'
+        f'font-size:18px;color:{_INK};">Nikolas</p>'
+        f'<p style="margin:2px 0 0;font-size:13px;color:{_MUTED};">'
+        f'Nikolas Dion Savio, Investment Intelligence</p>'
+        if signoff
         else ""
     )
     return f"""\
@@ -86,6 +96,7 @@ def _layout(
               </td></tr>
             </table>
             {note_html}
+            {signoff_html}
           </td>
         </tr>
         <tr><td style="padding:24px 32px 0;"><div style="border-top:1px solid {_BORDER};font-size:0;line-height:0;">&nbsp;</div></td></tr>
@@ -117,32 +128,40 @@ def _layout(
 
 def welcome_email(to: str) -> tuple[str, str, str]:
     """Welcome / registration confirmation email."""
-    subject = "Welcome to Investment Intelligence"
+    subject = "Thanks for joining Investment Intelligence"
     paragraphs = [
-        "Thanks for creating an account. You can now save companies to your "
-        "watchlist and keep your screens in one place.",
-        "Search any US-listed company to get its dashboard, traceable KPIs, "
-        "filed statements, valuation multiples, a five-year LBO model with "
-        "sensitivities, peer comparables, a deal score, and an auto-generated "
-        "investment memo. Every figure shows the formula and source behind it.",
+        "I'm Nikolas, the person behind Investment Intelligence. Thank you for "
+        "signing up and giving it a try. It genuinely means a lot to me.",
+        "You can save companies to a watchlist now and keep your screens in one "
+        "place. Search any US-listed company and you'll get its dashboard, the "
+        "KPIs with their formulas, the filed statements, valuation multiples, a "
+        "five-year LBO model with sensitivities, peer comparables, a deal score, "
+        "and a memo built from the figures on the page.",
+        "If something looks off or you have an idea, just reply to this email. It "
+        "comes straight to me and I read everything.",
     ]
     html = _layout(
-        preheader="Your account is ready. Search any US-listed company to get started.",
-        heading="Welcome aboard",
+        preheader="A quick thank you from Nikolas. Your account is ready to use.",
+        heading="Thanks for joining",
         paragraphs=paragraphs,
         button_label="Start screening",
         button_url=_SITE_URL,
+        signoff=True,
     )
     text = (
-        "Welcome to Investment Intelligence\n\n"
-        "Thanks for creating an account. You can now save companies to your "
-        "watchlist and keep your screens in one place.\n\n"
-        "Search any US-listed company to get its dashboard, traceable KPIs, "
-        "filed statements, valuation multiples, a five-year LBO model with "
-        "sensitivities, peer comparables, a deal score, and an auto-generated "
-        "investment memo. Every figure shows the formula and source behind it.\n\n"
+        "Thanks for joining Investment Intelligence\n\n"
+        "I'm Nikolas, the person behind Investment Intelligence. Thank you for "
+        "signing up and giving it a try. It genuinely means a lot to me.\n\n"
+        "You can save companies to a watchlist now and keep your screens in one "
+        "place. Search any US-listed company and you'll get its dashboard, the "
+        "KPIs with their formulas, the filed statements, valuation multiples, a "
+        "five-year LBO model with sensitivities, peer comparables, a deal score, "
+        "and a memo built from the figures on the page.\n\n"
+        "If something looks off or you have an idea, just reply to this email. It "
+        "comes straight to me and I read everything.\n\n"
         f"Start screening: {_SITE_URL}\n\n"
-        f"About: {_ABOUT_URL}\nContact: {_CONTACT_EMAIL}\n\n"
+        "Thanks again,\nNikolas\nNikolas Dion Savio, Investment Intelligence\n\n"
+        f"About: {_ABOUT_URL} · Contact: {_CONTACT_EMAIL}\n"
         f"{_BRAND} is a screening tool for educational and research purposes. "
         "It is not investment advice."
     )

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     smtp_port: int = 465
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Investment Intelligence <contact@nikolasdionsavio.com>"
+    smtp_from: str = "Nikolas at Investment Intelligence <contact@nikolasdionsavio.com>"
     # Base URL of the frontend, used to build the password-reset link.
     frontend_url: str = "https://nikolasproject.com"
 
