@@ -22,9 +22,12 @@ class Settings(BaseSettings):
     tiingo_api_key: str = ""
     cors_origins: str = "http://localhost:3000"
 
-    # SMTP / transactional email (welcome + password reset). All optional:
-    # with host/user/password blank the app skips sending entirely (logged at
-    # info), so tests and local dev never touch the network.
+    # Transactional email (welcome + password reset). Two transports, both
+    # optional: RESEND_API_KEY uses Resend's HTTP API (port 443 — preferred,
+    # since many hosts including HF Spaces block outbound SMTP ports); the SMTP
+    # fields are a fallback for any other provider. With nothing configured the
+    # app skips sending entirely (logged at info), so tests never touch the net.
+    resend_api_key: str = ""
     smtp_host: str = ""
     smtp_port: int = 465
     smtp_user: str = ""
@@ -39,8 +42,10 @@ class Settings(BaseSettings):
 
     @property
     def email_configured(self) -> bool:
-        """True only when host, user and password are all set."""
-        return bool(self.smtp_host and self.smtp_user and self.smtp_password)
+        """True when a transport is available: Resend HTTP API, or full SMTP."""
+        return bool(self.resend_api_key) or bool(
+            self.smtp_host and self.smtp_user and self.smtp_password
+        )
 
 
 settings = Settings()

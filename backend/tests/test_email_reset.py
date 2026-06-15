@@ -298,3 +298,41 @@ def test_create_token_invalidates_prior_unused_tokens(client: TestClient) -> Non
         assert reset_crud.consume_token(db, second_raw) is not None
     finally:
         db.close()
+
+
+def test_send_email_uses_resend_http_when_key_set(monkeypatch):
+    """With RESEND_API_KEY set, send_email posts to Resend's HTTP API rather
+    than opening an SMTP connection (HF Spaces blocks outbound SMTP ports)."""
+    import httpx
+
+    from app.email import sender
+
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key", raising=False)
+    monkeypatch.setattr(settings, "smtp_from", "Sender <from@example.com>")
+
+    captured: dict = {}
+
+    class _Resp:
+        status_code = 200
+        text = ""
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured.update(url=url, headers=headers or {}, json=json or {})
+        return _Resp()
+
+    # smtplib must NOT be touched on the HTTP path.
+    def boom(*a, **k):
+        raise AssertionError("SMTP must not be used when RESEND_API_KEY is set")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(sender.smtplib, "SMTP_SSL", boom)
+    monkeypatch.setattr(sender.smtplib, "SMTP", boom)
+
+    ok = sender.send_email("dest@example.com", "Hi", "<b>Hi</b>", "Hi text")
+    assert ok is True
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["headers"]["Authorization"] == "Bearer re_test_key"
+    assert captured["json"]["to"] == ["dest@example.com"]
+    assert captured["json"]["subject"] == "Hi"
+    assert captured["json"]["from"] == "Sender <from@example.com>"
+    assert captured["json"]["reply_to"] == "from@example.com"

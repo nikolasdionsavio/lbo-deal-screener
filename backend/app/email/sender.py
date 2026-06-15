@@ -32,6 +32,12 @@ def send_email(to: str, subject: str, html: str, text: str) -> bool:
         logger.info("email not configured; skipping (to=%s subject=%r)", to, subject)
         return False
 
+    # Prefer Resend's HTTP API (port 443). Many hosts (HF Spaces included)
+    # block outbound SMTP ports, which silently drops smtplib sends; HTTPS is
+    # never blocked, so this is the reliable transport.
+    if settings.resend_api_key:
+        return _send_via_resend_http(to, subject, html, text)
+
     # Envelope sender must be a bare address (not "Name <addr>") for a clean
     # Return-Path; deliverability headers (Date, Message-ID, Reply-To) signal a
     # legitimate transactional sender rather than bulk/spam.
@@ -69,4 +75,39 @@ def send_email(to: str, subject: str, html: str, text: str) -> bool:
         return False
 
     logger.info("sent email (to=%s subject=%r)", to, subject)
+    return True
+
+
+def _send_via_resend_http(to: str, subject: str, html: str, text: str) -> bool:
+    """Send through Resend's HTTP API; returns False (never raises) on failure."""
+    import httpx
+
+    payload = {
+        "from": settings.smtp_from,
+        "to": [to],
+        "subject": subject,
+        "html": html,
+        "text": text,
+        "reply_to": parseaddr(settings.smtp_from)[1] or settings.smtp_from,
+    }
+    try:
+        response = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json=payload,
+            timeout=_SMTP_TIMEOUT,
+        )
+        if response.status_code >= 400:
+            logger.error(
+                "Resend send failed (to=%s status=%s body=%s)",
+                to,
+                response.status_code,
+                response.text[:300],
+            )
+            return False
+    except Exception:  # noqa: BLE001 — sending must never break the request
+        logger.exception("Resend send errored (to=%s subject=%r)", to, subject)
+        return False
+
+    logger.info("sent email via Resend (to=%s subject=%r)", to, subject)
     return True
