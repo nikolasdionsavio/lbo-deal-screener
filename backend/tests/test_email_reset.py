@@ -81,12 +81,18 @@ def test_send_email_configured_calls_sendmail_with_right_envelope(
 
     ok = sender.send_email("dest@example.com", "Subject", "<b>H</b>", "H")
     assert ok is True
-    assert captured["from"] == "Sender <from@example.com>"
+    # Envelope sender is the BARE address (clean Return-Path); the display
+    # name lives only in the From header.
+    assert captured["from"] == "from@example.com"
     assert captured["to"] == ["dest@example.com"]
     assert captured["login"] == ("mailer", "secret")
-    # Both alternatives present in the MIME message.
-    assert "Subject" in str(captured["msg"])
-    assert "dest@example.com" in str(captured["msg"])
+    # Both alternatives present in the MIME message, plus deliverability headers.
+    msg = str(captured["msg"])
+    assert "Subject" in msg
+    assert "dest@example.com" in msg
+    assert "From: Sender <from@example.com>" in msg
+    assert "Reply-To: from@example.com" in msg
+    assert "Message-ID:" in msg
 
 
 def test_send_email_swallows_exceptions_and_returns_false(

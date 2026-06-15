@@ -12,6 +12,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate, make_msgid, parseaddr
 
 from app.core.config import settings
 
@@ -31,10 +32,19 @@ def send_email(to: str, subject: str, html: str, text: str) -> bool:
         logger.info("email not configured; skipping (to=%s subject=%r)", to, subject)
         return False
 
+    # Envelope sender must be a bare address (not "Name <addr>") for a clean
+    # Return-Path; deliverability headers (Date, Message-ID, Reply-To) signal a
+    # legitimate transactional sender rather than bulk/spam.
+    from_addr = parseaddr(settings.smtp_from)[1] or settings.smtp_from
+    domain = from_addr.split("@")[-1] if "@" in from_addr else None
+
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = settings.smtp_from
     message["To"] = to
+    message["Reply-To"] = from_addr
+    message["Date"] = formatdate(localtime=True)
+    message["Message-ID"] = make_msgid(domain=domain)
     # Plain-text part first, HTML second: RFC 2046 says the last alternative is
     # the richest, so clients prefer the HTML when they can render it.
     message.attach(MIMEText(text, "plain", "utf-8"))
@@ -46,14 +56,14 @@ def send_email(to: str, subject: str, html: str, text: str) -> bool:
                 settings.smtp_host, settings.smtp_port, timeout=_SMTP_TIMEOUT
             ) as server:
                 server.login(settings.smtp_user, settings.smtp_password)
-                server.sendmail(settings.smtp_from, [to], message.as_string())
+                server.sendmail(from_addr, [to], message.as_string())
         else:
             with smtplib.SMTP(
                 settings.smtp_host, settings.smtp_port, timeout=_SMTP_TIMEOUT
             ) as server:
                 server.starttls()
                 server.login(settings.smtp_user, settings.smtp_password)
-                server.sendmail(settings.smtp_from, [to], message.as_string())
+                server.sendmail(from_addr, [to], message.as_string())
     except Exception:  # noqa: BLE001 — sending must never break the request
         logger.exception("failed to send email (to=%s subject=%r)", to, subject)
         return False
