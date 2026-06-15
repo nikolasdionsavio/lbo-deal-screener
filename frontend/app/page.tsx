@@ -129,14 +129,16 @@ export default function LandingPage() {
             <HeroArcs />
             <div className="relative">
               <span className="inline-flex items-center rounded-full border border-line-strong px-3 py-1 text-[11px] font-medium tracking-wide text-ink-muted">
-                DEAL SCREENING
+                PUBLIC COMPANY ANALYSIS
               </span>
               <h1 className="mt-5 font-display text-3xl font-semibold leading-tight text-ink sm:text-[2.5rem]">
-                LBO Deal Screener
+                Investment Intelligence
               </h1>
-              <p className="mt-3 text-base text-ink-secondary">
-                Screen any US-listed company as a buyout candidate: traceable
-                fundamentals, a five-year LBO model, and a memo you can defend.
+              <p className="mx-auto mt-3 max-w-2xl text-base text-ink-secondary">
+                Analyze any US-listed company from its public filings: financial
+                statements, KPIs, valuation, a five-year LBO model, peer
+                comparables, and an investment memo. Every figure traces back to
+                its source.
               </p>
 
               <SearchBar

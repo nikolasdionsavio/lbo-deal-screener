@@ -332,11 +332,11 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
         ) : (
           <div className="flex items-start justify-between gap-2">
             <Link href="/" className="block min-w-0">
-              <div className="whitespace-nowrap text-base font-semibold text-ink">
-                LBO Deal Screener
+              <div className="whitespace-nowrap text-[15px] font-semibold leading-tight text-ink">
+                Investment Intelligence
               </div>
               <div className="mt-0.5 whitespace-nowrap text-xs text-ink-muted">
-                PE screening for public companies
+                Public company analysis
               </div>
             </Link>
             {!isDrawer && toggleButton}

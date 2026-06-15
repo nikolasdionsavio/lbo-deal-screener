@@ -1,4 +1,4 @@
-// TypeScript interfaces for the LBO Deal Screener API.
+// TypeScript interfaces for the Investment Intelligence API.
 // Mirrors docs/BUILD_SPEC.md sections 4-12. Field names match the API exactly.
 
 // ---------------------------------------------------------------------------

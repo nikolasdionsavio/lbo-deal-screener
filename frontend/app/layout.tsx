@@ -19,9 +19,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "LBO Deal Screener",
+  title: "Investment Intelligence",
   description:
-    "Screen US-listed companies as buyout candidates: traceable fundamentals, a five-year LBO model, and a memo you can defend.",
+    "Analyze any US-listed company from its public filings: financial statements, KPIs, valuation, a five-year LBO model, peer comparables, and an investment memo, every figure traceable to its source.",
 };
 
 // Applies the persisted (or system) theme class before first paint so the

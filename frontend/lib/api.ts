@@ -1,4 +1,4 @@
-// Typed API client for the LBO Deal Screener backend (docs/BUILD_SPEC.md section 12).
+// Typed API client for the Investment Intelligence backend (docs/BUILD_SPEC.md section 12).
 // Plain fetch, one function per endpoint, Bearer token from localStorage when present.
 
 import type {
