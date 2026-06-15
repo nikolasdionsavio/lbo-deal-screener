@@ -27,9 +27,12 @@ export function useCountUp(
   const [animated, setAnimated] = useState<number | null>(() => {
     if (value === null || !Number.isFinite(value)) return value;
     if (typeof window === "undefined") return value;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? value
-      : 0;
+    // Skip the count-up (show the real value at once) under reduced motion or
+    // when the tab is hidden at mount — a backgrounded tab pauses rAF, which
+    // would otherwise freeze the figure mid-climb until the tab is focused.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return value;
+    if (typeof document !== "undefined" && document.hidden) return value;
+    return 0;
   });
   const ranRef = useRef(false);
 
@@ -43,7 +46,8 @@ export function useCountUp(
     if (
       value === null ||
       !Number.isFinite(value) ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.hidden // backgrounded tab pauses rAF; show the value directly
     ) {
       setAnimated(value);
       return;
