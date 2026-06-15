@@ -51,10 +51,10 @@ export const about: About = {
   photo: "/nikolas.jpg",
   greeting: "Hi, I'm Nikolas",
   bio: [
-    "Welcome, and thanks for taking a look around. I tend to get curious about how things actually work, and once I start pulling at a thread I usually end up building something to understand it better. Markets pulled me in that way and never quite let go. I like how much sits inside a single share price, and how a whole company can be reasoned about as a set of numbers you have to defend. Settling a question with real figures rather than a strong hunch is the part I find most satisfying.",
-    "These days most of what I do is finance. I build financial models from scratch, the full three-statement and LBO kind, working through the circular references and debt schedules that tend to scare people off, and I lean on them to value companies and see how funds have really done against the market. I picked most of this up through an MSc in Risk Management and Financial Engineering at Imperial College Business School, and later a private-markets programme at Oxford's Saïd Business School. The learning carried on outside the coursework, mostly because I find it hard to leave an idea alone. I have put together a small machine-learning pipeline for bond returns, rebuilt the Avellaneda-Stoikov market-making model from the underlying maths just to see if I could, poked around in time-series work on equities and rates, and somehow came out on top of a trading competition against the MSc and MBA crowd. Private equity and the mechanics of valuation are what I keep finding my way back to.",
-    "Before any of that, I trained as an engineer. I studied at the University of Glasgow and spent most of my spare time with the Formula Student team, looking after cost and components for a car that the team took to first place at the UK competition. Around the same time I helped write a paper on carbon-nanotube strain sensors. Engineering taught me to build things carefully and to take numbers seriously, and that habit has stayed with me ever since.",
-    "Investment Intelligence grew out of all of that. It runs the same kind of analysis I would do on a buyout target, the fundamentals, the valuation, a five-year LBO model and a memo, and lets you point it at any US-listed company. Every figure shows the formula and the source it came from, so nothing asks you to take my word for it. Have a proper look around, and if you ever want to talk shop or tell me what could be better, my details are just below.",
+    "Hello, and thank you for stopping by. I really hope you find something here that is useful to you. I have always been the sort of person who gets quietly curious about how things work, and that same curiosity is what drew me toward markets and made me want to understand them properly. For me there is a genuine pleasure in studying a company patiently through its numbers and watching the picture slowly come together. I would much rather sit with the figures for a while than reach for a quick answer.",
+    "Most of my time these days goes into finance. I love building financial models from the ground up and using them to understand how a business really works and what it might be worth. Much of what I know has come from an MSc in Risk Management and Financial Engineering at Imperial College Business School and a private-markets programme at Oxford's Saïd Business School, and I am very much still learning as I go. On the side I like to tinker with small projects, mostly because building something is how I come to understand it. Private equity and the patient craft of valuation are the areas I keep finding myself drawn to.",
+    "Before finance, I trained as an engineer. I spent my university years at Glasgow and a good part of my free time with the Formula Student team, where I looked after the cost and components side of the car. Those years taught me to build things with care and to treat the numbers with respect, and that has stayed with me in everything since. I still owe a lot to that early, hands-on way of working.",
+    "Investment Intelligence came out of wanting a tool like this for myself, and then hoping other people might find it helpful too. It tries to do the careful, honest kind of analysis I would want to rely on, and it shows the formula and source behind every figure so you never have to simply take my word for anything. Please feel free to look around at your own pace. If you ever want to share a thought or tell me where it could be better, I would be really glad to hear from you, and my details are just below.",
   ],
   highlights: [
     {
@@ -76,14 +76,14 @@ export const about: About = {
       color: "teal",
     },
     {
-      title: "Formula Student UK, 1st place",
-      detail: "Cost and components engineer, University of Glasgow",
+      title: "Formula Student, University of Glasgow",
+      detail: "Cost and components engineer; first at the UK final",
       icon: "racing",
       color: "amber",
     },
     {
-      title: "Trading competition, finished 1st",
-      detail: "Top of the MSc and MBA field, +231% from a -31% drawdown",
+      title: "Trading competition",
+      detail: "Finished first among the MSc and MBA entrants",
       icon: "trading",
       color: "emerald",
     },
