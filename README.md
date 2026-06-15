@@ -135,6 +135,8 @@ All variables are documented in `.env.example`. Defaults are chosen so the app r
 | `ALPHAVANTAGE_API_KEY` | Alpha Vantage API key | empty | Optional `live`-mode market-data fallback (tried after Polygon); free key at https://www.alphavantage.co/support/#api-key |
 | `TIINGO_API_KEY` | Tiingo API key | empty | Optional `live`-mode market-data fallback (tried last; price only); free key at https://www.tiingo.com |
 | `CORS_ORIGINS` | Comma-separated allowed origins for the API | `http://localhost:3000` | Frontend served from another origin |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | SMTP settings for welcome and password-reset emails (port 465 = SSL, else STARTTLS; Neo Mail: `smtp.neo.space:465`) | empty / `465` | Sending email; leave `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` blank to disable (email is skipped, app unchanged) |
+| `FRONTEND_URL` | Base URL used to build password-reset links | `https://nikolasproject.com` | Sending password-reset emails so the link points at your frontend |
 | `NEXT_PUBLIC_API_URL` | Base URL the browser uses to reach the API | `http://localhost:8000` | Frontend deployed apart from the API (set in `frontend/.env.local` or as a Docker build arg) |
 
 ### Getting live data

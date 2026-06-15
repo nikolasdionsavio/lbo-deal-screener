@@ -12,6 +12,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -45,6 +46,38 @@ class User(Base):
     saved_deals: Mapped[list[SavedDeal]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    password_reset_tokens: Mapped[list[PasswordResetToken]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class PasswordResetToken(Base):
+    """One-time password-reset token (only the SHA-256 hash is stored).
+
+    A raw ``secrets.token_urlsafe`` value is emailed to the user; the column
+    holds its sha256 hex digest so a database leak does not expose live links.
+    A token is valid while ``used`` is False and ``expires_at`` is in the
+    future (1 hour after creation).
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    user: Mapped[User] = relationship(back_populates="password_reset_tokens")
 
 
 class Company(Base):

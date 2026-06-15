@@ -213,6 +213,25 @@ export function me(): Promise<User> {
   return request<User>("/api/auth/me");
 }
 
+// Password reset. Both endpoints return a generic { detail } message; the
+// forgot-password response never reveals whether the account exists.
+export function forgotPassword(email: string): Promise<{ detail: string }> {
+  return request<{ detail: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function resetPassword(
+  token: string,
+  password: string,
+): Promise<{ detail: string }> {
+  return request<{ detail: string }>("/api/auth/reset-password", {
+    method: "POST",
+    body: { token, password },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Saved deals
 // ---------------------------------------------------------------------------

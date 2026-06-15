@@ -95,6 +95,15 @@ export default function LoginPage() {
               />
             </label>
 
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-ink-muted underline-offset-2 transition-colors duration-150 hover:text-ink hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             {error !== null && (
               <p className="text-sm text-negative-text" role="alert">
                 {error}

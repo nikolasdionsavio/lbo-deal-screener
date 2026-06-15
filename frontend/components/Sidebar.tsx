@@ -16,6 +16,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ComponentType } from "react";
+import Logo from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
@@ -147,6 +148,34 @@ function BookmarkIcon({ className }: IconProps) {
   );
 }
 
+function GuideIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M3 2.5h6a2 2 0 0 1 2 2v9a1.5 1.5 0 0 0-1.5-1.5H3V2.5Z" />
+      <path d="M13 2.5H9a2 2 0 0 0-2 2v9a1.5 1.5 0 0 1 1.5-1.5H13V2.5Z" />
+    </svg>
+  );
+}
+
+function InfoIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <circle cx="8" cy="8" r="6.25" />
+      <path d="M8 7.25v3.75" />
+      <path d="M8 5h.01" />
+    </svg>
+  );
+}
+
+function MailIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <rect x="1.75" y="3.5" width="12.5" height="9" rx="1.5" />
+      <path d="m2.5 4.5 5.5 4 5.5-4" />
+    </svg>
+  );
+}
+
 function SunIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -194,6 +223,18 @@ const COMPANY_PAGES: {
   { slug: "score", label: "Deal Score", Icon: GaugeIcon },
   { slug: "memo", label: "Memo", Icon: DocumentIcon },
   { slug: "news", label: "News", Icon: NewspaperIcon },
+];
+
+// App-level links (not company-scoped): always shown, regardless of whether a
+// ticker is selected.
+const APP_PAGES: {
+  href: string;
+  label: string;
+  Icon: ComponentType<IconProps>;
+}[] = [
+  { href: "/how-to-use", label: "How to use", Icon: GuideIcon },
+  { href: "/about", label: "About", Icon: InfoIcon },
+  { href: "/contact", label: "Contact", Icon: MailIcon },
 ];
 
 /**
@@ -328,16 +369,29 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
     >
       <div className={collapsed ? "px-2 pb-4 pt-6" : "px-5 pb-4 pt-6"}>
         {collapsed ? (
-          <div className="flex justify-center">{toggleButton}</div>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/"
+              className="flex justify-center"
+              aria-label="Investment Intelligence home"
+              title="Investment Intelligence"
+            >
+              <Logo size={24} />
+            </Link>
+            {toggleButton}
+          </div>
         ) : (
           <div className="flex items-start justify-between gap-2">
-            <Link href="/" className="block min-w-0">
-              <div className="whitespace-nowrap text-[15px] font-semibold leading-tight text-ink">
-                Investment Intelligence
-              </div>
-              <div className="mt-0.5 whitespace-nowrap text-xs text-ink-muted">
-                Public company analysis
-              </div>
+            <Link href="/" className="flex min-w-0 items-center gap-2.5">
+              <Logo size={26} className="shrink-0" />
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap text-[15px] font-semibold leading-tight text-ink">
+                  Investment Intelligence
+                </span>
+                <span className="mt-0.5 block whitespace-nowrap text-xs text-ink-muted">
+                  Public company analysis
+                </span>
+              </span>
             </Link>
             {!isDrawer && toggleButton}
           </div>
@@ -439,6 +493,27 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
               {!collapsed && <span>Saved Deals</span>}
             </Link>
           </li>
+        </ul>
+
+        <div className="divider-dashed mx-2 my-4" />
+
+        <ul
+          className={`space-y-0.5 ${
+            collapsed ? "flex flex-col items-center" : ""
+          }`}
+        >
+          {APP_PAGES.map((page) => (
+            <li key={page.href}>
+              <Link
+                href={page.href}
+                className={linkClass(pathname === page.href, collapsed)}
+                title={collapsed ? page.label : undefined}
+              >
+                <page.Icon className="shrink-0" />
+                {!collapsed && <span>{page.label}</span>}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
 

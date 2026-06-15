@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import Logo from "@/components/Logo";
 import MobileNav from "@/components/chrome/MobileNav";
 import {
   SearchResultsDropdown,
@@ -72,6 +73,14 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-6">
       <MobileNav />
+      <Link
+        href="/"
+        aria-label="Investment Intelligence home"
+        title="Investment Intelligence"
+        className="shrink-0 lg:hidden"
+      >
+        <Logo size={20} />
+      </Link>
       {ticker !== null && (
         <Link
           href={`/company/${encodeURIComponent(ticker)}/dashboard`}
