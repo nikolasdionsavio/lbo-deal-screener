@@ -385,15 +385,15 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
             <Link href="/" className="flex min-w-0 items-center gap-2.5">
               <Logo size={26} className="shrink-0" />
               <span className="min-w-0">
-                <span className="block whitespace-nowrap text-[15px] font-semibold leading-tight text-ink">
+                <span className="block text-[15px] font-semibold leading-tight text-ink">
                   Investment Intelligence
                 </span>
-                <span className="mt-0.5 block whitespace-nowrap text-xs text-ink-muted">
+                <span className="mt-0.5 block text-xs text-ink-muted">
                   Public company analysis
                 </span>
               </span>
             </Link>
-            {!isDrawer && toggleButton}
+            {!isDrawer && <span className="shrink-0">{toggleButton}</span>}
           </div>
         )}
       </div>

@@ -10,21 +10,36 @@ export interface AboutLink {
   kind: AboutLinkKind;
 }
 
+export type HighlightIcon =
+  | "school"
+  | "markets"
+  | "research"
+  | "racing"
+  | "trading";
+export type HighlightColor =
+  | "blue"
+  | "indigo"
+  | "teal"
+  | "amber"
+  | "emerald";
+
 export interface AboutHighlight {
-  /** Short bold lead-in (e.g. "MSc, Imperial College Business School"). */
   title: string;
-  /** One-line detail under the title. */
   detail: string;
+  icon: HighlightIcon;
+  color: HighlightColor;
 }
 
 export interface About {
   name: string;
   role: string;
-  /** One-line positioning shown under the role. */
   tagline: string;
-  /** Bio paragraphs, rendered in order as prose. */
+  /** Photo in /public. */
+  photo: string;
+  /** Warm one-line greeting shown above the name. */
+  greeting: string;
+  /** Bio paragraphs, first person, rendered in order. */
   bio: string[];
-  /** Selected credentials, rendered as a marked list. */
   highlights: AboutHighlight[];
   links: AboutLink[];
 }
@@ -33,32 +48,43 @@ export const about: About = {
   name: "Nikolas Dion Savio",
   role: "Financial engineer",
   tagline: "Quantitative finance, private markets, and the software behind them.",
+  photo: "/nikolas.jpg",
+  greeting: "Hi, I'm Nikolas",
   bio: [
-    "Nikolas Dion Savio came to markets through engineering. He trained as an engineer at the University of Glasgow, running cost and components for the university's Formula Student team to a first-place finish at the UK competition and co-authoring published research on carbon-nanotube strain sensors, before turning to finance with an MSc in Risk Management and Financial Engineering at Imperial College Business School and a practitioner-led private-markets programme at Oxford's Saïd Business School.",
-    "That route shows in how he works. He builds three-statement and LBO models from first principles, handling circular references, working-capital mechanics, and debt schedules by hand; he benchmarks fund returns against public-market equivalents; and he writes the code that turns the analysis into software. His projects range from a machine-learning pipeline forecasting investment-grade corporate-bond excess returns on thirty years of FRED data, to an implementation of the Avellaneda–Stoikov market-making model built from the mathematics up, to GARCH time-series work on equities and rates.",
-    "Investment Intelligence is one of those builds. It applies the discipline he uses on a buyout target, traceable numbers, explicit assumptions, nothing taken on faith, to any US-listed public company, and puts it in a tool anyone can open.",
+    "Thanks for stopping by, and welcome. I came to finance the long way around, through engineering. At the University of Glasgow I trained as an engineer, ran cost and components for our Formula Student team to a first-place finish at the UK competition, and co-authored a published paper on carbon-nanotube strain sensors. Then I followed the numbers into finance: an MSc in Risk Management and Financial Engineering at Imperial College Business School, and a private-markets programme at Oxford's Saïd Business School.",
+    "What I love is the overlap between the two. I build three-statement and LBO models from first principles, by hand, circular references and all; I benchmark fund returns against the public markets; and I write the code that turns the analysis into something you can actually use. Along the way I've built a machine-learning pipeline to forecast corporate-bond returns, coded the Avellaneda–Stoikov market-making model from the mathematics up, and finished first in a trading competition against the MSc and MBA field.",
+    "Investment Intelligence is where that comes together. I wanted a tool that treats any public company the way I would treat a buyout target, traceable numbers, assumptions you can see, nothing taken on faith, and that anyone can open and use. If you try it and have thoughts, I would genuinely love to hear them.",
   ],
   highlights: [
     {
-      title: "MSc, Imperial College Business School",
-      detail: "Risk Management and Financial Engineering, London",
+      title: "Imperial College Business School",
+      detail: "MSc, Risk Management and Financial Engineering",
+      icon: "school",
+      color: "blue",
     },
     {
-      title: "Private markets, Oxford Saïd Business School",
-      detail: "Practitioner-led programme, from origination to exit",
+      title: "Oxford Saïd Business School",
+      detail: "Private-markets programme, origination to exit",
+      icon: "markets",
+      color: "indigo",
     },
     {
       title: "Published researcher",
-      detail:
-        "Carbon-nanotube strain sensors, MATEC Web of Conferences (ICMR 2024)",
+      detail: "Carbon-nanotube strain sensors, ICMR 2024",
+      icon: "research",
+      color: "teal",
     },
     {
       title: "Formula Student UK, 1st place",
-      detail: "Cost and components engineer, University of Glasgow racing team",
+      detail: "Cost and components engineer, University of Glasgow",
+      icon: "racing",
+      color: "amber",
     },
     {
-      title: "Trading competition, finished #1",
-      detail: "Top of all MSc and MBA entrants, +231% from a -31% drawdown",
+      title: "Trading competition, finished 1st",
+      detail: "Top of the MSc and MBA field, +231% from a -31% drawdown",
+      icon: "trading",
+      color: "emerald",
     },
   ],
   links: [
