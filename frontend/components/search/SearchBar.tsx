@@ -89,11 +89,7 @@ export default function SearchBar({
         </div>
       </div>
 
-      <SearchResultsDropdown
-        search={search}
-        id="company-search-results"
-        className="absolute left-0 right-0 top-full z-20 mt-2"
-      />
+      <SearchResultsDropdown search={search} id="company-search-results" />
     </div>
   );
 }

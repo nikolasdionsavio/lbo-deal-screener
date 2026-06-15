@@ -12,6 +12,7 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { searchCompanies } from "@/lib/api";
 import { useDebounced } from "@/lib/hooks";
@@ -27,6 +28,9 @@ export interface CompanySearch {
   showDropdown: boolean;
   containerRef: RefObject<HTMLDivElement>;
   inputRef: RefObject<HTMLInputElement>;
+  /** The portaled results list, so outside-click dismissal ignores clicks
+   *  inside it even though it renders outside the container in the DOM. */
+  dropdownRef: RefObject<HTMLUListElement>;
   setActiveIndex: (index: number) => void;
   onQueryChange: (value: string) => void;
   onFocus: () => void;
@@ -48,6 +52,7 @@ export function useCompanySearch(): CompanySearch {
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const dropdownRef = useRef<HTMLUListElement | null>(null);
 
   useEffect(() => {
     if (debouncedQuery === "") {
@@ -77,15 +82,17 @@ export function useCompanySearch(): CompanySearch {
     };
   }, [debouncedQuery]);
 
-  // Close the dropdown when clicking outside the component.
+  // Close the dropdown when clicking outside the input AND the (portaled) list.
   useEffect(() => {
     function onMouseDown(event: MouseEvent) {
+      const target = event.target as Node;
       if (
-        containerRef.current !== null &&
-        !containerRef.current.contains(event.target as Node)
+        containerRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
       ) {
-        setOpen(false);
+        return;
       }
+      setOpen(false);
     }
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
@@ -143,6 +150,7 @@ export function useCompanySearch(): CompanySearch {
     showDropdown,
     containerRef,
     inputRef,
+    dropdownRef,
     setActiveIndex,
     onQueryChange: (value: string) => {
       setQuery(value);
@@ -155,24 +163,81 @@ export function useCompanySearch(): CompanySearch {
   };
 }
 
-/** The results listbox shared by both search variants. The caller positions
- *  it (absolute classes) and provides a unique id for aria-controls. */
+interface DropdownPosition {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+}
+
+/** The results listbox shared by both search variants. Rendered in a portal
+ *  with fixed positioning so it escapes any clipping ancestor (the landing
+ *  hero is `overflow-hidden`) and is never trimmed. Height is dynamic: it
+ *  grows with the result count and only scrolls past ~10 rows, capped to the
+ *  viewport so it never runs off-screen. */
 export function SearchResultsDropdown({
   search,
   id,
-  className = "",
 }: {
   search: CompanySearch;
   id: string;
-  className?: string;
 }) {
-  const { searchError, loading, results, activeIndex } = search;
-  if (!search.showDropdown) return null;
-  return (
+  const {
+    searchError,
+    loading,
+    results,
+    activeIndex,
+    containerRef,
+    dropdownRef,
+  } = search;
+  const [pos, setPos] = useState<DropdownPosition | null>(null);
+
+  // Anchor the fixed dropdown to the search container, recomputing on scroll
+  // and resize while it is open.
+  useEffect(() => {
+    if (!search.showDropdown) {
+      setPos(null);
+      return;
+    }
+    const update = () => {
+      const el = containerRef.current;
+      if (el === null) return;
+      const r = el.getBoundingClientRect();
+      const gap = 8;
+      const top = r.bottom + gap;
+      // Room for ~11 rows (~420px), but never past the viewport bottom.
+      const maxHeight = Math.max(
+        180,
+        Math.min(420, window.innerHeight - top - 16),
+      );
+      setPos({ top, left: r.left, width: r.width, maxHeight });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [search.showDropdown, results, loading, searchError, containerRef]);
+
+  if (!search.showDropdown || pos === null || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <ul
       id={id}
+      ref={dropdownRef}
       role="listbox"
-      className={`pop-in max-h-80 overflow-y-auto rounded border border-line-strong bg-surface py-1 shadow-card-hover ${className}`}
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+        maxHeight: pos.maxHeight,
+      }}
+      className="pop-in z-50 overflow-y-auto rounded-lg border border-line-strong bg-surface py-1 shadow-card-hover"
     >
       {searchError !== null && (
         <li className="px-4 py-2.5 text-sm text-negative-text">
@@ -213,6 +278,7 @@ export function SearchResultsDropdown({
             )}
           </li>
         ))}
-    </ul>
+    </ul>,
+    document.body,
   );
 }

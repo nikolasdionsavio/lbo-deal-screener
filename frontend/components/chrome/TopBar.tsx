@@ -110,11 +110,7 @@ export default function TopBar() {
         >
           /
         </kbd>
-        <SearchResultsDropdown
-          search={search}
-          id="topbar-search-results"
-          className="absolute right-0 top-full z-40 mt-2 w-full min-w-[20rem] max-w-[calc(100vw-2rem)]"
-        />
+        <SearchResultsDropdown search={search} id="topbar-search-results" />
       </div>
     </header>
   );
