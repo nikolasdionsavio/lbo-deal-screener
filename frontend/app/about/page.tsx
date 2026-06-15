@@ -87,7 +87,7 @@ function LinkIcon({ kind }: { kind: AboutLinkKind }) {
 }
 
 export default function AboutPage() {
-  const { name, role, bio, links } = about;
+  const { name, role, tagline, bio, highlights, links } = about;
 
   return (
     <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 py-8 sm:px-8">
@@ -105,7 +105,10 @@ export default function AboutPage() {
               <h1 className="font-display text-[1.375rem] font-semibold leading-snug text-ink">
                 {name}
               </h1>
-              <p className="mt-0.5 text-sm text-ink-muted">{role}</p>
+              <p className="mt-0.5 text-sm font-medium text-ink-secondary">
+                {role}
+              </p>
+              <p className="mt-0.5 text-sm text-ink-muted">{tagline}</p>
             </div>
           </div>
 
@@ -120,6 +123,26 @@ export default function AboutPage() {
               </p>
             ))}
           </div>
+
+          {/* Selected highlights */}
+          <div className="divider-dashed my-6" />
+          <h2 className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+            Selected highlights
+          </h2>
+          <ul className="mt-3 space-y-3">
+            {highlights.map((item) => (
+              <li key={item.title} className="flex gap-3">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink">{item.title}</p>
+                  <p className="mt-0.5 text-sm text-ink-muted">{item.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
 
           {/* Find me */}
           <div className="divider-dashed my-6" />
