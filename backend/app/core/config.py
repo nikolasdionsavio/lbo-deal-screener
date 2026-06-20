@@ -33,8 +33,23 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "Nikolas at Investment Intelligence <contact@nikolasdionsavio.com>"
-    # Base URL of the frontend, used to build the password-reset link.
-    frontend_url: str = "https://nikolasproject.com"
+    # Base URL used to build the password-reset link in emails. Points at the
+    # app.nikolasdionsavio.com alias so the link domain matches the From domain
+    # (contact@nikolasdionsavio.com) — better deliverability than a cross-domain link.
+    frontend_url: str = "https://app.nikolasdionsavio.com"
+
+    # Social sign-in (Google + GitHub OAuth2). All optional: a provider only
+    # appears in the UI when its client id + secret are set AND backend_url is
+    # known (it builds the redirect URI registered with the provider). With
+    # nothing set, the OAuth endpoints report the provider as unavailable and
+    # the frontend simply does not render the button.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    # Public base URL of THIS backend (e.g. https://<user>-<space>.hf.space),
+    # used to build OAuth redirect URIs that must match the provider console.
+    backend_url: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:

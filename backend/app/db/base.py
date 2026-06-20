@@ -23,6 +23,13 @@ def _connect_args(url: str) -> dict[str, object]:
 engine = create_engine(
     settings.database_url,
     connect_args=_connect_args(settings.database_url),
+    # Neon (and other serverless Postgres) auto-suspends when idle and drops
+    # pooled connections. pool_pre_ping checks liveness and transparently
+    # reconnects a stale connection instead of erroring the first request after
+    # an idle period; pool_recycle keeps connections from outliving that window.
+    # Both are harmless for SQLite (local/tests).
+    pool_pre_ping=True,
+    pool_recycle=300,
 )
 
 SessionLocal = sessionmaker(
@@ -48,6 +55,7 @@ def get_db() -> Iterator[Session]:
 # via ALTER TABLE ADD COLUMN, which both SQLite and Postgres support.
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("companies", "description", "TEXT"),
+    ("users", "oauth_provider", "VARCHAR(20)"),
 ]
 
 

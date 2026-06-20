@@ -12,7 +12,7 @@ huggingface_hub installed):
     JWT_SECRET='...' \
     FMP_API_KEY='...' \
     SEC_EDGAR_USER_AGENT='LBO Deal Screener you@example.com' \
-    CORS_ORIGINS='https://nikolasproject.com,https://www.nikolasproject.com' \
+    CORS_ORIGINS='https://nikolasproject.com,https://www.nikolasproject.com,https://app.nikolasdionsavio.com' \
     python deploy/hf/deploy.py
 
 The script creates the Space (if needed), uploads the backend (app/, data/,
@@ -50,6 +50,17 @@ SECRET_KEYS = [
     "FMP_API_KEY",
     "SEC_EDGAR_USER_AGENT",
     "CORS_ORIGINS",
+]
+# Set on the Space only when supplied (transactional email + social sign-in +
+# the public URLs used for OAuth redirects and the password-reset link).
+OPTIONAL_SECRET_KEYS = [
+    "RESEND_API_KEY",
+    "FRONTEND_URL",
+    "BACKEND_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
 ]
 # DATA_PROVIDER is a plain variable (not secret); default to live.
 DATA_PROVIDER = os.environ.get("DATA_PROVIDER", "live")
@@ -97,6 +108,10 @@ def main() -> None:
     api.add_space_variable(repo_id=space_id, key="DATA_PROVIDER", value=DATA_PROVIDER)
     for key in SECRET_KEYS:
         api.add_space_secret(repo_id=space_id, key=key, value=_require(key))
+    for key in OPTIONAL_SECRET_KEYS:
+        value = os.environ.get(key, "").strip()
+        if value:
+            api.add_space_secret(repo_id=space_id, key=key, value=value)
 
     user = space_id.split("/")[0]
     name = space_id.split("/")[1]

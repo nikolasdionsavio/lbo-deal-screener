@@ -8,10 +8,14 @@ hosted PNG; the text part is the readable fallback.
 
 from __future__ import annotations
 
-_SITE_URL = "https://nikolasproject.com"
-_ABOUT_URL = "https://nikolasproject.com/about"
-_CONTACT_URL = "https://nikolasproject.com/contact"
-_LOGO_URL = "https://nikolasproject.com/email-logo.png"
+# Email links point at app.nikolasdionsavio.com (an alias of the same Netlify
+# site as nikolasproject.com). Keeping the link domain on the same root as the
+# From address (contact@nikolasdionsavio.com) aligns sender and destination,
+# which removes a phishing heuristic some spam filters apply to cross-domain mail.
+_SITE_URL = "https://app.nikolasdionsavio.com"
+_ABOUT_URL = "https://app.nikolasdionsavio.com/about"
+_CONTACT_URL = "https://app.nikolasdionsavio.com/contact"
+_LOGO_URL = "https://app.nikolasdionsavio.com/email-logo.png"
 _BRAND = "Investment Intelligence"
 _CONTACT_EMAIL = "contact@nikolasdionsavio.com"
 

@@ -39,6 +39,10 @@ class User(Base):
         String(320), unique=True, nullable=False, index=True
     )
     password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    # Set when the account was created via an OAuth provider ("google" /
+    # "github"). Such accounts get a random, unusable password_hash so password
+    # login can never succeed for them; this column just records the origin.
+    oauth_provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
