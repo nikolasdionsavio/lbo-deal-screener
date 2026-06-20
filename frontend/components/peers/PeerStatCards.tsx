@@ -1,9 +1,10 @@
-// Peer-group quartile stat cards (BUILD_SPEC section 19.5): one card per
-// metric showing the peer median, with the Q1–Q3 interquartile range in the
-// sub line. Stats are computed by the backend over valued peers only
-// (target excluded); metrics without stats are hidden.
+// Peer-group quartile figures (BUILD_SPEC section 19.5): a key-figures ledger
+// of the peer median per metric, with the Q1-Q3 interquartile range below each.
+// Stats are computed by the backend over valued peers only (target excluded);
+// metrics without stats are hidden.
 
-import StatCard from "@/components/ui/StatCard";
+import Card from "@/components/ui/Card";
+import { FigureRow } from "@/components/ui/figure";
 import { fmtMultiple, fmtPercent } from "@/lib/format";
 import type { PeerStats } from "@/lib/types";
 
@@ -33,26 +34,34 @@ export default function PeerStatCards({
   stats,
   className = "",
 }: PeerStatCardsProps) {
-  const cards = METRICS.flatMap((metric) => {
+  const rows = METRICS.flatMap((metric) => {
     const s = stats[metric.key];
     return s !== undefined ? [{ ...metric, stats: s }] : [];
   });
 
-  if (cards.length === 0) return null;
+  if (rows.length === 0) return null;
+  const mid = Math.ceil(rows.length / 2);
+  const columns = [rows.slice(0, mid), rows.slice(mid)];
 
   return (
-    <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-4 ${className}`}>
-      {cards.map((card) => (
-        <StatCard
-          key={card.key}
-          label={card.label}
-          value={fmt(card.stats.median, card.format)}
-          sub={`Q1 ${fmt(card.stats.q1, card.format)} – Q3 ${fmt(
-            card.stats.q3,
-            card.format,
-          )}`}
-        />
-      ))}
-    </div>
+    <Card className={className}>
+      <div className="grid gap-x-10 sm:grid-cols-2">
+        {columns.map((column, i) => (
+          <div key={i}>
+            {column.map((row) => (
+              <FigureRow
+                key={row.key}
+                label={row.label}
+                value={fmt(row.stats.median, row.format)}
+                sub={`Q1 ${fmt(row.stats.q1, row.format)} – Q3 ${fmt(
+                  row.stats.q3,
+                  row.format,
+                )}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

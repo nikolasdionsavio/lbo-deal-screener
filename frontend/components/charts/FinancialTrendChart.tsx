@@ -23,9 +23,8 @@ import {
 } from "@/components/charts/chartTheme";
 import Card from "@/components/ui/Card";
 import SectionHeader from "@/components/ui/SectionHeader";
-import { getFinancials } from "@/lib/api";
 import { fmtCurrency, fmtPercent } from "@/lib/format";
-import { useApi } from "@/lib/hooks";
+import type { FinancialsResponse } from "@/lib/types";
 
 const REVENUE_NAME = "Revenue";
 const MARGIN_NAME = "EBITDA margin";
@@ -37,18 +36,19 @@ interface ChartRow {
 }
 
 interface FinancialTrendChartProps {
-  ticker: string;
+  /** Multi-year financials, fetched once by the parent; null while loading. */
+  financials: FinancialsResponse | null;
   /** Reporting currency code; null means USD. */
   currency?: string | null;
   height?: number;
 }
 
 export default function FinancialTrendChart({
-  ticker,
+  financials,
   currency = null,
   height = 260,
 }: FinancialTrendChartProps) {
-  const { data } = useApi(() => getFinancials(ticker), [ticker]);
+  const data = financials;
   const chart = useChartTheme();
 
   // Hidden while loading and on error; the dashboard reads fine without it.

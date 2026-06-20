@@ -1,4 +1,5 @@
-import StatCard from "@/components/ui/StatCard";
+import Card from "@/components/ui/Card";
+import { FigureRow } from "@/components/ui/figure";
 import {
   fmtCurrency,
   fmtDays,
@@ -31,24 +32,33 @@ interface MultiplesGridProps {
   className?: string;
 }
 
-/** Current valuation multiples as StatCards with the formula in the sub line. */
+/** Current valuation multiples as a key-figures ledger: each row is the
+ *  metric, its value, and the formula and period it was computed from. */
 export default function MultiplesGrid({
   multiples,
   currency = null,
   className = "",
 }: MultiplesGridProps) {
+  if (multiples.length === 0) return null;
+  const mid = Math.ceil(multiples.length / 2);
+  const columns = [multiples.slice(0, mid), multiples.slice(mid)];
+
   return (
-    <div
-      className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${className}`}
-    >
-      {multiples.map((tv) => (
-        <StatCard
-          key={tv.key}
-          label={tv.label}
-          value={fmtTraced(tv, currency)}
-          sub={`${tv.formula} · ${tv.period}`}
-        />
-      ))}
-    </div>
+    <Card className={className}>
+      <div className="grid gap-x-10 sm:grid-cols-2">
+        {columns.map((column, i) => (
+          <div key={i}>
+            {column.map((tv) => (
+              <FigureRow
+                key={tv.key}
+                label={tv.label}
+                value={fmtTraced(tv, currency)}
+                sub={`${tv.formula} · ${tv.period}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

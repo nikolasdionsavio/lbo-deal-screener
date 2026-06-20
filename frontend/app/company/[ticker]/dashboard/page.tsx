@@ -9,26 +9,69 @@
 // from CompanyContext; filings from GET /api/companies/{ticker}/filings.
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
+import {
+  DiligenceReadBand,
+  EvSplitBar,
+  NetDebtBridge,
+  type DiligenceSeries,
+} from "@/components/company/DiligenceRead";
 import TradingViewChart from "@/components/company/TradingViewChart";
 import FinancialTrendChart from "@/components/charts/FinancialTrendChart";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
+import { FigureGroup, FigureRow, MISSING } from "@/components/ui/figure";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionHeader from "@/components/ui/SectionHeader";
+import Sparkline from "@/components/ui/Sparkline";
 import WarningList from "@/components/ui/WarningList";
-import { getFilings } from "@/lib/api";
+import { getFilings, getFinancials } from "@/lib/api";
 import { fmtCurrency, fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
-import { useCountUp } from "@/lib/useCountUp";
-import type { Filing } from "@/lib/types";
+import type { Filing, FinancialsResponse } from "@/lib/types";
 
-const NOT_AVAILABLE = (
-  <span title="Not available" className="text-ink-muted">
-    —
-  </span>
-);
+const isFin = (v: number | null | undefined): v is number =>
+  typeof v === "number" && Number.isFinite(v);
+
+/** Derive the multi-year series the dashboard band + flow rows visualise from a
+ *  single /financials payload. Returns nulls until the fetch resolves or when
+ *  fewer than two revenue-bearing years exist, so every mark degrades honestly. */
+function buildSeries(financials: FinancialsResponse | null): {
+  series: DiligenceSeries | null;
+  rowSparks: { netIncome: number[]; fcf: number[] } | null;
+} {
+  if (financials === null) return { series: null, rowSparks: null };
+  const years = [...financials.years]
+    .filter((y) => isFin(y.revenue))
+    .sort((a, b) => a.fiscal_year - b.fiscal_year);
+  if (years.length < 2) return { series: null, rowSparks: null };
+
+  const leverage = years.map((y) => {
+    const nd =
+      isFin(y.total_debt) && isFin(y.cash_and_equivalents)
+        ? y.total_debt - y.cash_and_equivalents
+        : null;
+    return nd !== null && isFin(y.ebitda) && y.ebitda > 0 ? nd / y.ebitda : null;
+  });
+  const fcfConv = years.map((y) =>
+    isFin(y.free_cash_flow) && isFin(y.ebitda) && y.ebitda > 0
+      ? y.free_cash_flow / y.ebitda
+      : null,
+  );
+  const rev = years.map((y) => y.revenue as number);
+  const prior = rev[rev.length - 2];
+  const latest = rev[rev.length - 1];
+  const revYoY = prior > 0 ? latest / prior - 1 : null;
+
+  return {
+    series: { leverage, fcfConv, revYoY },
+    rowSparks: {
+      netIncome: years.map((y) => y.net_income).filter(isFin),
+      fcf: years.map((y) => y.free_cash_flow).filter(isFin),
+    },
+  };
+}
 
 // 16px, 1.5px-stroke icons for the Data section tile rows.
 function dataIconAttrs() {
@@ -84,71 +127,6 @@ function DataSourceRow({
       <span className="ml-auto text-right text-sm tabular-nums text-ink-secondary">
         {value}
       </span>
-    </div>
-  );
-}
-
-/** Snapshot band tile: compact, value-first (the analyst's first scan).
- *  The value counts up once on first mount (motion pass; reduced-motion
- *  renders it directly). Linked tiles open the page detailing the figure
- *  and carry the card hover lift to signal it. */
-function SnapshotTile({
-  label,
-  value,
-  format,
-  href,
-  hrefTitle,
-}: {
-  label: string;
-  value: number | null;
-  format: (value: number | null) => string;
-  href?: string;
-  hrefTitle?: string;
-}) {
-  const text = useCountUp(value, format);
-  const body = (
-    <>
-      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </div>
-      <div className="mt-0.5 text-xl font-semibold tabular-nums text-ink">
-        {value === null ? NOT_AVAILABLE : text}
-      </div>
-    </>
-  );
-  const surface =
-    "block rounded-lg border border-line bg-surface px-4 py-3 shadow-card";
-  if (href !== undefined && value !== null) {
-    return (
-      <Link href={href} title={hrefTitle} className={`${surface} tile-link`}>
-        {body}
-      </Link>
-    );
-  }
-  return <div className={surface}>{body}</div>;
-}
-
-/** Secondary financial tile: one register smaller than the snapshot band. */
-function DetailTile({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: ReactNode;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-line bg-surface px-4 py-3 shadow-card">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </div>
-      <div className="mt-0.5 text-base font-semibold tabular-nums text-ink">
-        {value}
-      </div>
-      {sub !== undefined && (
-        <div className="mt-0.5 text-[11px] text-ink-muted">{sub}</div>
-      )}
     </div>
   );
 }
@@ -281,73 +259,73 @@ export default function DashboardPage() {
   const currency = profile.currency ?? null;
   const ticker = encodeURIComponent(profile.ticker);
 
-  function money(value: number | null): ReactNode {
-    return value === null ? NOT_AVAILABLE : fmtCurrency(value, currency);
-  }
-
   const fmtMoney = (value: number | null) => fmtCurrency(value, currency);
-
-  const fiscalYearLabel =
-    profile.latest_fiscal_year === null
-      ? NOT_AVAILABLE
-      : `FY${profile.latest_fiscal_year}`;
+  // A money figure for a ledger row, or the muted dash when it is missing.
+  const fig = (value: number | null) =>
+    value === null ? MISSING : fmtMoney(value);
+  // Only link a row when its figure is present (no drill-down on missing data).
+  const linkIf = (value: number | null, href: string) =>
+    value === null ? undefined : href;
 
   const fyNote =
     profile.latest_fiscal_year !== null
       ? `FY${profile.latest_fiscal_year}`
       : "the latest fiscal year";
 
+  // One shared /financials fetch drives the band sparklines, the YoY delta, the
+  // flow-row sparklines, and the trend chart below (passed down so it is fetched
+  // once). The page renders fully from the profile before this resolves.
+  const { data: financials } = useApi(
+    () => getFinancials(profile.ticker),
+    [profile.ticker],
+  );
+  const { series, rowSparks } = useMemo(
+    () => buildSeries(financials),
+    [financials],
+  );
+
   return (
     <div>
       <section>
         <SectionHeader
           title="Snapshot"
-          subtitle={`Price and EV at market; revenue, EBITDA and net debt from ${fyNote}. EV = market cap + net debt.`}
+          subtitle="Live market figures alongside the latest reported fiscal year."
         />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <SnapshotTile
-            label="Share price"
-            value={profile.share_price}
-            format={fmtMoney}
-            href="#price-chart"
-            hrefTitle="Jump to the price chart"
-          />
-          <SnapshotTile
-            label="Market cap"
-            value={profile.market_cap}
-            format={fmtMoney}
-            href={`/company/${ticker}/valuation`}
-            hrefTitle="Open valuation"
-          />
-          <SnapshotTile
-            label="Enterprise value"
-            value={profile.enterprise_value}
-            format={fmtMoney}
-            href={`/company/${ticker}/valuation`}
-            hrefTitle="Open valuation"
-          />
-          <SnapshotTile
-            label="Revenue"
-            value={profile.revenue}
-            format={fmtMoney}
-            href={`/company/${ticker}/financials`}
-            hrefTitle="Open financial statements"
-          />
-          <SnapshotTile
-            label="EBITDA"
-            value={profile.ebitda}
-            format={fmtMoney}
-            href={`/company/${ticker}/financials`}
-            hrefTitle="Open financial statements"
-          />
-          <SnapshotTile
-            label="Net debt"
-            value={profile.net_debt}
-            format={fmtMoney}
-            href={`/company/${ticker}/financials`}
-            hrefTitle="Open financial statements"
-          />
-        </div>
+        <Card>
+          <div className="grid gap-y-6 sm:grid-cols-2 sm:gap-y-0">
+            <FigureGroup heading="At market" className="sm:pr-8">
+              <FigureRow
+                label="Share price"
+                value={fig(profile.share_price)}
+                emphasis
+                href={linkIf(profile.share_price, "#price-chart")}
+                hrefTitle="Jump to the price chart"
+              />
+              <FigureRow
+                label="Market cap"
+                value={fig(profile.market_cap)}
+                emphasis
+                href={linkIf(profile.market_cap, `/company/${ticker}/valuation`)}
+                hrefTitle="Open valuation"
+              />
+              <FigureRow
+                label="Enterprise value"
+                value={fig(profile.enterprise_value)}
+                emphasis
+                href={linkIf(
+                  profile.enterprise_value,
+                  `/company/${ticker}/valuation`,
+                )}
+                hrefTitle="Open valuation"
+              />
+            </FigureGroup>
+            <DiligenceReadBand profile={profile} series={series} />
+          </div>
+          <EvSplitBar profile={profile} />
+          <p className="mt-3 text-xs text-ink-muted">
+            Enterprise value = market cap + net debt. Reported figures as of {fyNote}.
+          </p>
+        </Card>
       </section>
 
       {profile.description !== null && profile.description !== "" && (
@@ -359,23 +337,55 @@ export default function DashboardPage() {
 
       <section className="divider-dashed mt-8 pt-8">
         <SectionHeader title="Financial detail" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <DetailTile label="Net income" value={money(profile.net_income)} />
-          <DetailTile
-            label="Free cash flow"
-            value={money(profile.free_cash_flow)}
-          />
-          <DetailTile label="Cash" value={money(profile.cash)} />
-          <DetailTile
-            label="Total debt"
-            value={money(profile.total_debt)}
-            sub="Net debt = total debt less cash"
-          />
-          <DetailTile label="Latest fiscal year" value={fiscalYearLabel} />
-        </div>
+        <Card>
+          <div className="grid gap-y-0 sm:grid-cols-2 sm:gap-x-10">
+            <div>
+              <FigureRow
+                label="Net income"
+                value={fig(profile.net_income)}
+                sub={
+                  rowSparks ? (
+                    <Sparkline
+                      points={rowSparks.netIncome}
+                      className="mt-1 text-ink-muted"
+                    />
+                  ) : undefined
+                }
+              />
+              <FigureRow
+                label="Free cash flow"
+                value={fig(profile.free_cash_flow)}
+                sub={
+                  rowSparks ? (
+                    <Sparkline
+                      points={rowSparks.fcf}
+                      className="mt-1 text-ink-muted"
+                    />
+                  ) : undefined
+                }
+              />
+              <FigureRow label="Cash" value={fig(profile.cash)} />
+            </div>
+            <div>
+              <FigureRow label="Total debt" value={fig(profile.total_debt)} />
+              <FigureRow
+                label="Latest fiscal year"
+                value={
+                  profile.latest_fiscal_year === null
+                    ? MISSING
+                    : `FY${profile.latest_fiscal_year}`
+                }
+              />
+            </div>
+          </div>
+          <NetDebtBridge profile={profile} />
+          <p className="mt-3 text-xs text-ink-muted">
+            Net debt = total debt less cash.
+          </p>
+        </Card>
       </section>
 
-      <FinancialTrendChart ticker={profile.ticker} currency={currency} />
+      <FinancialTrendChart currency={currency} financials={financials} />
 
       {/* scroll-mt clears the sticky top bar for the Share price tile anchor. */}
       <section id="price-chart" className="divider-dashed mt-8 scroll-mt-14 pt-8">
