@@ -25,6 +25,13 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// OAuth sign-in is begun via a full-page navigation that must land on the
+// domain whose redirect URI is registered with Google/GitHub. In production
+// that is nikolasproject.com (it proxies /api/auth/oauth/* to the backend), so
+// the provider's screen shows that domain rather than the hf.space host. Falls
+// back to API_BASE for local dev.
+const OAUTH_BASE = process.env.NEXT_PUBLIC_OAUTH_BASE ?? API_BASE;
+
 export class ApiError extends Error {
   status: number;
   detail: string;
@@ -211,6 +218,27 @@ export function login(email: string, password: string): Promise<TokenResponse> {
 
 export function me(): Promise<User> {
   return request<User>("/api/auth/me");
+}
+
+// Social sign-in (Google / GitHub). The OAuth dance is a full browser
+// navigation to the backend, so these helpers build a URL rather than fetch.
+export type OAuthProvider = "google" | "github";
+
+export function getOAuthProviders(): Promise<Record<string, boolean>> {
+  return request<Record<string, boolean>>("/api/auth/oauth/providers");
+}
+
+export function oauthLoginUrl(
+  provider: OAuthProvider,
+  next?: string | null,
+): string {
+  const params = new URLSearchParams();
+  if (typeof window !== "undefined") {
+    params.set("origin", window.location.origin);
+  }
+  if (next) params.set("next", next);
+  const qs = params.toString();
+  return `${OAUTH_BASE}/api/auth/oauth/${provider}/login${qs ? `?${qs}` : ""}`;
 }
 
 // Password reset. Both endpoints return a generic { detail } message; the

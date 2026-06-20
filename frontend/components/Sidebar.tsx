@@ -520,41 +520,56 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
       <div className={`divider-dashed ${collapsed ? "mx-2" : "mx-5"}`} />
       <div className={`py-4 ${collapsed ? "px-2" : "px-3"}`}>
         <ThemeToggle collapsed={collapsed} />
-        {!collapsed && (
-          <div className="mt-3">
-            {user ? (
-              <div className="space-y-2 px-3">
-                <div
-                  className="truncate text-xs text-ink-muted"
-                  title={user.email}
-                >
-                  {user.email}
-                </div>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded-full border border-line-strong px-2.5 py-1 text-xs text-ink-secondary transition-colors duration-150 hover:bg-surface-sunken hover:text-ink"
-                >
-                  Log out
-                </button>
+        {user ? (
+          !collapsed && (
+            <div className="mt-3 space-y-2 px-3">
+              <div
+                className="truncate text-xs text-ink-muted"
+                title={user.email}
+              >
+                {user.email}
               </div>
-            ) : (
-              <div className="flex items-center gap-2 px-3 text-sm">
-                <Link
-                  href="/login"
-                  className="text-ink-muted transition-colors duration-150 hover:text-ink"
-                >
-                  Log in
-                </Link>
-                <span className="text-line-strong">·</span>
-                <Link
-                  href="/register"
-                  className="text-ink-muted transition-colors duration-150 hover:text-ink"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-full border border-line-strong px-2.5 py-1 text-xs text-ink-secondary transition-colors duration-150 hover:bg-surface-sunken hover:text-ink"
+              >
+                Log out
+              </button>
+            </div>
+          )
+        ) : collapsed ? (
+          // Collapsed rail: a single teal sign-up tile so the CTA never
+          // disappears when the sidebar is narrowed.
+          <div className="mt-3 flex justify-center">
+            <Link
+              href="/register"
+              title="Register"
+              aria-label="Register"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white shadow-sm transition-all duration-150 hover:bg-teal-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:bg-teal-400 dark:text-teal-950 dark:hover:bg-teal-300"
+            >
+              <svg {...iconAttrs()}>
+                <circle cx="6" cy="5.5" r="2.5" />
+                <path d="M2 13.5a4 4 0 0 1 7.2-2.4" />
+                <path d="M12.5 8v4M10.5 10h4" />
+              </svg>
+            </Link>
+          </div>
+        ) : (
+          // Expanded: prominent teal CTAs (Register primary, Log in outline).
+          <div className="mt-3 space-y-2 px-1">
+            <Link
+              href="/register"
+              className="flex w-full items-center justify-center rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-teal-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:bg-teal-400 dark:text-teal-950 dark:hover:bg-teal-300"
+            >
+              Register
+            </Link>
+            <Link
+              href="/login"
+              className="flex w-full items-center justify-center rounded-full border border-teal-600/40 px-4 py-2 text-sm font-medium text-teal-700 transition-colors duration-150 hover:border-teal-600 hover:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:border-teal-400/40 dark:text-teal-300 dark:hover:bg-teal-400/10"
+            >
+              Log in
+            </Link>
           </div>
         )}
       </div>

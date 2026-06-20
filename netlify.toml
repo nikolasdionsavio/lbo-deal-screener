@@ -7,5 +7,16 @@
   command = "npm run build"
   publish = "frontend/.next"
 
+# Proxy the OAuth dance through this domain so Google/GitHub redirect URIs live
+# on nikolasproject.com (a domain the user owns) instead of the hf.space backend
+# host. The browser only ever talks to nikolasproject.com; Netlify transparently
+# forwards these paths to the Hugging Face backend (cookies included). Declared
+# before the Next.js plugin's catch-all so it matches first.
+[[redirects]]
+  from = "/api/auth/oauth/*"
+  to = "https://nikolasdion-lbo-screener-api.hf.space/api/auth/oauth/:splat"
+  status = 200
+  force = true
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

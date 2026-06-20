@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { ApiError } from "@/lib/api";
@@ -38,6 +39,9 @@ export default function LoginPage() {
   useEffect(() => {
     const next = safeNextPath();
     setNextParam(next === "/" ? null : next);
+    if (new URLSearchParams(window.location.search).get("error") === "oauth") {
+      setError("That sign-in did not complete. Please try again.");
+    }
   }, []);
 
   const registerHref =
@@ -71,7 +75,11 @@ export default function LoginPage() {
             Required only for saving deals. Analysis pages are public.
           </p>
 
-          <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
+          <div className="mt-5">
+            <OAuthButtons next={nextParam} />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <label className="block text-sm font-medium text-ink-secondary">
               Email
               <input

@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { ApiError } from "@/lib/api";
@@ -76,7 +77,11 @@ export default function RegisterPage() {
             An account is required only for saving deals to a watchlist.
           </p>
 
-          <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
+          <div className="mt-5">
+            <OAuthButtons next={nextParam} />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <label className="block text-sm font-medium text-ink-secondary">
               Email
               <input

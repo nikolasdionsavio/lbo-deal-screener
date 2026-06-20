@@ -19,6 +19,8 @@ export interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  /** Store a token obtained out of band (e.g. the OAuth callback) and load the user. */
+  applyExternalToken: (token: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -69,6 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applyToken],
   );
 
+  const applyExternalToken = useCallback(
+    (accessToken: string) => applyToken(accessToken),
+    [applyToken],
+  );
+
   const logout = useCallback(() => {
     window.localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -77,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
+      value={{ user, token, loading, login, register, applyExternalToken, logout }}
     >
       {children}
     </AuthContext.Provider>

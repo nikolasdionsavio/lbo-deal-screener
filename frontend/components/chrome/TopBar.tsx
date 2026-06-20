@@ -17,6 +17,25 @@ import {
   SearchResultsDropdown,
   useCompanySearch,
 } from "@/components/search/useCompanySearch";
+import { useAuth } from "@/lib/auth";
+
+// Account CTAs. Teal (the brand accent) deliberately stands apart from the
+// navy app chrome so a logged-out visitor notices them. Register is the filled
+// primary; Log in is the lighter outline. Literal teal-* (not the --accent
+// token) so opacity modifiers and per-theme tuning behave predictably.
+const REGISTER_CTA =
+  "inline-flex items-center justify-center rounded-full bg-teal-600 px-4 py-1.5 " +
+  "text-sm font-semibold text-white shadow-sm transition-all duration-150 " +
+  "hover:-translate-y-px hover:bg-teal-700 hover:shadow-md active:translate-y-0 " +
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 " +
+  "dark:bg-teal-400 dark:text-teal-950 dark:hover:bg-teal-300";
+
+const LOGIN_CTA =
+  "hidden items-center justify-center rounded-full border border-teal-600/40 " +
+  "px-3.5 py-1.5 text-sm font-medium text-teal-700 transition-colors duration-150 " +
+  "hover:border-teal-600 hover:bg-teal-50 focus:outline-none " +
+  "focus-visible:ring-2 focus-visible:ring-teal-500 sm:inline-flex " +
+  "dark:border-teal-400/40 dark:text-teal-300 dark:hover:bg-teal-400/10";
 
 function SearchIcon() {
   return (
@@ -52,6 +71,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export default function TopBar() {
   const pathname = usePathname();
   const search = useCompanySearch();
+  const { user } = useAuth();
   const { inputRef } = search;
 
   const match = pathname ? /^\/company\/([^/]+)/.exec(pathname) : null;
@@ -91,35 +111,51 @@ export default function TopBar() {
         </Link>
       )}
 
-      <div
-        ref={search.containerRef}
-        className="relative ml-auto min-w-0 flex-1 sm:w-full sm:max-w-[18rem]"
-      >
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
-          <SearchIcon />
-        </span>
-        <input
-          ref={search.inputRef}
-          type="text"
-          role="combobox"
-          aria-label="Search companies"
-          aria-expanded={search.showDropdown}
-          aria-controls="topbar-search-results"
-          aria-autocomplete="list"
-          className="h-8 w-full rounded-full border border-line bg-surface-sunken pl-8 pr-3 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft md:pr-8"
-          placeholder="Search companies"
-          value={search.query}
-          onChange={(event) => search.onQueryChange(event.target.value)}
-          onFocus={search.onFocus}
-          onKeyDown={search.onKeyDown}
-        />
-        <kbd
-          aria-hidden="true"
-          className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1 font-sans text-[10px] leading-4 text-ink-muted md:block"
+      <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none sm:gap-3">
+        <div
+          ref={search.containerRef}
+          className="relative min-w-0 flex-1 sm:w-72 sm:flex-none lg:w-80"
         >
-          /
-        </kbd>
-        <SearchResultsDropdown search={search} id="topbar-search-results" />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-teal-600 dark:text-teal-400">
+            <SearchIcon />
+          </span>
+          <input
+            ref={search.inputRef}
+            type="text"
+            role="combobox"
+            aria-label="Search companies"
+            aria-expanded={search.showDropdown}
+            aria-controls="topbar-search-results"
+            aria-autocomplete="list"
+            className="h-9 w-full rounded-full border border-line-strong bg-surface pl-8 pr-3 text-sm text-ink shadow-sm ring-1 ring-inset ring-teal-500/10 transition-all duration-150 placeholder:text-ink-muted hover:border-teal-500/60 hover:shadow focus:border-teal-500 focus:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40 md:pr-8"
+            placeholder="Search companies"
+            value={search.query}
+            onChange={(event) => search.onQueryChange(event.target.value)}
+            onFocus={search.onFocus}
+            onKeyDown={search.onKeyDown}
+          />
+          <kbd
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1 font-sans text-[10px] leading-4 text-ink-muted md:block"
+          >
+            /
+          </kbd>
+          <SearchResultsDropdown search={search} id="topbar-search-results" />
+        </div>
+
+        {!user && (
+          <nav
+            aria-label="Account"
+            className="flex shrink-0 items-center gap-2 sm:gap-2.5"
+          >
+            <Link href="/login" className={LOGIN_CTA}>
+              Log in
+            </Link>
+            <Link href="/register" className={REGISTER_CTA}>
+              Register
+            </Link>
+          </nav>
+        )}
       </div>
     </header>
   );
