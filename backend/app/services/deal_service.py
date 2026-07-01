@@ -21,8 +21,10 @@ from app.valuation import compute_valuation
 
 
 class MissingEntryDataError(Exception):
-    """The LBO entry base (latest-FY EBITDA/revenue) is missing or non-positive.
+    """The LBO entry base (latest-FY revenue) is missing or non-positive.
 
+    Revenue is the one field with no fallback: without it there is no basis at
+    all (a non-positive EBITDA is handled by the revenue valuation basis).
     Routes map this to HTTP 422 with a readable detail.
     """
 
@@ -51,19 +53,20 @@ def compute_lbo(
     """
     assumptions = resolve_assumptions(bundle, assumptions)
     latest = _latest(bundle)
-    if (
-        latest is None
-        or latest.ebitda is None
-        or latest.ebitda <= 0
-        or latest.revenue is None
-        or latest.revenue <= 0
-    ):
+    if latest is None or latest.revenue is None or latest.revenue <= 0:
         raise MissingEntryDataError(
-            "LBO model requires positive EBITDA and revenue for the latest "
-            "fiscal year; they are unavailable for this company."
+            "LBO model requires revenue for the latest fiscal year; it is "
+            "unavailable for this company."
         )
+    # Non-positive EBITDA is modeled on the revenue basis. If the caller passed
+    # EBITDA-basis assumptions for such a company, override to the revenue basis
+    # so the engine prices entry on EV/Revenue rather than on a negative EBITDA.
+    entry_ebitda = latest.ebitda if latest.ebitda is not None else 0.0
+    if entry_ebitda <= 0 and assumptions.valuation_basis != "revenue":
+        derived, _basis = derive_defaults(bundle)
+        assumptions = derived
     return run_lbo(
-        latest.ebitda,
+        entry_ebitda,
         latest.revenue,
         assumptions,
         ticker=bundle.info.ticker.upper(),

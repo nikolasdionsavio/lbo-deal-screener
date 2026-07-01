@@ -209,6 +209,179 @@ def test_debt_floor_and_excess_cash_accrual() -> None:
     assert result.years[-1].ending_cash > 0.0
 
 
+# ---------------------------------------------------------------------------
+# Negative-EBITDA / revenue basis (high-growth companies)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def revenue_basis_assumptions() -> LboAssumptions:
+    """A negative-EBITDA growth company priced on EV/Revenue, no leverage,
+    with a margin ramp from -10% to a positive terminal margin."""
+    return LboAssumptions(
+        valuation_basis="revenue",
+        entry_multiple=3.0,  # EV/Revenue
+        debt_multiple=0.0,  # unused on this basis
+        entry_leverage_pct=0.0,  # all-equity
+        revenue_growth=[0.40, 0.35, 0.30, 0.25, 0.20],
+        ebitda_margin=[-0.10, -0.02, 0.06, 0.14, 0.20],
+        capex_pct_revenue=0.04,
+        nwc_pct_revenue=0.02,
+        tax_rate=0.25,
+        interest_rate=0.08,
+        mandatory_repayment_pct=0.05,
+        exit_multiple=12.0,  # EV/EBITDA at exit, once profitable
+        holding_period=5,
+    )
+
+
+def test_revenue_basis_entry_prices_on_revenue(
+    revenue_basis_assumptions: LboAssumptions,
+) -> None:
+    """Entry EV is EV/Revenue × revenue and, with no leverage, equals equity —
+    even though the entry EBITDA is negative."""
+    result = run_lbo(-80.0 * M, 1000.0 * M, revenue_basis_assumptions)
+    entry = result.entry
+    assert entry.entry_ebitda == pytest.approx(-80.0 * M, rel=REL)  # not floored
+    assert entry.entry_ev == pytest.approx(3.0 * 1000.0 * M, rel=REL)
+    assert entry.opening_debt == pytest.approx(0.0, abs=1e-3)
+    assert entry.sponsor_equity == pytest.approx(3.0 * 1000.0 * M, rel=REL)
+    assert entry.equity_pct == pytest.approx(1.0, rel=REL)
+
+
+def test_revenue_basis_reaches_profitable_exit(
+    revenue_basis_assumptions: LboAssumptions,
+) -> None:
+    """The margin ramp turns EBITDA positive, so the exit prices on EV/EBITDA
+    and returns are demonstrable."""
+    result = run_lbo(-80.0 * M, 1000.0 * M, revenue_basis_assumptions)
+    exit_block = result.exit
+    assert exit_block.exit_ebitda > 0  # terminal EBITDA positive
+    assert exit_block.exit_ev is not None
+    assert exit_block.exit_ev == pytest.approx(12.0 * exit_block.exit_ebitda, rel=REL)
+    assert exit_block.exit_equity is not None
+    assert exit_block.mom is not None and exit_block.mom > 0
+    assert exit_block.irr is not None
+    # Early years lose money -> the honest going-concern warnings fire.
+    assert any("EV/Revenue" in w for w in result.warnings)
+    assert any("cash burn" in w.lower() for w in result.warnings)
+
+
+def test_revenue_basis_never_profitable_refuses_exit() -> None:
+    """A ramp that never turns positive yields no EV/EBITDA exit and null
+    returns rather than a nonsense negative exit equity."""
+    a = LboAssumptions(
+        valuation_basis="revenue",
+        entry_multiple=3.0,
+        debt_multiple=0.0,
+        entry_leverage_pct=0.0,
+        revenue_growth=[0.30] * 5,
+        ebitda_margin=[-0.20, -0.18, -0.16, -0.14, -0.12],  # never positive
+        capex_pct_revenue=0.04,
+        nwc_pct_revenue=0.02,
+        tax_rate=0.25,
+        interest_rate=0.08,
+        mandatory_repayment_pct=0.05,
+        exit_multiple=12.0,
+        holding_period=5,
+    )
+    result = run_lbo(-200.0 * M, 1000.0 * M, a)
+    assert result.exit.exit_ebitda < 0
+    assert result.exit.exit_ev is None
+    assert result.exit.exit_equity is None
+    assert result.exit.mom is None
+    assert result.exit.irr is None
+    assert any("does not reach positive EBITDA" in w for w in result.warnings)
+
+
+def test_min_equity_gate_suppresses_both_mom_and_irr() -> None:
+    """A sliver of sponsor equity (below 5% of entry EV) suppresses BOTH MoM and
+    IRR, closing the old asymmetry where IRR was reported unconditionally."""
+    a = LboAssumptions(
+        entry_multiple=8.0,
+        debt_multiple=7.9,  # equity = 0.1x EBITDA = 1.25% of entry EV
+        revenue_growth=[0.05] * 5,
+        ebitda_margin=[0.25] * 5,
+        capex_pct_revenue=0.05,
+        nwc_pct_revenue=0.02,
+        tax_rate=0.25,
+        interest_rate=0.08,
+        mandatory_repayment_pct=0.05,
+        exit_multiple=8.0,
+        holding_period=5,
+    )
+    result = run_lbo(250.0 * M, 1000.0 * M, a)
+    assert result.exit.mom is None
+    assert result.exit.irr is None
+    assert any("below 5% of entry EV" in w for w in result.warnings)
+
+
+def test_interest_never_negative_on_zero_debt(
+    revenue_basis_assumptions: LboAssumptions,
+) -> None:
+    """With no opening debt, interest is exactly zero every year (never a
+    phantom negative from a mis-signed balance)."""
+    result = run_lbo(-80.0 * M, 1000.0 * M, revenue_basis_assumptions)
+    assert all(y.interest == pytest.approx(0.0, abs=1e-6) for y in result.years)
+
+
+def test_revenue_basis_sensitivity_labels_and_ramp(
+    revenue_basis_assumptions: LboAssumptions,
+) -> None:
+    """The entry axis is labelled EV/Revenue, and the margin grid preserves the
+    loss-year ramp (no >=1% floor): a downward shift that pushes the terminal
+    margin non-positive yields a no-exit (None) cell rather than a floored,
+    inflated one."""
+    # Terminal margin of 2% so a -4pp shift crosses zero -> no EV/EBITDA exit.
+    a = revenue_basis_assumptions.model_copy(
+        update={"ebitda_margin": [-0.10, -0.06, -0.03, 0.00, 0.02]}
+    )
+    result = run_lbo(-80.0 * M, 1000.0 * M, a)
+    s = result.sensitivities
+    assert "EV/Revenue" in s.irr_entry_vs_exit.row_label
+    # Base exit multiple row (index 2), lowest margin shift (-4pp): terminal
+    # margin 2% - 4pp = -2% -> terminal EBITDA negative -> None (not floored).
+    assert s.mom_exit_vs_margin.values[2][0] is None
+    # The unshifted cell (index 2) reaches +2% terminal margin -> a real exit.
+    assert s.mom_exit_vs_margin.values[2][2] is not None
+
+
+def _negative_ebitda_bundle(base: CompanyDataBundle) -> CompanyDataBundle:
+    """TESTCO with its latest fiscal year forced to a negative EBITDA."""
+    financials = sorted(base.financials, key=lambda y: y.fiscal_year)
+    latest = financials[-1]
+    financials[-1] = latest.model_copy(update={"ebitda": -0.08 * latest.revenue})
+    return base.model_copy(update={"financials": financials})
+
+
+def test_derive_defaults_negative_ebitda_selects_revenue_basis(
+    testco_bundle: CompanyDataBundle,
+) -> None:
+    """A non-positive latest EBITDA auto-selects the revenue basis with a
+    margin ramp that reaches profitability and a positive entry EV."""
+    bundle = _negative_ebitda_bundle(testco_bundle)
+    assumptions, basis = derive_defaults(bundle)
+
+    assert assumptions.valuation_basis == "revenue"
+    assert assumptions.entry_multiple > 0  # EV/Revenue, never negative
+    assert assumptions.entry_leverage_pct == pytest.approx(0.0)
+    assert assumptions.debt_multiple == pytest.approx(0.0)
+    assert assumptions.ebitda_margin[0] < 0  # starts in the red
+    assert assumptions.ebitda_margin[-1] > 0  # ramps to profit
+    assert assumptions.exit_multiple > 0
+
+    # Every field still carries a basis note (both new fields included).
+    for field in LboAssumptions.model_fields:
+        assert field in basis and basis[field]
+
+    # The derived defaults feed the engine and produce a real, demonstrable case.
+    latest = sorted(bundle.financials, key=lambda y: y.fiscal_year)[-1]
+    result = run_lbo(latest.ebitda, latest.revenue, assumptions, ticker="NEGCO")
+    assert result.entry.entry_ev > 0
+    assert result.exit.exit_ebitda > 0
+    assert result.exit.mom is not None
+
+
 def test_derive_defaults_testco(testco_bundle: CompanyDataBundle) -> None:
     """TESTCO defaults per §8: EV/EBITDA 6.6x -> entry 6.5x, etc."""
     assumptions, basis = derive_defaults(testco_bundle)

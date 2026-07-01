@@ -1,11 +1,24 @@
 """LBO model schemas (spec §8, §12). All rates are decimals (0.05 = 5%)."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
 class LboAssumptions(BaseModel):
-    entry_multiple: float = Field(gt=0)  # EV / entry EBITDA
-    debt_multiple: float = Field(ge=0)  # opening debt / entry EBITDA (< entry_multiple)
+    # Valuation basis. "ebitda" (default): entry and exit EV are EBITDA
+    # multiples and opening debt is turns of EBITDA. "revenue": entry and exit
+    # EV are EV/Revenue multiples and opening debt is a fraction of entry EV
+    # (loan-to-value). The revenue basis is how a negative- or low-EBITDA
+    # high-growth company is modeled: EBITDA cannot be levered or multiplied, so
+    # value rests on revenue and on the projected margin ramp to profitability.
+    valuation_basis: Literal["ebitda", "revenue"] = "ebitda"
+    entry_multiple: float = Field(gt=0)  # EV / entry EBITDA, or EV / revenue (revenue basis)
+    debt_multiple: float = Field(ge=0)  # opening debt / entry EBITDA (ebitda basis; < entry_multiple)
+    # Opening debt as a fraction of entry EV (loan-to-value). Used only on the
+    # revenue basis, where non-positive EBITDA cannot be levered. Capped well
+    # below 1 so sponsor equity is never near zero (which would explode IRR).
+    entry_leverage_pct: float = Field(default=0.0, ge=0.0, le=0.7)
     revenue_growth: list[float]  # length == holding_period; each entry > -100%
     ebitda_margin: list[float]  # length == holding_period
     capex_pct_revenue: float = Field(ge=0)
@@ -28,7 +41,11 @@ class LboAssumptions(BaseModel):
                 f"ebitda_margin must have exactly {self.holding_period} entries "
                 f"(one per holding-period year), got {len(self.ebitda_margin)}"
             )
-        if not self.debt_multiple < self.entry_multiple:
+        # The debt-turns-of-EBITDA constraint only applies on the EBITDA basis.
+        # On the revenue basis opening debt is a loan-to-value fraction of entry
+        # EV (entry_leverage_pct), so debt_multiple is unused and need not sit
+        # below the EV/Revenue entry_multiple.
+        if self.valuation_basis == "ebitda" and not self.debt_multiple < self.entry_multiple:
             raise ValueError(
                 "debt_multiple must be strictly less than entry_multiple "
                 f"({self.debt_multiple} >= {self.entry_multiple})"
@@ -63,10 +80,13 @@ class LboYear(BaseModel):
 
 class LboExit(BaseModel):
     exit_ebitda: float
-    exit_ev: float
+    # exit_ev and exit_equity are None when the company never reaches positive
+    # EBITDA over the hold: an EV/EBITDA exit is meaningless on a loss, so the
+    # model refuses to fabricate one and returns null returns instead.
+    exit_ev: float | None = None
     ending_debt: float
     ending_cash: float
-    exit_equity: float
+    exit_equity: float | None = None
     mom: float | None = None
     irr: float | None = None
 

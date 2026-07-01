@@ -51,8 +51,18 @@ export default function AssumptionsPanel({
     patch({ ebitda_margin: series });
   }
 
+  const revenueBasis = values.valuation_basis === "revenue";
+
   return (
     <div>
+      {revenueBasis && (
+        <div className="mb-3 rounded-lg border border-line bg-surface-sunken px-3.5 py-2.5 text-xs leading-relaxed text-ink-secondary">
+          Priced on <span className="font-medium text-ink">EV/Revenue</span>{" "}
+          because this company is not yet EBITDA-profitable. The exit prices on
+          EV/EBITDA once the margin turns positive, so value is predicated on the
+          projected ramp to profitability.
+        </div>
+      )}
       <Card>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Assumptions</h2>
@@ -67,21 +77,33 @@ export default function AssumptionsPanel({
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <AssumptionField
-            label="Entry multiple"
+            label={revenueBasis ? "Entry EV/Revenue" : "Entry multiple"}
             value={values.entry_multiple}
             unit="x"
             step={0.5}
             min={0}
             onChange={(v) => patch({ entry_multiple: v })}
           />
-          <AssumptionField
-            label="Debt multiple"
-            value={values.debt_multiple}
-            unit="x"
-            step={0.5}
-            min={0}
-            onChange={(v) => patch({ debt_multiple: v })}
-          />
+          {revenueBasis ? (
+            <AssumptionField
+              label="Leverage (% of EV)"
+              value={values.entry_leverage_pct}
+              unit="%"
+              step={5}
+              min={0}
+              max={70}
+              onChange={(v) => patch({ entry_leverage_pct: v })}
+            />
+          ) : (
+            <AssumptionField
+              label="Debt multiple"
+              value={values.debt_multiple}
+              unit="x"
+              step={0.5}
+              min={0}
+              onChange={(v) => patch({ debt_multiple: v })}
+            />
+          )}
           <AssumptionField
             label="Capex (% of revenue)"
             value={values.capex_pct_revenue}

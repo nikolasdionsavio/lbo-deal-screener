@@ -105,6 +105,15 @@ export default function ValueCreationBridge({
   const chart = useChartTheme();
   const { entry, exit, assumptions } = lbo;
 
+  // The waterfall decomposes value on a single EV/EBITDA basis at both ends.
+  // On the revenue basis the entry has no EBITDA multiple (entry EBITDA is
+  // negative), so the decomposition is meaningless — suppress it rather than
+  // show a bridge that does not reconcile. The sensitivity range carries the
+  // value story for these deals instead.
+  if (assumptions.valuation_basis === "revenue") {
+    return null;
+  }
+
   const entryEquity = entry.sponsor_equity;
   const entryEbitda = entry.entry_ebitda;
   const openingDebt = entry.opening_debt;

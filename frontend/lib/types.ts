@@ -385,8 +385,15 @@ export interface ValuationResponse {
 // ---------------------------------------------------------------------------
 
 export interface LboAssumptions {
+  // "ebitda" prices entry/exit on EV/EBITDA; "revenue" prices entry on
+  // EV/Revenue for a company whose latest EBITDA is non-positive (exit still
+  // prices on EV/EBITDA once the projected margin turns positive).
+  valuation_basis: "ebitda" | "revenue";
   entry_multiple: number;
   debt_multiple: number;
+  // Opening debt as a fraction of entry EV (loan-to-value); used on the
+  // revenue basis instead of the debt multiple.
+  entry_leverage_pct: number;
   revenue_growth: number[];
   ebitda_margin: number[];
   capex_pct_revenue: number;

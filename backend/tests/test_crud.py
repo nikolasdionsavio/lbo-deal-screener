@@ -29,8 +29,10 @@ from app.schemas.company import CompanyDataBundle
 SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample"
 
 ASSUMPTIONS_PAYLOAD: dict[str, Any] = {
+    "valuation_basis": "ebitda",
     "entry_multiple": 8.0,
     "debt_multiple": 4.0,
+    "entry_leverage_pct": 0.0,
     "revenue_growth": [0.05, 0.05, 0.05, 0.05, 0.05],
     "ebitda_margin": [0.25, 0.25, 0.25, 0.25, 0.25],
     "capex_pct_revenue": 0.05,

@@ -235,21 +235,41 @@ def _lbo_case_summary(lbo: LboResponse | None, currency: str | None) -> str:
     a = lbo.assumptions
     e = lbo.entry
     x = lbo.exit
-    lines = [
-        (
+    revenue_basis = a.valuation_basis == "revenue"
+    if revenue_basis:
+        # Entry prices on EV/Revenue because EBITDA is non-positive; debt is a
+        # loan-to-value fraction of EV rather than turns of EBITDA.
+        debt_desc = f"{fmt_percent(a.entry_leverage_pct)} loan-to-value"
+        entry_line = (
+            f"Entry at {fmt_multiple(a.entry_multiple)} EV/Revenue implies an "
+            f"enterprise value of {fmt_currency(e.entry_ev, currency)}, funded with "
+            f"{fmt_currency(e.opening_debt, currency)} of debt ({debt_desc}) and "
+            f"{fmt_currency(e.sponsor_equity, currency)} of sponsor equity "
+            f"({fmt_percent(e.equity_pct)} of the structure). EBITDA is "
+            "non-positive, so value rests on the projected margin ramp."
+        )
+    else:
+        entry_line = (
             f"Entry at {fmt_multiple(a.entry_multiple)} EV/EBITDA implies an "
             f"enterprise value of {fmt_currency(e.entry_ev, currency)}, funded with "
             f"{fmt_currency(e.opening_debt, currency)} of debt "
             f"({fmt_multiple(a.debt_multiple)} EBITDA) and "
             f"{fmt_currency(e.sponsor_equity, currency)} of sponsor equity "
             f"({fmt_percent(e.equity_pct)} of the structure)."
-        ),
-        (
+        )
+    if x.exit_ev is None or x.exit_equity is None:
+        exit_line = (
+            f"The company does not reach positive EBITDA by year {a.holding_period}, "
+            "so no EV/EBITDA exit is modeled and returns are not demonstrable on "
+            "this basis."
+        )
+    else:
+        exit_line = (
             f"Exit in year {a.holding_period} at {fmt_multiple(a.exit_multiple)} "
             f"EV/EBITDA on exit EBITDA of {fmt_currency(x.exit_ebitda, currency)} "
             f"implies exit equity of {fmt_currency(x.exit_equity, currency)}."
-        ),
-    ]
+        )
+    lines = [entry_line, exit_line]
     returns: list[str] = []
     if x.mom is not None:
         returns.append(f"{fmt_multiple(x.mom)} money-on-money")

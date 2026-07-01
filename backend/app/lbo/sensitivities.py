@@ -43,6 +43,10 @@ def compute_sensitivities(
     assumptions: LboAssumptions,
 ) -> LboSensitivities:
     a = assumptions
+    revenue_basis = a.valuation_basis == "revenue"
+    # The entry axis is EV/Revenue on the revenue basis; the exit axis is always
+    # EV/EBITDA (the exit prices on EBITDA once the company is profitable).
+    entry_denominator = "EV/Revenue" if revenue_basis else "EV/EBITDA"
     exit_rows = [a.exit_multiple + d for d in _MULTIPLE_OFFSETS]
     entry_rows = [a.entry_multiple + d for d in _MULTIPLE_OFFSETS]
 
@@ -88,25 +92,27 @@ def compute_sensitivities(
             row.append(_exit_irr(entry_ebitda, entry_revenue, cell))
         entry_exit_values.append(row)
     irr_entry_vs_exit = SensitivityGrid(
-        row_label="Entry multiple (EV/EBITDA)",
+        row_label=f"Entry multiple ({entry_denominator})",
         col_label="Exit multiple (EV/EBITDA)",
         rows=entry_rows,
         cols=exit_rows,
         values=entry_exit_values,
     )
 
-    # 3. MoM: exit multiple x uniform EBITDA-margin shift (clamped >= 1%).
+    # 3. MoM: exit multiple x uniform EBITDA-margin shift. On the revenue basis
+    # early margins are negative by design, so the >=1% floor is dropped there —
+    # flooring would rewrite the loss-year ramp and silently inflate returns. A
+    # cell whose terminal margin stays non-positive returns None (no exit).
     margin_values: list[list[float | None]] = []
     for exit_m in exit_rows:
         row = []
         for shift in _PP_SHIFTS:
+            shifted = [
+                (m + shift) if revenue_basis else max(_MIN_MARGIN, m + shift)
+                for m in a.ebitda_margin
+            ]
             cell = a.model_copy(
-                update={
-                    "exit_multiple": exit_m,
-                    "ebitda_margin": [
-                        max(_MIN_MARGIN, m + shift) for m in a.ebitda_margin
-                    ],
-                }
+                update={"exit_multiple": exit_m, "ebitda_margin": shifted}
             )
             row.append(_exit_mom(entry_ebitda, entry_revenue, cell))
         margin_values.append(row)

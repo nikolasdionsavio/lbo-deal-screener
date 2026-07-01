@@ -227,11 +227,19 @@ export default function LboPage() {
               <section>
                 <SectionHeader
                   title="Entry"
-                  subtitle={`Entry at ${fmtMultiple(
-                    lbo.assumptions.entry_multiple,
-                  )} EV/EBITDA with ${fmtMultiple(
-                    lbo.assumptions.debt_multiple,
-                  )} of opening debt`}
+                  subtitle={
+                    lbo.assumptions.valuation_basis === "revenue"
+                      ? `Entry at ${fmtMultiple(
+                          lbo.assumptions.entry_multiple,
+                        )} EV/Revenue with ${fmtPercent(
+                          lbo.assumptions.entry_leverage_pct,
+                        )} loan-to-value debt`
+                      : `Entry at ${fmtMultiple(
+                          lbo.assumptions.entry_multiple,
+                        )} EV/EBITDA with ${fmtMultiple(
+                          lbo.assumptions.debt_multiple,
+                        )} of opening debt`
+                  }
                 />
                 <Card>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -359,7 +367,9 @@ export default function LboPage() {
                   </Card>
                   <Card>
                     <h3 className="mb-3 text-sm font-semibold text-ink">
-                      IRR: entry multiple vs exit multiple
+                      {lbo.assumptions.valuation_basis === "revenue"
+                        ? "IRR: entry EV/Revenue vs exit EV/EBITDA"
+                        : "IRR: entry multiple vs exit multiple"}
                     </h3>
                     <SensitivityTable
                       grid={lbo.sensitivities.irr_entry_vs_exit}
