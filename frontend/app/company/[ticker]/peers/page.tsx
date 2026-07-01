@@ -72,13 +72,18 @@ export default function PeersPage() {
           title="Peer comparables"
           subtitle={`Peer source: ${data.peer_source} · Data as of ${fmtDate(data.as_of)}`}
         />
-        <WarningList warnings={data.warnings} className="mb-4" />
         {hasPeers ? (
-          <PeerStatCards stats={data.stats} />
+          <>
+            <WarningList warnings={data.warnings} className="mb-4" />
+            <PeerStatCards stats={data.stats} />
+          </>
         ) : (
           <Card>
-            <p className="text-sm text-ink-muted">
-              No peers are available for {ticker}.
+            <p className="text-sm text-ink-secondary">
+              No comparable public peers were found for {ticker}.
+            </p>
+            <p className="mt-1 text-sm text-ink-muted">
+              This is common for unique businesses or thinly covered listings.
             </p>
           </Card>
         )}
