@@ -19,6 +19,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import Logo from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { APP_VERSION } from "@/lib/version";
 
 // Inline 16px icons, 1.5px stroke (DESIGN.md Iconography). All inherit
 // currentColor from the nav item text.
@@ -176,6 +177,33 @@ function MailIcon({ className }: IconProps) {
   );
 }
 
+function PrinterIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M4.5 6V2.5h7V6" />
+      <rect x="2.5" y="6" width="11" height="5" rx="1" />
+      <path d="M4.5 9.5h7v4h-7z" />
+    </svg>
+  );
+}
+
+function CompassIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <circle cx="8" cy="8" r="6.25" />
+      <path d="m10.6 5.4-1.3 3.9-3.9 1.3 1.3-3.9z" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M8 1.75 9.35 6.65 14.25 8 9.35 9.35 8 14.25 6.65 9.35 1.75 8 6.65 6.65Z" />
+    </svg>
+  );
+}
+
 function SunIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -209,10 +237,14 @@ function ChevronRightIcon({ className }: IconProps) {
   );
 }
 
+// Company-scoped pages. `slug` builds the default /company/{ticker}/{slug}
+// href; an optional `build` overrides it for pages that live outside that tree
+// (the IC one-pager renders chrome-free at /onepager/{ticker}).
 const COMPANY_PAGES: {
   slug: string;
   label: string;
   Icon: ComponentType<IconProps>;
+  build?: (ticker: string) => string;
 }[] = [
   { slug: "dashboard", label: "Dashboard", Icon: GridIcon },
   { slug: "kpis", label: "KPIs", Icon: PercentIcon },
@@ -223,7 +255,21 @@ const COMPANY_PAGES: {
   { slug: "score", label: "Deal Score", Icon: GaugeIcon },
   { slug: "memo", label: "Memo", Icon: DocumentIcon },
   { slug: "news", label: "News", Icon: NewspaperIcon },
+  {
+    slug: "onepager",
+    label: "IC One-Pager",
+    Icon: PrinterIcon,
+    build: (ticker) => `/onepager/${encodeURIComponent(ticker)}`,
+  },
 ];
+
+const companyHref = (
+  page: (typeof COMPANY_PAGES)[number],
+  ticker: string,
+): string =>
+  page.build
+    ? page.build(ticker)
+    : `/company/${encodeURIComponent(ticker)}/${page.slug}`;
 
 // App-level links (not company-scoped): always shown, regardless of whether a
 // ticker is selected.
@@ -232,6 +278,8 @@ const APP_PAGES: {
   label: string;
   Icon: ComponentType<IconProps>;
 }[] = [
+  { href: "/whats-new", label: "What's New", Icon: SparkleIcon },
+  { href: "/methodology", label: "Methodology", Icon: CompassIcon },
   { href: "/how-to-use", label: "How to use", Icon: GuideIcon },
   { href: "/about", label: "About", Icon: InfoIcon },
   { href: "/contact", label: "Contact", Icon: MailIcon },
@@ -428,7 +476,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
               }`}
             >
               {COMPANY_PAGES.map((page) => {
-                const href = `/company/${encodeURIComponent(ticker)}/${page.slug}`;
+                const href = companyHref(page, ticker);
                 return (
                   <li key={page.slug}>
                     <Link
@@ -571,6 +619,15 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
               Log in
             </Link>
           </div>
+        )}
+        {!collapsed && (
+          <Link
+            href="/whats-new"
+            title="What's new"
+            className="mt-3 block px-3 text-[11px] text-ink-muted transition-colors duration-150 hover:text-ink"
+          >
+            v{APP_VERSION} · What&apos;s new
+          </Link>
         )}
       </div>
     </aside>
