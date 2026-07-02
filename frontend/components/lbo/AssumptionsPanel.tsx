@@ -140,6 +140,14 @@ export default function AssumptionsPanel({
             onChange={(v) => patch({ mandatory_repayment_pct: v })}
           />
           <AssumptionField
+            label="Transaction fees (% of EV)"
+            value={values.transaction_fee_pct}
+            unit="%"
+            step={0.5}
+            min={0}
+            onChange={(v) => patch({ transaction_fee_pct: v })}
+          />
+          <AssumptionField
             label="Exit multiple"
             value={values.exit_multiple}
             unit="x"

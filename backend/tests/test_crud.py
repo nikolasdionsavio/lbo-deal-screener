@@ -41,6 +41,7 @@ ASSUMPTIONS_PAYLOAD: dict[str, Any] = {
     "interest_rate": 0.08,
     "mandatory_repayment_pct": 0.05,
     "exit_multiple": 8.0,
+    "transaction_fee_pct": 0.02,
     "holding_period": 5,
 }
 

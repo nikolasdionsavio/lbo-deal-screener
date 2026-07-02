@@ -27,6 +27,10 @@ class LboAssumptions(BaseModel):
     interest_rate: float = Field(ge=0)  # cash interest on beginning-of-year debt
     mandatory_repayment_pct: float = Field(ge=0)  # % of ORIGINAL opening debt per year
     exit_multiple: float = Field(gt=0)
+    # Transaction fees (advisory, financing, legal) as a % of purchase EV. Funded
+    # as a Use, so sponsor equity is the plug that grows to cover them — this is
+    # what makes the Sources & Uses balance the way a real LBO does.
+    transaction_fee_pct: float = Field(default=0.02, ge=0.0, le=0.1)
     holding_period: int = Field(default=5, ge=1, le=7)
 
     @model_validator(mode="after")
@@ -58,10 +62,15 @@ class LboAssumptions(BaseModel):
 class LboEntry(BaseModel):
     entry_ebitda: float
     entry_revenue: float
-    entry_ev: float
-    opening_debt: float
-    sponsor_equity: float
-    equity_pct: float
+    entry_ev: float  # purchase enterprise value (the first Use)
+    opening_debt: float  # new debt drawn at close (the first Source)
+    transaction_fees: float = 0.0  # advisory/financing/legal, funded as a Use
+    total_uses: float = 0.0  # entry_ev + transaction_fees
+    sponsor_equity: float  # the equity plug = total_uses - opening_debt
+    equity_pct: float  # sponsor equity as a % of total uses
+    # Opening net leverage in turns of EBITDA. None when EBITDA is non-positive
+    # (revenue basis), where leverage cannot be expressed in EBITDA turns.
+    opening_net_leverage: float | None = None
 
 
 class LboYear(BaseModel):
@@ -105,11 +114,59 @@ class LboSensitivities(BaseModel):
     mom_exit_vs_margin: SensitivityGrid
 
 
+class LboScenario(BaseModel):
+    """One underwriting case (base / strategic / downside).
+
+    A sponsor never underwrites a point estimate: they bracket the exit with a
+    base case, an upside (a strategic buyer paying a control/synergy premium)
+    and a downside (a downturn with slower growth and multiple compression).
+    Each case is a transparent transformation of the base assumptions.
+    """
+
+    key: Literal["downside", "base", "strategic"]
+    label: str
+    note: str
+    exit_multiple: float
+    irr: float | None = None
+    mom: float | None = None
+    exit_equity: float | None = None
+
+
+class CovenantLimits(BaseModel):
+    """Maintenance-covenant thresholds a lender would set on the debt."""
+
+    max_net_debt_to_ebitda: float = 6.0
+    min_interest_coverage: float = 2.0  # EBITDA / cash interest
+    min_fcf_dscr: float = 1.0  # (FCF + interest) / (interest + mandatory principal)
+
+
+class CovenantYear(BaseModel):
+    year: int
+    net_debt_to_ebitda: float | None = None
+    interest_coverage: float | None = None
+    fcf_dscr: float | None = None
+    breached: bool = False
+
+
+class LboCovenants(BaseModel):
+    """Per-year covenant test with headroom and an approximate cushion to breach."""
+
+    limits: CovenantLimits
+    years: list[CovenantYear]
+    any_breach: bool = False
+    # Smallest EBITDA cushion to a leverage-covenant breach across the hold, as a
+    # fraction of that year's EBITDA. Approximate: it holds the debt path fixed
+    # (the cash sweep couples EBITDA to debt, so the exact figure is nonlinear).
+    min_ebitda_cushion_pct: float | None = None
+
+
 class LboResponse(BaseModel):
     ticker: str
     entry: LboEntry
     years: list[LboYear]
     exit: LboExit
+    scenarios: list[LboScenario] = Field(default_factory=list)
+    covenants: LboCovenants | None = None
     sensitivities: LboSensitivities
     assumptions: LboAssumptions  # echo of inputs
     warnings: list[str] = Field(default_factory=list)

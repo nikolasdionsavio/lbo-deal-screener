@@ -402,6 +402,7 @@ export interface LboAssumptions {
   interest_rate: number;
   mandatory_repayment_pct: number;
   exit_multiple: number;
+  transaction_fee_pct: number;
   holding_period: number;
 }
 
@@ -415,8 +416,11 @@ export interface LboEntry {
   entry_revenue: number | null;
   entry_ev: number | null;
   opening_debt: number | null;
+  transaction_fees: number | null;
+  total_uses: number | null;
   sponsor_equity: number | null;
   equity_pct: number | null;
+  opening_net_leverage: number | null;
 }
 
 export interface LboYear {
@@ -457,11 +461,44 @@ export interface LboSensitivities {
   mom_exit_vs_margin: SensitivityGrid;
 }
 
+export interface LboScenario {
+  key: "downside" | "base" | "strategic";
+  label: string;
+  note: string;
+  exit_multiple: number;
+  irr: number | null;
+  mom: number | null;
+  exit_equity: number | null;
+}
+
+export interface CovenantLimits {
+  max_net_debt_to_ebitda: number;
+  min_interest_coverage: number;
+  min_fcf_dscr: number;
+}
+
+export interface CovenantYear {
+  year: number;
+  net_debt_to_ebitda: number | null;
+  interest_coverage: number | null;
+  fcf_dscr: number | null;
+  breached: boolean;
+}
+
+export interface LboCovenants {
+  limits: CovenantLimits;
+  years: CovenantYear[];
+  any_breach: boolean;
+  min_ebitda_cushion_pct: number | null;
+}
+
 export interface LboResponse {
   ticker: string;
   entry: LboEntry;
   years: LboYear[];
   exit: LboExit;
+  scenarios: LboScenario[];
+  covenants: LboCovenants | null;
   sensitivities: LboSensitivities;
   assumptions: LboAssumptions;
   warnings: string[];

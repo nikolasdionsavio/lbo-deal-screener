@@ -242,20 +242,28 @@ def _lbo_case_summary(lbo: LboResponse | None, currency: str | None) -> str:
         debt_desc = f"{fmt_percent(a.entry_leverage_pct)} loan-to-value"
         entry_line = (
             f"Entry at {fmt_multiple(a.entry_multiple)} EV/Revenue implies an "
-            f"enterprise value of {fmt_currency(e.entry_ev, currency)}, funded with "
+            f"enterprise value of {fmt_currency(e.entry_ev, currency)}. Including "
+            f"{fmt_currency(e.transaction_fees, currency)} of transaction fees, "
+            f"total uses of {fmt_currency(e.total_uses, currency)} are funded with "
             f"{fmt_currency(e.opening_debt, currency)} of debt ({debt_desc}) and "
             f"{fmt_currency(e.sponsor_equity, currency)} of sponsor equity "
-            f"({fmt_percent(e.equity_pct)} of the structure). EBITDA is "
+            f"({fmt_percent(e.equity_pct)} of total uses). EBITDA is "
             "non-positive, so value rests on the projected margin ramp."
         )
     else:
+        lev_desc = (
+            f"{fmt_multiple(e.opening_net_leverage)} EBITDA"
+            if e.opening_net_leverage is not None
+            else f"{fmt_multiple(a.debt_multiple)} EBITDA"
+        )
         entry_line = (
             f"Entry at {fmt_multiple(a.entry_multiple)} EV/EBITDA implies an "
-            f"enterprise value of {fmt_currency(e.entry_ev, currency)}, funded with "
-            f"{fmt_currency(e.opening_debt, currency)} of debt "
-            f"({fmt_multiple(a.debt_multiple)} EBITDA) and "
+            f"enterprise value of {fmt_currency(e.entry_ev, currency)}. Including "
+            f"{fmt_currency(e.transaction_fees, currency)} of transaction fees, "
+            f"total uses of {fmt_currency(e.total_uses, currency)} are funded with "
+            f"{fmt_currency(e.opening_debt, currency)} of debt ({lev_desc}) and "
             f"{fmt_currency(e.sponsor_equity, currency)} of sponsor equity "
-            f"({fmt_percent(e.equity_pct)} of the structure)."
+            f"({fmt_percent(e.equity_pct)} of total uses)."
         )
     if x.exit_ev is None or x.exit_equity is None:
         exit_line = (

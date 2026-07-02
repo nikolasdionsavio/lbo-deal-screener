@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useCompany } from "@/components/company/CompanyContext";
 import AssumptionsPanel from "@/components/lbo/AssumptionsPanel";
+import CovenantPanel from "@/components/lbo/CovenantPanel";
 import DebtPaydownChart from "@/components/lbo/DebtPaydownChart";
 import ValueCreationBridge from "@/components/lbo/ValueCreationBridge";
 import SensitivityTable from "@/components/charts/SensitivityTable";
@@ -18,7 +20,13 @@ import { getLboDefaults, runLbo } from "@/lib/api";
 import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
 import { useCountUp } from "@/lib/useCountUp";
-import type { LboAssumptions, LboResponse, LboYear } from "@/lib/types";
+import type {
+  LboAssumptions,
+  LboEntry,
+  LboResponse,
+  LboScenario,
+  LboYear,
+} from "@/lib/types";
 
 /** MoM rendered as X.XXx per spec; fmtMultiple is one decimal, so not reused here. */
 function fmtMom(value: number | null): string {
@@ -120,6 +128,138 @@ function Figure({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** One Sources-or-Uses line; `strong` renders the ruled total. */
+function SuLine({
+  label,
+  value,
+  sub,
+  currency,
+  strong = false,
+}: {
+  label: string;
+  value: number | null;
+  sub?: string;
+  currency: string | null;
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-baseline justify-between gap-3 py-1 ${
+        strong
+          ? "mt-1 border-t border-line pt-1.5 font-semibold text-ink"
+          : "text-ink-secondary"
+      }`}
+    >
+      <span className="text-sm">
+        {label}
+        {sub ? <span className="ml-1.5 text-xs text-ink-muted">{sub}</span> : null}
+      </span>
+      <span className="text-sm tabular-nums">{fmtCurrency(value, currency)}</span>
+    </div>
+  );
+}
+
+/** Base / strategic / downside underwriting cases, worst-to-best. A sponsor
+ *  brackets the return rather than underwriting a single point estimate. */
+function ScenarioCards({ scenarios }: { scenarios: LboScenario[] }) {
+  if (scenarios.length === 0) return null;
+  return (
+    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      {scenarios.map((sc) => {
+        const isBase = sc.key === "base";
+        return (
+          <div
+            key={sc.key}
+            className={`rounded-lg border p-4 ${
+              isBase
+                ? "border-brand ring-1 ring-brand-soft"
+                : "border-line bg-surface"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
+                {sc.label}
+              </span>
+              <span className="text-xs tabular-nums text-ink-muted">
+                {fmtMultiple(sc.exit_multiple)} exit
+              </span>
+            </div>
+            <div className="mt-2 text-2xl font-semibold tabular-nums text-ink">
+              {fmtPercent(sc.irr)}
+            </div>
+            <div className="text-xs tabular-nums text-ink-muted">
+              IRR · {fmtMom(sc.mom)} MoM
+            </div>
+            <p className="mt-2 text-xs leading-snug text-ink-muted">{sc.note}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Sources & Uses — the first table in any real LBO. Uses (purchase EV + fees)
+ *  must balance Sources (new debt + the sponsor-equity plug). */
+function SourcesUses({
+  entry,
+  currency,
+}: {
+  entry: LboEntry;
+  currency: string | null;
+}) {
+  const lev = entry.opening_net_leverage;
+  return (
+    <div className="mt-5 grid gap-x-10 gap-y-3 border-t border-line pt-4 sm:grid-cols-2">
+      <div>
+        <div className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
+          Uses
+        </div>
+        <SuLine
+          label="Purchase enterprise value"
+          value={entry.entry_ev}
+          currency={currency}
+        />
+        <SuLine
+          label="Transaction fees"
+          value={entry.transaction_fees}
+          currency={currency}
+        />
+        <SuLine
+          label="Total uses"
+          value={entry.total_uses}
+          currency={currency}
+          strong
+        />
+      </div>
+      <div>
+        <div className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
+          Sources
+        </div>
+        <SuLine
+          label="New debt"
+          value={entry.opening_debt}
+          sub={lev != null ? `${lev.toFixed(1)}x EBITDA` : undefined}
+          currency={currency}
+        />
+        <SuLine
+          label="Sponsor equity"
+          value={entry.sponsor_equity}
+          sub={
+            entry.equity_pct != null ? fmtPercent(entry.equity_pct) : undefined
+          }
+          currency={currency}
+        />
+        <SuLine
+          label="Total sources"
+          value={entry.total_uses}
+          currency={currency}
+          strong
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function LboPage() {
   const { profile } = useCompany();
   const ticker = profile.ticker;
@@ -161,9 +301,17 @@ export default function LboPage() {
       title="LBO Model"
       subtitle="Simplified five-year model. Edits recompute everything, including sensitivities."
       actions={
-        recomputing ? (
-          <span className="text-xs text-ink-muted">Recomputing…</span>
-        ) : undefined
+        <div className="flex items-center gap-3">
+          {recomputing && (
+            <span className="text-xs text-ink-muted">Recomputing…</span>
+          )}
+          <Link
+            href={`/onepager/${ticker}`}
+            className="btn btn-secondary px-2.5 py-1 text-xs"
+          >
+            IC one-pager
+          </Link>
+        </div>
       }
     />
   );
@@ -242,24 +390,25 @@ export default function LboPage() {
                   }
                 />
                 <Card>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-4 sm:grid-cols-3">
                     <Figure
                       label="Entry EV"
                       value={fmtCurrency(lbo.entry.entry_ev, currency)}
-                    />
-                    <Figure
-                      label="Opening debt"
-                      value={fmtCurrency(lbo.entry.opening_debt, currency)}
                     />
                     <Figure
                       label="Sponsor equity"
                       value={fmtCurrency(lbo.entry.sponsor_equity, currency)}
                     />
                     <Figure
-                      label="Equity %"
-                      value={fmtPercent(lbo.entry.equity_pct)}
+                      label="Opening net leverage"
+                      value={
+                        lbo.entry.opening_net_leverage != null
+                          ? `${lbo.entry.opening_net_leverage.toFixed(1)}x`
+                          : "—"
+                      }
                     />
                   </div>
+                  <SourcesUses entry={lbo.entry} currency={currency} />
                   <p className="mt-4 border-t border-line pt-3 text-xs text-ink-muted">
                     Entry base ({entryBaseLabel}): EBITDA{" "}
                     {fmtCurrency(lbo.entry.entry_ebitda, currency)} on revenue{" "}
@@ -308,6 +457,19 @@ export default function LboPage() {
                     sub="Exit EV − ending debt + ending cash"
                   />
                 </div>
+
+                {lbo.scenarios.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-semibold text-ink">
+                      Underwriting cases
+                    </h3>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      The base case bracketed by a strategic-buyer upside and a
+                      downturn downside — a range, not a point estimate.
+                    </p>
+                    <ScenarioCards scenarios={lbo.scenarios} />
+                  </div>
+                )}
               </section>
 
               <section className="divider-dashed mt-8 pt-8">
@@ -338,6 +500,18 @@ export default function LboPage() {
                       years={lbo.years}
                       currency={currency}
                     />
+                  </Card>
+                </section>
+              )}
+
+              {lbo.covenants && lbo.covenants.years.length > 0 && (
+                <section className="divider-dashed mt-8 pt-8">
+                  <SectionHeader
+                    title="Covenant headroom"
+                    subtitle="The debt path tested against a standard maintenance package, year by year."
+                  />
+                  <Card>
+                    <CovenantPanel covenants={lbo.covenants} />
                   </Card>
                 </section>
               )}

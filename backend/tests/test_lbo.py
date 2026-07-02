@@ -40,8 +40,17 @@ def test_entry_capital_structure(hand_check_result: LboResponse) -> None:
     assert entry.entry_revenue == pytest.approx(1000.0 * M, rel=REL)
     assert entry.entry_ev == pytest.approx(2000.0 * M, rel=REL)
     assert entry.opening_debt == pytest.approx(1000.0 * M, rel=REL)
-    assert entry.sponsor_equity == pytest.approx(1000.0 * M, rel=REL)
-    assert entry.equity_pct == pytest.approx(0.5, rel=REL)
+    # Sources & Uses: 2% of the 2000m EV = 40m of fees, funded by equity.
+    assert entry.transaction_fees == pytest.approx(40.0 * M, rel=REL)
+    assert entry.total_uses == pytest.approx(2040.0 * M, rel=REL)
+    # Sponsor equity is the plug (total uses - debt), so it absorbs the fees.
+    assert entry.sponsor_equity == pytest.approx(1040.0 * M, rel=REL)
+    assert entry.equity_pct == pytest.approx(1040.0 / 2040.0, rel=REL)
+    # Sources balance Uses exactly.
+    assert entry.opening_debt + entry.sponsor_equity == pytest.approx(
+        entry.total_uses, rel=REL
+    )
+    assert entry.opening_net_leverage == pytest.approx(4.0, rel=REL)  # 1000m / 250m
 
 
 def test_year_one_hand_check(hand_check_result: LboResponse) -> None:
@@ -66,8 +75,10 @@ def test_full_run_against_independent_loop(
     """Cross-check every year of the engine against an independent loop."""
     a = hand_check_assumptions
     entry_ebitda = 250.0 * M
+    entry_ev = a.entry_multiple * entry_ebitda
     opening_debt = a.debt_multiple * entry_ebitda
-    sponsor_equity = a.entry_multiple * entry_ebitda - opening_debt
+    # Sponsor equity is the plug: total uses (EV + fees) less new debt.
+    sponsor_equity = entry_ev + a.transaction_fee_pct * entry_ev - opening_debt
 
     revenue = 1000.0 * M
     debt = opening_debt
@@ -125,6 +136,65 @@ def test_irr_mom_consistency(hand_check_result: LboResponse) -> None:
     assert exit_block.irr == pytest.approx(
         exit_block.mom ** (1.0 / 5.0) - 1.0, abs=1e-9
     )
+
+
+def test_scenarios_bracket_the_base_case(hand_check_result: LboResponse) -> None:
+    """Three underwriting cases: strategic > base > downside on IRR, and base
+    matches the headline exit exactly."""
+    s = {sc.key: sc for sc in hand_check_result.scenarios}
+    assert set(s) == {"downside", "base", "strategic"}
+    assert s["base"].irr == pytest.approx(hand_check_result.exit.irr, rel=REL)
+    assert s["base"].mom == pytest.approx(hand_check_result.exit.mom, rel=REL)
+    assert s["strategic"].exit_multiple == pytest.approx(
+        hand_check_result.assumptions.exit_multiple + 2.0, rel=REL
+    )
+    assert s["downside"].exit_multiple == pytest.approx(
+        hand_check_result.assumptions.exit_multiple - 2.0, rel=REL
+    )
+    # A higher exit multiple and faster growth strictly raise the return.
+    assert (
+        s["strategic"].irr is not None
+        and s["base"].irr is not None
+        and s["downside"].irr is not None
+    )
+    assert s["strategic"].irr > s["base"].irr > s["downside"].irr
+
+
+def test_covenants_no_breach_and_cushion(hand_check_result: LboResponse) -> None:
+    """The hand-check deal (3.4x opening leverage) clears every covenant with a
+    positive, sub-1.0 EBITDA cushion."""
+    cov = hand_check_result.covenants
+    assert cov is not None
+    assert len(cov.years) == 5
+    assert cov.any_breach is False
+    y1 = cov.years[0]
+    assert y1.net_debt_to_ebitda is not None and y1.net_debt_to_ebitda < 6.0
+    assert y1.interest_coverage is not None and y1.interest_coverage > 2.0
+    assert y1.fcf_dscr is not None and y1.fcf_dscr > 1.0
+    assert cov.min_ebitda_cushion_pct is not None
+    assert 0.0 < cov.min_ebitda_cushion_pct < 1.0
+
+
+def test_covenants_flag_breach_on_high_leverage() -> None:
+    """7x opening leverage + 20% interest breaches the leverage covenant in
+    year 1 (FCF is negative, so no paydown)."""
+    a = LboAssumptions(
+        entry_multiple=8.0,
+        debt_multiple=7.0,
+        revenue_growth=[0.05] * 5,
+        ebitda_margin=[0.25] * 5,
+        capex_pct_revenue=0.05,
+        nwc_pct_revenue=0.02,
+        tax_rate=0.25,
+        interest_rate=0.20,
+        mandatory_repayment_pct=0.05,
+        exit_multiple=8.0,
+        holding_period=5,
+    )
+    result = run_lbo(250.0 * M, 1000.0 * M, a)
+    assert result.covenants is not None
+    assert result.covenants.any_breach is True
+    assert result.covenants.years[0].breached is True
 
 
 def test_sensitivity_grids_shape_and_center(hand_check_result: LboResponse) -> None:
@@ -245,8 +315,11 @@ def test_revenue_basis_entry_prices_on_revenue(
     assert entry.entry_ebitda == pytest.approx(-80.0 * M, rel=REL)  # not floored
     assert entry.entry_ev == pytest.approx(3.0 * 1000.0 * M, rel=REL)
     assert entry.opening_debt == pytest.approx(0.0, abs=1e-3)
-    assert entry.sponsor_equity == pytest.approx(3.0 * 1000.0 * M, rel=REL)
+    # All-equity: sponsor equity = purchase EV + 2% fees, opening_net_leverage
+    # is None because EBITDA is negative (cannot be expressed in EBITDA turns).
+    assert entry.sponsor_equity == pytest.approx(1.02 * 3.0 * 1000.0 * M, rel=REL)
     assert entry.equity_pct == pytest.approx(1.0, rel=REL)
+    assert entry.opening_net_leverage is None
 
 
 def test_revenue_basis_reaches_profitable_exit(

@@ -72,15 +72,24 @@ def run_core(
                 "not positive); switch to the revenue basis to model this company."
             )
 
-    sponsor_equity = entry_ev - opening_debt
-    equity_pct = sponsor_equity / entry_ev if entry_ev != 0 else 0.0
+    # Sources & Uses. Uses = purchase EV + transaction fees; Sources = new debt
+    # + sponsor equity. Equity is the plug, so it absorbs the fees — exactly how
+    # the S&U balances in a real deal (fees drag the sponsor's return).
+    transaction_fees = a.transaction_fee_pct * entry_ev
+    total_uses = entry_ev + transaction_fees
+    sponsor_equity = total_uses - opening_debt
+    equity_pct = sponsor_equity / total_uses if total_uses != 0 else 0.0
+    opening_net_leverage = (opening_debt / entry_ebitda) if entry_ebitda > 0 else None
     entry = LboEntry(
         entry_ebitda=entry_ebitda,
         entry_revenue=entry_revenue,
         entry_ev=entry_ev,
         opening_debt=opening_debt,
+        transaction_fees=transaction_fees,
+        total_uses=total_uses,
         sponsor_equity=sponsor_equity,
         equity_pct=equity_pct,
+        opening_net_leverage=opening_net_leverage,
     )
 
     mandatory = a.mandatory_repayment_pct * opening_debt  # % of ORIGINAL opening debt
@@ -201,11 +210,18 @@ def run_lbo(
     `ticker` is optional so callers without a company context (tests) can omit
     it; the service layer passes the real ticker for the API response.
     """
-    # Local import: sensitivities reuses run_core, avoiding a module cycle.
+    # Local imports: all reuse run_core / its output, avoiding a module cycle.
+    from app.lbo.covenants import compute_covenants
+    from app.lbo.scenarios import compute_scenarios
     from app.lbo.sensitivities import compute_sensitivities
 
     entry, years, exit_block, warnings = run_core(
         entry_ebitda, entry_revenue, assumptions
+    )
+    scenarios = compute_scenarios(entry_ebitda, entry_revenue, assumptions)
+    covenants = compute_covenants(
+        years,
+        mandatory_principal=assumptions.mandatory_repayment_pct * entry.opening_debt,
     )
     sensitivities = compute_sensitivities(entry_ebitda, entry_revenue, assumptions)
     return LboResponse(
@@ -213,6 +229,8 @@ def run_lbo(
         entry=entry,
         years=years,
         exit=exit_block,
+        scenarios=scenarios,
+        covenants=covenants,
         sensitivities=sensitivities,
         assumptions=assumptions,
         warnings=warnings,

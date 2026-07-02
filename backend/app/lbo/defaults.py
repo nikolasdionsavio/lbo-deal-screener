@@ -184,6 +184,10 @@ def derive_defaults(bundle: CompanyDataBundle) -> tuple[LboAssumptions, dict[str
     basis["mandatory_repayment_pct"] = (
         "Standard assumption of 5% of original opening debt per year"
     )
+    basis["transaction_fee_pct"] = (
+        "Standard assumption of 2% of enterprise value (advisory, financing and "
+        "legal fees), funded by sponsor equity"
+    )
     basis["holding_period"] = "Standard 5-year holding period"
 
     cagr = _revenue_cagr(financials)

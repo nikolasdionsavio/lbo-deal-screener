@@ -235,8 +235,11 @@ def test_lbo_post_hand_check_and_shape(api: TestClient) -> None:
     assert entry["entry_revenue"] == pytest.approx(1000e6, rel=REL_TOL)
     assert entry["entry_ev"] == pytest.approx(2000e6, rel=REL_TOL)
     assert entry["opening_debt"] == pytest.approx(1000e6, rel=REL_TOL)
-    assert entry["sponsor_equity"] == pytest.approx(1000e6, rel=REL_TOL)
-    assert entry["equity_pct"] == pytest.approx(0.5, rel=REL_TOL)
+    # Sponsor equity is the plug and absorbs 2% (40m) of transaction fees.
+    assert entry["transaction_fees"] == pytest.approx(40e6, rel=REL_TOL)
+    assert entry["total_uses"] == pytest.approx(2040e6, rel=REL_TOL)
+    assert entry["sponsor_equity"] == pytest.approx(1040e6, rel=REL_TOL)
+    assert entry["equity_pct"] == pytest.approx(1040.0 / 2040.0, rel=REL_TOL)
 
     # §15 year-1 hand-check.
     assert len(body["years"]) == 5

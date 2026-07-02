@@ -114,7 +114,8 @@ export default function ValueCreationBridge({
     return null;
   }
 
-  const entryEquity = entry.sponsor_equity;
+  const entryEquity = entry.sponsor_equity; // cash invested, incl. fees
+  const fees = entry.transaction_fees;
   const entryEbitda = entry.entry_ebitda;
   const openingDebt = entry.opening_debt;
   const exitEquity = exit.exit_equity;
@@ -125,6 +126,7 @@ export default function ValueCreationBridge({
   // Hidden when any decomposition input is missing.
   if (
     entryEquity === null ||
+    fees === null ||
     entryEbitda === null ||
     openingDebt === null ||
     exitEquity === null ||
@@ -135,28 +137,32 @@ export default function ValueCreationBridge({
     return null;
   }
 
+  // Sponsor equity includes transaction fees; strip them first to recover the
+  // business entry equity (EV − debt) that the three value levers act on.
+  const businessEntryEquity = entryEquity - fees;
   const ebitdaGrowthEffect =
     assumptions.entry_multiple * (exitEbitda - entryEbitda);
   const multipleEffect =
     (assumptions.exit_multiple - assumptions.entry_multiple) * exitEbitda;
   const deleveraging = openingDebt - endingDebt + endingCash;
 
-  // The decomposition is algebraically exact: entry equity plus the three
-  // effects must reproduce exit equity. If it does not (within a tiny
+  // The decomposition is algebraically exact: sponsor equity, less fees, plus
+  // the three effects must reproduce exit equity. If it does not (within a tiny
   // epsilon), render nothing rather than a wrong chart.
   const reconstructed =
-    entryEquity + ebitdaGrowthEffect + multipleEffect + deleveraging;
+    businessEntryEquity + ebitdaGrowthEffect + multipleEffect + deleveraging;
   const epsilon = 1e-6 * Math.max(1, Math.abs(exitEquity));
   if (!Number.isFinite(reconstructed) || Math.abs(reconstructed - exitEquity) > epsilon) {
     return null;
   }
 
-  const afterGrowth = entryEquity + ebitdaGrowthEffect;
+  const afterGrowth = businessEntryEquity + ebitdaGrowthEffect;
   const afterMultiple = afterGrowth + multipleEffect;
 
   const rows: BridgeRow[] = [
-    totalRow("Entry equity", entryEquity),
-    stepRow("EBITDA growth", entryEquity, ebitdaGrowthEffect),
+    totalRow("Sponsor equity", entryEquity),
+    stepRow("Transaction fees", entryEquity, -fees),
+    stepRow("EBITDA growth", businessEntryEquity, ebitdaGrowthEffect),
     stepRow("Multiple effect", afterGrowth, multipleEffect),
     stepRow("Deleveraging", afterMultiple, deleveraging),
     totalRow("Exit equity", exitEquity),
@@ -218,9 +224,9 @@ export default function ValueCreationBridge({
           </ResponsiveContainer>
         </div>
         <p className="mt-3 border-t border-line pt-3 text-xs text-ink-muted">
-          Exit equity = entry equity + entry multiple × (exit EBITDA − entry
-          EBITDA) + (exit multiple − entry multiple) × exit EBITDA + (debt
-          repaid + ending cash).
+          Exit equity = sponsor equity − transaction fees + entry multiple ×
+          (exit EBITDA − entry EBITDA) + (exit multiple − entry multiple) × exit
+          EBITDA + (debt repaid + ending cash).
         </p>
       </Card>
     </section>

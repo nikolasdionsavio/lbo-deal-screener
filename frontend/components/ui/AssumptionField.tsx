@@ -17,8 +17,10 @@ interface AssumptionFieldProps {
 
 function toDisplay(value: number, unit: string): number {
   if (unit === "%") {
-    // Trim float noise from the decimal-to-percent conversion.
-    return Number((value * 100).toPrecision(12));
+    // Trim float noise AND long derived decimals (e.g. an averaged capex ratio
+    // of 2.17727276313%) to a clean, readable figure. 4 dp is finer than any
+    // assumption needs and preserves the underlying value until the user edits.
+    return Number((value * 100).toFixed(4));
   }
   return value;
 }
