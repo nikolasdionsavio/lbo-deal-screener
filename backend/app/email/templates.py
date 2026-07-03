@@ -173,58 +173,133 @@ def welcome_email(to: str) -> tuple[str, str, str]:
 
 
 def update_announcement_email(to: str) -> tuple[str, str, str]:
-    """Product-update announcement (markets tools, analyst data, risk page)."""
-    subject = (
-        "New in Investment Intelligence: markets tools, analyst data and a risk assessment"
-    )
-    paragraphs = [
-        "A few substantial additions to Investment Intelligence since you last "
-        "stopped by.",
-        "<strong>Markets tools.</strong> A new Markets menu with a stock "
-        "screener, a markets overview, a sector heatmap, an economic calendar "
-        "and per-company technicals.",
-        "<strong>Analyst, ownership and dividend data.</strong> Three new "
-        "company pages covering sell-side consensus ratings, institutional and "
-        "insider ownership, and dividend yield, rate and payout.",
-        "<strong>Risk assessment.</strong> A new Risks page pairing a "
-        "financial-risk profile (bankruptcy-distress and financial-strength "
-        "scores, plus leverage, liquidity and earnings-quality flags) with the "
-        "company's own risk factors, pulled straight from its latest 10-K.",
-        "Everything is built on primary-source filings and free market data, "
-        "and every figure traces back to where it came from.",
-    ]
-    html = _layout(
-        preheader="New markets tools, analyst data and a full risk assessment.",
-        heading="New in Investment Intelligence",
-        paragraphs=paragraphs,
-        button_label="See what's new",
-        button_url=f"{_SITE_URL}/whats-new",
-        note=(
-            "You're receiving this because you have an Investment Intelligence "
-            "account. To stop product-update emails, reply with 'unsubscribe' "
-            "and I'll remove you."
+    """Product-update announcement: an editorial, screenshot-led layout (markets
+    tools, analyst/ownership/dividend data, risk assessment). Real product
+    screens are hosted under {site}/email/*.png."""
+    subject = "New in Investment Intelligence: markets, analysts and a risk read"
+    img = f"{_SITE_URL}/email"
+    features = [
+        (
+            "Markets tools",
+            "A stock screener, a markets overview, a sector heatmap, an economic "
+            "calendar and per-company technicals, one hover away.",
+            f"{img}/heatmap.png",
+            "The sector heatmap: the S&amp;P 500 sized by market cap and coloured by change.",
         ),
-        signoff=True,
+        (
+            "Analyst, ownership and dividend data",
+            "Sell-side consensus with price targets, institutional and insider "
+            "ownership, and the full dividend picture, on their own pages.",
+            f"{img}/analysts.png",
+            "The analyst page: consensus rating, price-target range and forward estimates.",
+        ),
+        (
+            "A full risk assessment",
+            "Distress and financial-strength scores, red-amber-green credit "
+            "metrics, and the company's own risk factors pulled from its 10-K.",
+            f"{img}/risks.png",
+            "The risk page: a financial-risk band with the models behind it.",
+        ),
+    ]
+    feature_rows = "".join(
+        f"""
+        <tr>
+          <td style="padding:30px 36px 0;font-family:Arial,Helvetica,sans-serif;">
+            <h2 style="margin:0 0 5px;font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:{_INK};line-height:1.3;">{title}</h2>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:{_SECONDARY};">{desc}</p>
+            <img src="{src}" width="528" alt="{alt}" style="display:block;width:100%;max-width:528px;height:auto;border:1px solid {_BORDER};border-radius:10px;">
+            <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:{_MUTED};">{alt}</p>
+          </td>
+        </tr>"""
+        for (title, desc, src, alt) in features
     )
+    html = f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{_BRAND}</title>
+</head>
+<body style="margin:0;padding:0;background:{_BG};">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0;">Three substantial additions: markets tools, analyst data and a risk read.</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{_BG};">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid {_BORDER};border-radius:14px;overflow:hidden;">
+        <tr>
+          <td style="padding:26px 36px 0;font-family:Arial,Helvetica,sans-serif;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding-right:11px;vertical-align:middle;">
+                  <img src="{_LOGO_URL}" width="40" height="40" alt="{_BRAND}" style="display:block;border-radius:9px;">
+                </td>
+                <td style="vertical-align:middle;">
+                  <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:600;color:{_INK};line-height:1.2;">{_BRAND}</div>
+                  <div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:{_MUTED};line-height:1.4;">Product update</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:22px 36px 0;font-family:Arial,Helvetica,sans-serif;">
+            <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:{_INK};line-height:1.3;">What's new</h1>
+            <p style="margin:0;font-size:15px;line-height:1.65;color:{_SECONDARY};">Three substantial additions since you last stopped by. A quick look at each, with real screens from the app.</p>
+          </td>
+        </tr>
+        {feature_rows}
+        <tr>
+          <td style="padding:30px 36px 6px;font-family:Arial,Helvetica,sans-serif;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="border-radius:8px;background:{_NAVY};">
+                <a href="{_SITE_URL}/whats-new" style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Explore the update&nbsp;&rarr;</a>
+              </td></tr>
+            </table>
+            <p style="margin:22px 0 0;font-size:15px;color:{_SECONDARY};">Thanks for using it,</p>
+            <p style="margin:2px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:18px;color:{_INK};">Nikolas</p>
+            <p style="margin:2px 0 0;font-size:13px;color:{_MUTED};">Nikolas Dion Savio, Investment Intelligence</p>
+          </td>
+        </tr>
+        <tr><td style="padding:24px 36px 0;"><div style="border-top:1px solid {_BORDER};font-size:0;line-height:0;">&nbsp;</div></td></tr>
+        <tr>
+          <td style="padding:16px 36px 28px;font-family:Arial,Helvetica,sans-serif;">
+            <p style="margin:0 0 10px;font-size:13px;color:{_SECONDARY};">
+              <a href="{_SITE_URL}" style="color:{_NAVY};text-decoration:none;font-weight:bold;">Open the app</a>
+              &nbsp;&middot;&nbsp;
+              <a href="{_ABOUT_URL}" style="color:{_NAVY};text-decoration:none;font-weight:bold;">About</a>
+              &nbsp;&middot;&nbsp;
+              <a href="{_CONTACT_URL}" style="color:{_NAVY};text-decoration:none;font-weight:bold;">Contact</a>
+            </p>
+            <p style="margin:0 0 4px;font-size:12px;line-height:1.6;color:{_MUTED};">
+              {_BRAND} is a screening tool for educational and research purposes. It is not investment advice.
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:{_MUTED};">
+              You're receiving this because you have an account. To stop product updates, reply with &lsquo;unsubscribe&rsquo; and I'll remove you.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
     text = (
-        "New in Investment Intelligence\n\n"
-        "A few substantial additions since you last stopped by.\n\n"
-        "Markets tools. A new Markets menu with a stock screener, a markets "
-        "overview, a sector heatmap, an economic calendar and per-company "
-        "technicals.\n\n"
-        "Analyst, ownership and dividend data. Three new company pages covering "
-        "sell-side consensus ratings, institutional and insider ownership, and "
-        "dividend yield, rate and payout.\n\n"
-        "Risk assessment. A new Risks page pairing a financial-risk profile "
-        "(bankruptcy-distress and financial-strength scores, plus leverage, "
-        "liquidity and earnings-quality flags) with the company's own risk "
-        "factors, pulled straight from its latest 10-K.\n\n"
-        "Everything is built on primary-source filings and free market data, "
-        "and every figure traces back to where it came from.\n\n"
-        f"See what's new: {_SITE_URL}/whats-new\n\n"
-        "Thanks again,\nNikolas\nNikolas Dion Savio, Investment Intelligence\n\n"
-        "You're receiving this because you have an Investment Intelligence "
-        "account. To stop product-update emails, reply with 'unsubscribe'.\n"
+        "What's new in Investment Intelligence\n\n"
+        "Three substantial additions since you last stopped by.\n\n"
+        "Markets tools. A stock screener, a markets overview, a sector heatmap, "
+        "an economic calendar and per-company technicals, one hover away.\n\n"
+        "Analyst, ownership and dividend data. Sell-side consensus with price "
+        "targets, institutional and insider ownership, and the full dividend "
+        "picture, on their own pages.\n\n"
+        "A full risk assessment. Distress and financial-strength scores, "
+        "red-amber-green credit metrics, and the company's own risk factors "
+        "pulled from its 10-K.\n\n"
+        f"Explore the update: {_SITE_URL}/whats-new\n\n"
+        "Thanks for using it,\nNikolas\nNikolas Dion Savio, Investment Intelligence\n\n"
+        "You're receiving this because you have an account. To stop product "
+        "updates, reply with 'unsubscribe'.\n"
         f"{_BRAND} is a screening tool for educational and research purposes. "
         "It is not investment advice."
     )
