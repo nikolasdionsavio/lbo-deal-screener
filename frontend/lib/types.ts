@@ -603,3 +603,72 @@ export interface UpdateDealAssumptionsRequest {
 export interface ApiErrorBody {
   detail: string;
 }
+
+// ---------------------------------------------------------------------------
+// Market stats (Bloomberg-style analyst / ownership / dividend / key stats)
+// ---------------------------------------------------------------------------
+
+export interface AnalystView {
+  rating: string | null;
+  rating_score: number | null;
+  analyst_count: number | null;
+  target_mean: number | null;
+  target_high: number | null;
+  target_low: number | null;
+  current_price: number | null;
+  implied_upside: number | null;
+  forward_pe: number | null;
+  forward_eps: number | null;
+  trailing_eps: number | null;
+  earnings_growth: number | null;
+  revenue_growth: number | null;
+  next_earnings_date: string | null;
+}
+
+export interface OwnershipView {
+  held_pct_institutions: number | null;
+  held_pct_insiders: number | null;
+  float_shares: number | null;
+  shares_outstanding: number | null;
+  shares_short: number | null;
+  short_pct_of_float: number | null;
+  short_pct_shares_out: number | null;
+  short_ratio: number | null;
+}
+
+export interface DividendView {
+  dividend_rate: number | null;
+  dividend_yield: number | null;
+  payout_ratio: number | null;
+  five_year_avg_yield: number | null;
+  ex_dividend_date: string | null;
+  last_dividend_value: number | null;
+}
+
+export interface KeyStats {
+  beta: number | null;
+  trailing_pe: number | null;
+  price_to_book: number | null;
+  ev_to_ebitda: number | null;
+  ev_to_revenue: number | null;
+  profit_margin: number | null;
+  return_on_equity: number | null;
+  fifty_two_week_high: number | null;
+  fifty_two_week_low: number | null;
+  fifty_two_week_change: number | null;
+  sp_fifty_two_week_change: number | null;
+  fifty_day_average: number | null;
+  two_hundred_day_average: number | null;
+}
+
+export interface MarketStats {
+  ticker: string;
+  currency: string | null;
+  as_of: string;
+  source: string;
+  analysts: AnalystView;
+  ownership: OwnershipView;
+  dividends: DividendView;
+  stats: KeyStats;
+  warnings: string[];
+}

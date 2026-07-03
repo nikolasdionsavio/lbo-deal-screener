@@ -11,8 +11,10 @@ from app.api.deps import get_provider_dep, provider_errors_to_http
 from app.db.base import get_db
 from app.kpis import compute_kpis
 from app.lbo import derive_defaults
+from app.market_stats import get_market_stats
 from app.providers.base import DataProvider
 from app.schemas.company import CompanyDataBundle, CompanyProfile
+from app.schemas.market_stats import MarketStats
 from app.schemas.filings import FilingsResponse
 from app.schemas.financials import FinancialsResponse
 from app.schemas.kpi import KpiResponse
@@ -49,6 +51,22 @@ def get_profile(
     provider: DataProvider = Depends(get_provider_dep),
 ) -> CompanyProfile:
     return company_service.build_profile(_bundle(ticker, db, provider))
+
+
+@router.get("/{ticker}/market-stats")
+def get_market_stats_route(ticker: str) -> MarketStats:
+    """Bloomberg-style analyst / ownership / dividend / key-stats snapshot.
+
+    A standalone best-effort Yahoo Finance read (cached), independent of the
+    fundamentals provider. 404 when Yahoo returns nothing usable.
+    """
+    stats = get_market_stats(ticker)
+    if stats is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Market statistics are unavailable for this company.",
+        )
+    return stats
 
 
 @router.get("/{ticker}/financials")

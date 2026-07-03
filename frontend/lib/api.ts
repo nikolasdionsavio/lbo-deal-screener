@@ -9,6 +9,7 @@ import type {
   LboAssumptions,
   LboDefaultsResponse,
   LboResponse,
+  MarketStats,
   MemoResponse,
   NewsResponse,
   PeersResponse,
@@ -109,6 +110,12 @@ export function searchCompanies(q: string): Promise<SearchResult[]> {
 export function getProfile(ticker: string): Promise<CompanyProfile> {
   return request<CompanyProfile>(
     `/api/companies/${encodeURIComponent(ticker)}/profile`,
+  );
+}
+
+export function getMarketStats(ticker: string): Promise<MarketStats> {
+  return request<MarketStats>(
+    `/api/companies/${encodeURIComponent(ticker)}/market-stats`,
   );
 }
 

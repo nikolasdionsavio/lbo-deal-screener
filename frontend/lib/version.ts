@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,17 @@ export interface Release {
 
 // Newest first. Keep entries factual — only features that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.6.0",
+    date: "3 July 2026",
+    title: "Analysts, Ownership & Dividends",
+    changes: [
+      "Analysts: sell-side consensus rating, mean/high/low price targets with implied upside, and forward estimates (the Bloomberg ANR / EE / ERN view).",
+      "Ownership: institutional and insider holdings, public float and short interest, sourced from SEC filings for US names (the HDS view).",
+      "Dividends: yield, rate, payout ratio, five-year average and ex-date (the DVD view).",
+      "Coverage is honest: figures thin outside large-cap US names show clear \"unavailable\" states rather than blanks.",
+    ],
+  },
   {
     version: "1.5.0",
     date: "3 July 2026",

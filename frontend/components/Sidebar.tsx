@@ -275,6 +275,35 @@ function ChevronDownIcon({ className }: IconProps) {
   );
 }
 
+function TargetIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <circle cx="8" cy="8" r="6.25" />
+      <circle cx="8" cy="8" r="3.25" />
+      <circle cx="8" cy="8" r="0.5" />
+    </svg>
+  );
+}
+
+function PieIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <circle cx="8" cy="8" r="6.25" />
+      <path d="M8 8V1.75M8 8l4.4 4.4" />
+    </svg>
+  );
+}
+
+function CoinsIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <ellipse cx="8" cy="4.5" rx="5" ry="2.25" />
+      <path d="M3 4.5V8c0 1.24 2.24 2.25 5 2.25S13 9.24 13 8V4.5" />
+      <path d="M3 8v3.5c0 1.24 2.24 2.25 5 2.25s5-1.01 5-2.25V8" />
+    </svg>
+  );
+}
+
 function SunIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -321,6 +350,9 @@ const COMPANY_PAGES: {
   { slug: "kpis", label: "KPIs", Icon: PercentIcon },
   { slug: "financials", label: "Financials", Icon: TableIcon },
   { slug: "valuation", label: "Valuation", Icon: ScalesIcon },
+  { slug: "analysts", label: "Analysts", Icon: TargetIcon },
+  { slug: "ownership", label: "Ownership", Icon: PieIcon },
+  { slug: "dividends", label: "Dividends", Icon: CoinsIcon },
   { slug: "peers", label: "Peer Comps", Icon: PeopleIcon },
   { slug: "lbo", label: "LBO Model", Icon: CalculatorIcon },
   { slug: "score", label: "Deal Score", Icon: GaugeIcon },

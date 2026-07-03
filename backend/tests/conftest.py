@@ -39,6 +39,19 @@ def _stub_yfinance_profile_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def _stub_market_stats_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The /market-stats endpoint fetches yfinance .info directly; stub it to
+    "no data" suite-wide and clear its cache so no test hits the live network.
+    Tests of the endpoint monkeypatch their own fake .info on top."""
+    import app.market_stats as market_stats
+
+    market_stats.reset_cache()
+    monkeypatch.setattr(market_stats, "_fetch_info", lambda ticker: None)
+    yield
+    market_stats.reset_cache()
+
+
 @pytest.fixture()
 def testco_bundle() -> CompanyDataBundle:
     """The hand-checkable TESTCO fixture parsed into the canonical bundle."""
