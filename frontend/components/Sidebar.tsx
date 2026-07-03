@@ -304,6 +304,15 @@ function CoinsIcon({ className }: IconProps) {
   );
 }
 
+function ShieldIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M8 1.75 13 3.5v4c0 3.2-2.1 5.6-5 6.75-2.9-1.15-5-3.55-5-6.75v-4z" />
+      <path d="M8 5.5v3M8 10.5h.01" />
+    </svg>
+  );
+}
+
 function SunIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -356,6 +365,7 @@ const COMPANY_PAGES: {
   { slug: "peers", label: "Peer Comps", Icon: PeopleIcon },
   { slug: "lbo", label: "LBO Model", Icon: CalculatorIcon },
   { slug: "score", label: "Deal Score", Icon: GaugeIcon },
+  { slug: "risks", label: "Risks", Icon: ShieldIcon },
   { slug: "memo", label: "Memo", Icon: DocumentIcon },
   { slug: "news", label: "News", Icon: NewspaperIcon },
   {

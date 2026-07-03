@@ -22,6 +22,7 @@ from app.schemas.lbo import LboAssumptions, LboDefaultsResponse, LboResponse
 from app.schemas.memo import MemoRequest, MemoResponse
 from app.schemas.news import NewsResponse
 from app.schemas.peers import PeersResponse
+from app.schemas.risk import RiskResponse
 from app.schemas.score import ScoreResponse
 from app.schemas.statements import StatementsResponse
 from app.schemas.valuation import ValuationRequest, ValuationResponse
@@ -32,6 +33,7 @@ from app.services import (
     filings_service,
     news_service,
     peers_service,
+    risk_service,
     statements_service,
 )
 from app.valuation import compute_valuation
@@ -182,6 +184,16 @@ def get_filings(
 ) -> FilingsResponse:
     with provider_errors_to_http():
         return filings_service.get_filings(ticker, provider)
+
+
+@router.get("/{ticker}/risks")
+def get_risks(
+    ticker: str,
+    db: Session = Depends(get_db),
+    provider: DataProvider = Depends(get_provider_dep),
+) -> RiskResponse:
+    with provider_errors_to_http():
+        return risk_service.compute_risks(ticker, db, provider)
 
 
 @router.get("/{ticker}/news")

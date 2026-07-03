@@ -11,6 +11,7 @@ import type {
   LboResponse,
   MarketStats,
   MemoResponse,
+  RiskResponse,
   NewsResponse,
   PeersResponse,
   SavedDeal,
@@ -116,6 +117,12 @@ export function getProfile(ticker: string): Promise<CompanyProfile> {
 export function getMarketStats(ticker: string): Promise<MarketStats> {
   return request<MarketStats>(
     `/api/companies/${encodeURIComponent(ticker)}/market-stats`,
+  );
+}
+
+export function getRisks(ticker: string): Promise<RiskResponse> {
+  return request<RiskResponse>(
+    `/api/companies/${encodeURIComponent(ticker)}/risks`,
   );
 }
 

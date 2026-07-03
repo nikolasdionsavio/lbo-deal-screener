@@ -605,6 +605,68 @@ export interface ApiErrorBody {
 }
 
 // ---------------------------------------------------------------------------
+// Risk assessment (company + sector, qualitative + quantitative)
+// ---------------------------------------------------------------------------
+
+export type RiskFlag = "low" | "medium" | "high" | "na";
+export type RiskBand = "low" | "moderate" | "elevated" | "high" | "na";
+
+export interface RiskMetric {
+  key: string;
+  label: string;
+  value: number | null;
+  formatted: string;
+  flag: RiskFlag;
+  interpretation: string;
+  formula: string;
+}
+
+export interface DistressScore {
+  name: string;
+  score: number | null;
+  formatted: string;
+  zone: string;
+  flag: RiskFlag;
+  interpretation: string;
+  formula: string;
+}
+
+export interface SectorComparison {
+  metric: string;
+  company_value: number | null;
+  company_formatted: string;
+  peer_median: number | null;
+  peer_median_formatted: string;
+  peer_count: number;
+  flag: RiskFlag;
+  note: string;
+}
+
+export interface RiskFactor {
+  heading: string;
+  category: string;
+}
+
+export interface RiskResponse {
+  ticker: string;
+  as_of: string;
+  financial_band: RiskBand;
+  financial_summary: string;
+  distress: DistressScore[];
+  financial_metrics: RiskMetric[];
+  market_metrics: RiskMetric[];
+  sector_comparisons: SectorComparison[];
+  sector_note: string;
+  risk_factors: RiskFactor[];
+  risk_factor_categories: Record<string, number>;
+  going_concern_flagged: boolean;
+  risk_factors_source: string | null;
+  risk_factors_period: string | null;
+  warnings: string[];
+  sources: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Market stats (Bloomberg-style analyst / ownership / dividend / key stats)
 // ---------------------------------------------------------------------------
 

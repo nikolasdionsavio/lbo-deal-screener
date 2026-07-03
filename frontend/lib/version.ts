@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.6.0";
+export const APP_VERSION = "1.7.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,17 @@ export interface Release {
 
 // Newest first. Keep entries factual — only features that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.7.0",
+    date: "3 July 2026",
+    title: "Risk assessment",
+    changes: [
+      "A new Risks page: a rating-agency-style read combining a financial risk profile, sector context, and the company's own disclosed risk factors.",
+      "Quantitative: Altman Z''-distress score, Piotroski F-score, and red-amber-green credit metrics (leverage, coverage, liquidity, cash runway, earnings-quality accruals) with the formula shown on each.",
+      "Qualitative: the company's actual risk factors pulled verbatim from its 10-K (Item 1A), keyword-categorised and linked to the SEC filing — never summarised.",
+      "Sector context: how the company's risk metrics compare to its peers, and a going-concern flag when the filing uses that language.",
+    ],
+  },
   {
     version: "1.6.0",
     date: "3 July 2026",
