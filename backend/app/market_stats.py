@@ -26,7 +26,10 @@ from app.schemas.market_stats import (
 
 DATA_SOURCE = "Yahoo Finance (unofficial endpoints, via yfinance)"
 FMP_DATA_SOURCE = "Financial Modeling Prep"
-_TTL_SECONDS = 900  # 15-minute cache for a result that carries data
+# 6-hour cache for a result that carries data: analyst rating, beta, dividend
+# and 52-week levels are reference stats that do not need intraday freshness, so
+# a long cache slashes upstream API calls (the FMP free tier is only 250/day).
+_TTL_SECONDS = 21600
 _EMPTY_TTL_SECONDS = 90  # short cache for an empty result so a transient feed
 # failure (e.g. an FMP daily-quota 402) recovers quickly instead of sticking
 _PENCE_CODES = {"GBp", "GBX"}
