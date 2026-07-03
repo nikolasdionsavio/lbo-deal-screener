@@ -143,6 +143,44 @@ def test_endpoint_returns_stats(
     assert body["dividends"]["dividend_yield"] == pytest.approx(0.011)
 
 
+def test_fmp_fallback_when_yahoo_blocked(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When Yahoo .info is unavailable, fall back to FMP for dividends + stats."""
+    monkeypatch.setattr(market_stats, "_fetch_info", lambda t: None)
+    fmp_info = {
+        "currency": "USD",
+        "currentPrice": 200.0,
+        "beta": 1.1,
+        "dividendRate": 2.2,
+        "trailingPE": 25.0,
+        "fiftyTwoWeekHigh": 260.0,
+        "fiftyTwoWeekLow": 160.0,
+    }
+    monkeypatch.setattr(market_stats, "_fetch_fmp_info", lambda t: fmp_info)
+    market_stats.reset_cache()
+    s = market_stats.get_market_stats("AAPL")
+    assert s is not None
+    assert s.source == market_stats.FMP_DATA_SOURCE
+    assert s.dividends.dividend_rate == pytest.approx(2.2)
+    assert s.dividends.dividend_yield == pytest.approx(0.011)  # 2.2 / 200
+    assert s.stats.beta == pytest.approx(1.1)
+    assert s.analysts.target_mean is None  # FMP free has no targets
+    assert any("Alpha Vantage" in w for w in s.warnings)
+
+
+def test_no_fmp_key_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(market_stats, "_fetch_info", lambda t: None)
+    # Autouse conftest does not stub _fetch_fmp_info; with no FMP key set it
+    # returns None without any network call.
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "fmp_api_key", "")
+    market_stats.reset_cache()
+    s = market_stats.get_market_stats("AAPL")
+    assert s is not None
+    assert s.stats.beta is None
+    assert any("unavailable" in w.lower() for w in s.warnings)
+
+
 def test_cache_avoids_refetch(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = {"n": 0}
 

@@ -25,6 +25,7 @@ from app.schemas.market_stats import (
 )
 
 DATA_SOURCE = "Yahoo Finance (unofficial endpoints, via yfinance)"
+FMP_DATA_SOURCE = "Financial Modeling Prep"
 _TTL_SECONDS = 900  # 15-minute in-process cache
 _PENCE_CODES = {"GBp", "GBX"}
 
@@ -90,8 +91,28 @@ def get_market_stats(ticker: str) -> MarketStats | None:
     cached = _CACHE.get(key)
     if cached is not None and now - cached[0] < _TTL_SECONDS:
         return cached[1]
+    # Prefer Yahoo .info (full coverage: analyst, ownership, dividends, stats)
+    # when reachable — it works from residential IPs. From a datacenter IP
+    # (e.g. the hosted server) Yahoo blocks .info, so fall back to FMP, which
+    # yields dividends and key stats but not analyst targets or ownership.
     info = _fetch_info(key)
-    stats = _build(key, info if isinstance(info, dict) else {})
+    if isinstance(info, dict) and info:
+        stats = _build(key, info)
+    else:
+        fmp_info = _fetch_fmp_info(key)
+        if fmp_info:
+            stats = _build(
+                key,
+                fmp_info,
+                source=FMP_DATA_SOURCE,
+                extra_warnings=[
+                    "Analyst targets and ownership are not available on the "
+                    "current data tier; add an Alpha Vantage key for full "
+                    "coverage."
+                ],
+            )
+        else:
+            stats = _build(key, {})
     _CACHE[key] = (now, stats)
     return stats
 
@@ -101,8 +122,56 @@ def reset_cache() -> None:
     _CACHE.clear()
 
 
-def _build(ticker: str, info: dict[str, Any]) -> MarketStats:
-    warnings: list[str] = []
+def _fetch_fmp_info(ticker: str) -> dict[str, Any] | None:
+    """Yahoo-.info-shaped dict from FMP's free profile + quote, or None.
+
+    Works from datacenter IPs (a keyed REST API, not scraping). Provides
+    dividend rate, price and key stats; analyst targets and ownership are on
+    FMP's paid tiers and stay absent. Module-level so tests can stub it.
+    """
+    from app.core.config import settings
+
+    api_key = settings.fmp_api_key.strip()
+    if not api_key:
+        return None
+    try:
+        from app.providers.fmp import FmpProvider
+
+        fmp = FmpProvider(api_key)
+        profile = fmp.fetch_profile_raw(ticker) or {}
+        quote = fmp.fetch_quote_raw(ticker) or {}
+    except Exception:
+        return None
+    if not profile and not quote:
+        return None
+
+    price = _f(quote.get("price")) or _f(profile.get("price"))
+    mapped = {
+        "currency": profile.get("currency") or None,
+        "currentPrice": price,
+        "regularMarketPrice": _f(quote.get("price")),
+        "beta": profile.get("beta"),
+        "dividendRate": profile.get("lastDividend"),
+        "trailingPE": quote.get("pe"),
+        "trailingEps": quote.get("eps"),
+        "sharesOutstanding": quote.get("sharesOutstanding"),
+        "fiftyTwoWeekHigh": quote.get("yearHigh"),
+        "fiftyTwoWeekLow": quote.get("yearLow"),
+        "fiftyDayAverage": quote.get("priceAvg50"),
+        "twoHundredDayAverage": quote.get("priceAvg200"),
+    }
+    cleaned = {k: v for k, v in mapped.items() if v is not None}
+    return cleaned or None
+
+
+def _build(
+    ticker: str,
+    info: dict[str, Any],
+    *,
+    source: str = DATA_SOURCE,
+    extra_warnings: list[str] | None = None,
+) -> MarketStats:
+    warnings: list[str] = list(extra_warnings or [])
     if not info:
         # The live feed returned nothing (commonly Yahoo rate-limiting the
         # request from a datacenter IP). Return an empty-but-valid snapshot so
@@ -111,12 +180,13 @@ def _build(ticker: str, info: dict[str, Any]) -> MarketStats:
             ticker=ticker,
             currency=None,
             as_of=datetime.now(timezone.utc).date().isoformat(),
-            source=DATA_SOURCE,
+            source=source,
             analysts=AnalystView(),
             ownership=OwnershipView(),
             dividends=DividendView(),
             stats=KeyStats(),
-            warnings=[
+            warnings=warnings
+            or [
                 "Live analyst, ownership and dividend figures are unavailable "
                 "for this company right now (the market-data feed returned no "
                 "data)."
@@ -213,7 +283,7 @@ def _build(ticker: str, info: dict[str, Any]) -> MarketStats:
         ticker=ticker,
         currency=("GBP" if pence else (str(currency).upper() if currency else None)),
         as_of=datetime.now(timezone.utc).date().isoformat(),
-        source=DATA_SOURCE,
+        source=source,
         analysts=analysts,
         ownership=ownership,
         dividends=dividends,

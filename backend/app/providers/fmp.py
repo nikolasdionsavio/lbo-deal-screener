@@ -210,6 +210,34 @@ class FmpProvider:
             source=DATA_SOURCE,
         )
 
+    def fetch_profile_raw(self, ticker: str) -> dict[str, Any] | None:
+        """Raw /stable/profile record (all fields), or None. Free-plan endpoint.
+
+        Used by the market-stats module to read the extra fields get_profile
+        drops (beta, lastDividend, range, currency).
+        """
+        symbol = ticker.strip().upper()
+        data = self._request_json(
+            "/stable/profile", {"symbol": symbol}, what=f"FMP profile for {symbol}"
+        )
+        if isinstance(data, list) and data and isinstance(data[0], dict):
+            return data[0]
+        return None
+
+    def fetch_quote_raw(self, ticker: str) -> dict[str, Any] | None:
+        """Raw /stable/quote record (all fields), or None. Free-plan endpoint.
+
+        Reads the extra fields get_quote drops (pe, eps, yearHigh/yearLow,
+        priceAvg50/priceAvg200).
+        """
+        symbol = ticker.strip().upper()
+        data = self._request_json(
+            "/stable/quote", {"symbol": symbol}, what=f"FMP quote for {symbol}"
+        )
+        if isinstance(data, list) and data and isinstance(data[0], dict):
+            return data[0]
+        return None
+
     def get_peers(self, ticker: str) -> list[dict[str, Any]]:
         """Peer companies via GET /stable/stock-peers (duck-typed, spec §19.2).
 

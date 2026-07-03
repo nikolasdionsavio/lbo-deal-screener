@@ -17,6 +17,7 @@ import { getMarketStats } from "@/lib/api";
 import {
   fmtDate,
   fmtMultiple,
+  fmtNumber,
   fmtPercent,
   fmtPerShare,
 } from "@/lib/format";
@@ -157,6 +158,7 @@ export default function AnalystsPage() {
   }
 
   const a = data.analysts;
+  const s = data.stats;
   const hasCoverage = a.target_mean !== null || a.analyst_count !== null;
   const hasEstimates =
     a.forward_pe !== null ||
@@ -271,12 +273,44 @@ export default function AnalystsPage() {
         </Card>
       </section>
 
-      {!hasCoverage && (
-        <p className="text-xs text-ink-muted">
-          Aggregated from Yahoo Finance ({fmtDate(data.as_of)}). Analyst data is
-          not sourced from filings and should be treated as indicative.
-        </p>
-      )}
+      <section className="divider-dashed mt-8 pt-8">
+        <SectionHeader
+          title="Key statistics"
+          subtitle="Valuation, risk and price levels"
+        />
+        <Card>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Beta" value={fmtNumber(s.beta, { digits: 2 })} />
+            <StatCard label="Trailing P/E" value={fmtMultiple(s.trailing_pe)} />
+            <StatCard label="Price / book" value={fmtMultiple(s.price_to_book)} />
+            <StatCard label="EV / EBITDA" value={fmtMultiple(s.ev_to_ebitda)} />
+            <StatCard label="Profit margin" value={fmtPercent(s.profit_margin)} />
+            <StatCard
+              label="Return on equity"
+              value={fmtPercent(s.return_on_equity)}
+            />
+            <StatCard
+              label="52-week range"
+              value={`${fmtPerShare(s.fifty_two_week_low, currency)} – ${fmtPerShare(
+                s.fifty_two_week_high,
+                currency,
+              )}`}
+            />
+            <StatCard
+              label="50 / 200-day avg"
+              value={`${fmtPerShare(s.fifty_day_average, currency)} / ${fmtPerShare(
+                s.two_hundred_day_average,
+                currency,
+              )}`}
+            />
+          </div>
+          <p className="mt-4 border-t border-line pt-3 text-xs text-ink-muted">
+            Source: {data.source} ({fmtDate(data.as_of)}). Market data is
+            indicative and not sourced from filings.
+          </p>
+        </Card>
+      </section>
+
       <Disclaimer />
     </div>
   );
