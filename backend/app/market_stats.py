@@ -26,7 +26,9 @@ from app.schemas.market_stats import (
 
 DATA_SOURCE = "Yahoo Finance (unofficial endpoints, via yfinance)"
 FMP_DATA_SOURCE = "Financial Modeling Prep"
-_TTL_SECONDS = 900  # 15-minute in-process cache
+_TTL_SECONDS = 900  # 15-minute cache for a result that carries data
+_EMPTY_TTL_SECONDS = 90  # short cache for an empty result so a transient feed
+# failure (e.g. an FMP daily-quota 402) recovers quickly instead of sticking
 _PENCE_CODES = {"GBp", "GBX"}
 
 # ticker -> (fetched_at_epoch, MarketStats | None)
@@ -89,8 +91,11 @@ def get_market_stats(ticker: str) -> MarketStats | None:
         return None
     now = time.time()
     cached = _CACHE.get(key)
-    if cached is not None and now - cached[0] < _TTL_SECONDS:
-        return cached[1]
+    if cached is not None:
+        ts, cached_stats = cached
+        ttl = _EMPTY_TTL_SECONDS if _is_empty(cached_stats) else _TTL_SECONDS
+        if now - ts < ttl:
+            return cached_stats
     # Prefer Yahoo .info (full coverage: analyst, ownership, dividends, stats)
     # when reachable — it works from residential IPs. From a datacenter IP
     # (e.g. the hosted server) Yahoo blocks .info, so fall back to FMP, which
@@ -122,12 +127,27 @@ def reset_cache() -> None:
     _CACHE.clear()
 
 
+def _is_empty(stats: MarketStats) -> bool:
+    """True when no live figures came through (all sources unavailable)."""
+    a, o, d, s = stats.analysts, stats.ownership, stats.dividends, stats.stats
+    return (
+        a.target_mean is None
+        and a.trailing_eps is None
+        and o.held_pct_institutions is None
+        and d.dividend_rate is None
+        and s.beta is None
+        and s.fifty_two_week_low is None
+    )
+
+
 def _fetch_fmp_info(ticker: str) -> dict[str, Any] | None:
     """Yahoo-.info-shaped dict from FMP's free profile + quote, or None.
 
-    Works from datacenter IPs (a keyed REST API, not scraping). Provides
-    dividend rate, price and key stats; analyst targets and ownership are on
-    FMP's paid tiers and stay absent. Module-level so tests can stub it.
+    Works from datacenter IPs (a keyed REST API, not scraping). Profile and
+    quote are fetched INDEPENDENTLY so an FMP free-tier HTTP 402 (daily quota)
+    on one endpoint does not discard the other — the profile alone still yields
+    dividend rate, price, beta and the 52-week range. Analyst targets and
+    ownership are FMP paid tiers and stay absent. Module-level so tests stub it.
     """
     from app.core.config import settings
 
@@ -138,14 +158,31 @@ def _fetch_fmp_info(ticker: str) -> dict[str, Any] | None:
         from app.providers.fmp import FmpProvider
 
         fmp = FmpProvider(api_key)
-        profile = fmp.fetch_profile_raw(ticker) or {}
-        quote = fmp.fetch_quote_raw(ticker) or {}
     except Exception:
         return None
+
+    def _safe(fetch: Any) -> dict[str, Any]:
+        try:
+            return fetch(ticker) or {}
+        except Exception:  # quota (402), rate limit, network — tolerate per call
+            return {}
+
+    profile = _safe(fmp.fetch_profile_raw)
+    quote = _safe(fmp.fetch_quote_raw)
     if not profile and not quote:
         return None
 
     price = _f(quote.get("price")) or _f(profile.get("price"))
+    # 52-week range: quote's yearHigh/Low, else parse the profile's "lo-hi" range.
+    year_high = _f(quote.get("yearHigh"))
+    year_low = _f(quote.get("yearLow"))
+    range_str = profile.get("range")
+    if (year_high is None or year_low is None) and isinstance(range_str, str):
+        parts = range_str.split("-")
+        if len(parts) == 2:
+            year_low = year_low if year_low is not None else _f(parts[0])
+            year_high = year_high if year_high is not None else _f(parts[1])
+
     mapped = {
         "currency": profile.get("currency") or None,
         "currentPrice": price,
@@ -155,8 +192,8 @@ def _fetch_fmp_info(ticker: str) -> dict[str, Any] | None:
         "trailingPE": quote.get("pe"),
         "trailingEps": quote.get("eps"),
         "sharesOutstanding": quote.get("sharesOutstanding"),
-        "fiftyTwoWeekHigh": quote.get("yearHigh"),
-        "fiftyTwoWeekLow": quote.get("yearLow"),
+        "fiftyTwoWeekHigh": year_high,
+        "fiftyTwoWeekLow": year_low,
         "fiftyDayAverage": quote.get("priceAvg50"),
         "twoHundredDayAverage": quote.get("priceAvg200"),
     }
