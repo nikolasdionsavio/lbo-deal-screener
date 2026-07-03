@@ -46,6 +46,27 @@ def test_announce_test_mode_sends_one(
     assert "Investment Intelligence" in body["subject"]
 
 
+def test_announce_dry_run_counts_without_sending(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "admin_token", "secret-token")
+    monkeypatch.setattr(routes_admin.users_crud, "list_emails", lambda db: ["a@b.com", "c@d.com"])
+    sent: list[str] = []
+    monkeypatch.setattr(
+        routes_admin, "send_email", lambda to, s, h, t: sent.append(to) or True
+    )
+    r = client.post(
+        "/api/admin/announce",
+        json={"dry_run": True},
+        headers={"X-Admin-Token": "secret-token"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["mode"] == "dry_run"
+    assert body["recipients"] == 2 and body["sent"] == 0
+    assert sent == []  # nothing was actually sent
+
+
 def test_announce_requires_a_mode(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

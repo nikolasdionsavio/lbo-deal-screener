@@ -30,10 +30,11 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 class AnnounceRequest(BaseModel):
     test_email: str | None = None
     confirm_send_all: bool = False
+    dry_run: bool = False
 
 
 class AnnounceResult(BaseModel):
-    mode: str  # "test" | "all"
+    mode: str  # "dry_run" | "test" | "all"
     subject: str
     recipients: int
     sent: int
@@ -55,6 +56,18 @@ def announce(
     db: Session = Depends(get_db),
 ) -> AnnounceResult:
     _require_admin(x_admin_token)
+
+    # Count who a broadcast would reach, without sending anything. Checked first
+    # so it always wins (a safe default even if another mode is also set).
+    if body.dry_run:
+        emails = users_crud.list_emails(db)
+        return AnnounceResult(
+            mode="dry_run",
+            subject=update_announcement_email("")[0],
+            recipients=len(emails),
+            sent=0,
+            failed=0,
+        )
 
     if body.test_email:
         subject, html, text = update_announcement_email(body.test_email)
