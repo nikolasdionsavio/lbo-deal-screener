@@ -117,10 +117,15 @@ def test_sparse_info_degrades_and_warns() -> None:
     assert any("Analyst coverage is unavailable" in w for w in s.warnings)
 
 
-def test_endpoint_404_when_no_data(client: TestClient) -> None:
-    # Autouse conftest stub makes _fetch_info return None.
+def test_endpoint_degrades_gracefully_when_no_data(client: TestClient) -> None:
+    # Autouse conftest stub makes _fetch_info return None: the endpoint returns
+    # 200 with null fields and a warning, not a hard error.
     r = client.get("/api/companies/NODATA/market-stats")
-    assert r.status_code == 404
+    assert r.status_code == 200
+    body = r.json()
+    assert body["analysts"]["target_mean"] is None
+    assert body["dividends"]["dividend_rate"] is None
+    assert any("unavailable" in w.lower() for w in body["warnings"])
 
 
 def test_endpoint_returns_stats(

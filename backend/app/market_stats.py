@@ -76,7 +76,13 @@ def _epoch_to_date(value: Any) -> str | None:
 
 
 def get_market_stats(ticker: str) -> MarketStats | None:
-    """Cached market stats for a ticker; None when Yahoo returns nothing usable."""
+    """Cached market stats for a ticker.
+
+    Always returns a MarketStats for a non-empty ticker: when the live feed
+    returns nothing (e.g. Yahoo rate-limits the request from a datacenter IP),
+    the fields are null and a warning names the gap, so the pages show honest
+    "unavailable" states rather than a hard error. None only for an empty ticker.
+    """
     key = ticker.strip().upper()
     if not key:
         return None
@@ -85,7 +91,7 @@ def get_market_stats(ticker: str) -> MarketStats | None:
     if cached is not None and now - cached[0] < _TTL_SECONDS:
         return cached[1]
     info = _fetch_info(key)
-    stats = _build(key, info) if info else None
+    stats = _build(key, info if isinstance(info, dict) else {})
     _CACHE[key] = (now, stats)
     return stats
 
@@ -95,8 +101,27 @@ def reset_cache() -> None:
     _CACHE.clear()
 
 
-def _build(ticker: str, info: dict[str, Any]) -> MarketStats | None:
+def _build(ticker: str, info: dict[str, Any]) -> MarketStats:
     warnings: list[str] = []
+    if not info:
+        # The live feed returned nothing (commonly Yahoo rate-limiting the
+        # request from a datacenter IP). Return an empty-but-valid snapshot so
+        # the pages render honest "unavailable" states.
+        return MarketStats(
+            ticker=ticker,
+            currency=None,
+            as_of=datetime.now(timezone.utc).date().isoformat(),
+            source=DATA_SOURCE,
+            analysts=AnalystView(),
+            ownership=OwnershipView(),
+            dividends=DividendView(),
+            stats=KeyStats(),
+            warnings=[
+                "Live analyst, ownership and dividend figures are unavailable "
+                "for this company right now (the market-data feed returned no "
+                "data)."
+            ],
+        )
     currency = info.get("currency") or None
     pence = isinstance(currency, str) and currency.strip() in _PENCE_CODES
 
