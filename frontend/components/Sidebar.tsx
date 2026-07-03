@@ -15,7 +15,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { createPortal } from "react-dom";
 import Logo from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
@@ -204,6 +205,76 @@ function SparkleIcon({ className }: IconProps) {
   );
 }
 
+function MarketsIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M2 13.5h12" />
+      <rect x="3" y="8" width="2.2" height="3.5" rx="0.4" />
+      <rect x="6.9" y="5.5" width="2.2" height="6" rx="0.4" />
+      <rect x="10.8" y="3" width="2.2" height="8.5" rx="0.4" />
+    </svg>
+  );
+}
+
+function FilterIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M2.5 3.5h11l-4.3 5.1v4.15l-2.4 1.2V8.6z" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <circle cx="8" cy="8" r="6.25" />
+      <path d="M1.9 8h12.2M8 1.75c1.9 1.95 1.9 10.55 0 12.5M8 1.75c-1.9 1.95-1.9 10.55 0 12.5" />
+    </svg>
+  );
+}
+
+function HeatmapIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <rect x="2" y="2" width="3.4" height="3.4" rx="0.6" />
+      <rect x="6.3" y="2" width="3.4" height="3.4" rx="0.6" />
+      <rect x="10.6" y="2" width="3.4" height="3.4" rx="0.6" />
+      <rect x="2" y="6.3" width="3.4" height="3.4" rx="0.6" />
+      <rect x="6.3" y="6.3" width="3.4" height="3.4" rx="0.6" />
+      <rect x="10.6" y="6.3" width="3.4" height="3.4" rx="0.6" />
+      <rect x="2" y="10.6" width="3.4" height="3.4" rx="0.6" />
+      <rect x="6.3" y="10.6" width="3.4" height="3.4" rx="0.6" />
+      <rect x="10.6" y="10.6" width="3.4" height="3.4" rx="0.6" />
+    </svg>
+  );
+}
+
+function CalendarDaysIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <rect x="2" y="3" width="12" height="11" rx="1.5" />
+      <path d="M2 6.5h12M5 1.75v2.5M11 1.75v2.5" />
+      <path d="M5 9h.01M8 9h.01M11 9h.01M5 11.5h.01M8 11.5h.01" />
+    </svg>
+  );
+}
+
+function ActivityIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M1.75 8h2.4l1.7-4.2 3.1 8.4 1.7-4.2h3.6" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="m3.5 6 4.5 4.5L12.5 6" />
+    </svg>
+  );
+}
+
 function SunIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -285,6 +356,59 @@ const APP_PAGES: {
   { href: "/contact", label: "Contact", Icon: MailIcon },
 ];
 
+// "Markets" hover-flyout tools. Global tools link to /markets/*; a company tool
+// (`slug` set) links to /company/{ticker}/{slug} and is disabled without a
+// ticker. All are TradingView-powered market context, distinct from the app's
+// own analysis pages.
+interface MarketTool {
+  label: string;
+  desc: string;
+  Icon: ComponentType<IconProps>;
+  href?: string; // global tools
+  slug?: string; // company-scoped tools
+}
+
+const MARKET_TOOLS: MarketTool[] = [
+  {
+    label: "Stock Screener",
+    desc: "Filter the market by fundamentals",
+    Icon: FilterIcon,
+    href: "/markets/screener",
+  },
+  {
+    label: "Markets Overview",
+    desc: "Indices, futures, bonds and FX",
+    Icon: GlobeIcon,
+    href: "/markets/overview",
+  },
+  {
+    label: "Sector Heatmap",
+    desc: "S&P 500 by sector and size",
+    Icon: HeatmapIcon,
+    href: "/markets/heatmap",
+  },
+  {
+    label: "Economic Calendar",
+    desc: "Upcoming macro releases",
+    Icon: CalendarDaysIcon,
+    href: "/markets/calendar",
+  },
+  {
+    label: "Technicals",
+    desc: "Indicator and oscillator read",
+    Icon: ActivityIcon,
+    slug: "technicals",
+  },
+];
+
+/** Resolve a tool's destination, or null when a company tool has no ticker. */
+function toolHref(tool: MarketTool, ticker: string | null): string | null {
+  if (tool.href) return tool.href;
+  if (tool.slug && ticker)
+    return `/company/${encodeURIComponent(ticker)}/${tool.slug}`;
+  return null;
+}
+
 /**
  * Theme toggle for the sidebar footer. Cycles light → dark → light and shows
  * the current state. The label is gated on mount: the server renders a
@@ -339,6 +463,241 @@ function linkClass(active: boolean, collapsed: boolean): string {
       ? "border-line bg-surface font-medium text-ink shadow-card"
       : "border-transparent text-ink-muted hover:bg-brand-soft hover:text-ink"
   }`;
+}
+
+// The Markets tool rows, shared by the desktop flyout and the mobile accordion.
+function MarketToolItems({
+  ticker,
+  pathname,
+  onNavigate,
+}: {
+  ticker: string | null;
+  pathname: string | null;
+  onNavigate: () => void;
+}) {
+  return (
+    <>
+      {MARKET_TOOLS.map((tool) => {
+        const href = toolHref(tool, ticker);
+        const active = href !== null && pathname === href;
+        if (href === null) {
+          return (
+            <span
+              key={tool.label}
+              aria-disabled="true"
+              title="Search a company first"
+              className="flex cursor-not-allowed items-start gap-2.5 rounded-lg px-2.5 py-2 opacity-50"
+            >
+              <tool.Icon className="mt-0.5 shrink-0 text-ink-muted" />
+              <span className="min-w-0">
+                <span className="block text-sm text-ink">{tool.label}</span>
+                <span className="block text-xs text-ink-muted">
+                  Search a company first
+                </span>
+              </span>
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={tool.label}
+            href={href}
+            role="menuitem"
+            onClick={onNavigate}
+            className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-150 ${
+              active
+                ? "bg-surface-sunken text-ink"
+                : "text-ink-secondary hover:bg-brand-soft hover:text-ink"
+            }`}
+          >
+            <tool.Icon className="mt-0.5 shrink-0 text-ink-muted" />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-ink">
+                {tool.label}
+              </span>
+              <span className="block text-xs text-ink-muted">{tool.desc}</span>
+            </span>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+// "Markets" nav entry. Desktop: a hover/focus flyout, positioned fixed so it
+// escapes the sidebar's overflow clip; closes on Esc, scroll, resize, route
+// change, and blur-out. Mobile drawer: an inline accordion (no hover on touch).
+function MarketsNav({
+  collapsed,
+  isDrawer,
+  ticker,
+  pathname,
+}: {
+  collapsed: boolean;
+  isDrawer: boolean;
+  ticker: string | null;
+  pathname: string | null;
+}) {
+  const anyActive = MARKET_TOOLS.some((t) => {
+    const h = toolHref(t, ticker);
+    return h !== null && pathname === h;
+  });
+
+  const [expanded, setExpanded] = useState(anyActive);
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    // The panel is portaled to <body>, so it is not a DOM descendant of the
+    // trigger; "inside" is measured against both refs explicitly.
+    const inside = (node: Node | null) =>
+      node !== null &&
+      (triggerRef.current?.contains(node) ||
+        panelRef.current?.contains(node)) === true;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    function onFocusIn(e: FocusEvent) {
+      if (!inside(e.target as Node | null)) setOpen(false);
+    }
+    function onPointerDown(e: Event) {
+      if (!inside(e.target as Node | null)) setOpen(false);
+    }
+    function dismiss() {
+      setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", dismiss);
+    // Capture phase so the sidebar's own scroll container also dismisses.
+    window.addEventListener("scroll", dismiss, true);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", dismiss);
+      window.removeEventListener("scroll", dismiss, true);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  if (isDrawer) {
+    return (
+      <li>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className={`${linkClass(anyActive, false)} w-full`}
+        >
+          <MarketsIcon className="shrink-0" />
+          <span className="flex-1 text-left">Markets</span>
+          <ChevronDownIcon
+            className={`shrink-0 transition-transform duration-150 ${
+              expanded ? "" : "-rotate-90"
+            }`}
+          />
+        </button>
+        {expanded && (
+          <div className="mt-0.5 space-y-0.5 pl-3.5">
+            <MarketToolItems
+              ticker={ticker}
+              pathname={pathname}
+              onNavigate={() => {}}
+            />
+          </div>
+        )}
+      </li>
+    );
+  }
+
+  function openNow() {
+    const el = triggerRef.current;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      const estPanelHeight = 300;
+      const top = Math.max(
+        8,
+        Math.min(r.top, window.innerHeight - estPanelHeight - 8),
+      );
+      setCoords({ top, left: r.right + 6 });
+    }
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  }
+  function closeSoon() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 140);
+  }
+
+  return (
+    <li onMouseEnter={openNow} onMouseLeave={closeSoon} onFocus={openNow}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={collapsed ? "Markets" : undefined}
+        className={`${linkClass(anyActive, collapsed)} w-full`}
+        onKeyDown={(e) => {
+          // The portaled panel is outside the tab order, so open on
+          // ArrowDown / Enter / Space and move focus into the first tool.
+          if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openNow();
+            setTimeout(() => {
+              (
+                panelRef.current?.querySelector(
+                  'a[role="menuitem"]',
+                ) as HTMLElement | null
+              )?.focus();
+            }, 0);
+          }
+        }}
+      >
+        <MarketsIcon className="shrink-0" />
+        {!collapsed && <span className="flex-1 text-left">Markets</span>}
+        {!collapsed && <ChevronRightIcon className="shrink-0 opacity-50" />}
+      </button>
+      {open &&
+        coords &&
+        typeof document !== "undefined" &&
+        createPortal(
+          // Portaled to <body> so the fixed panel escapes the sticky sidebar's
+          // stacking context (otherwise page content, e.g. an embed iframe,
+          // paints over it).
+          <div
+            ref={panelRef}
+            role="menu"
+            aria-label="Markets tools"
+            onMouseEnter={openNow}
+            onMouseLeave={closeSoon}
+            style={{ position: "fixed", top: coords.top, left: coords.left }}
+            className="z-50 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgba(15,23,42,0.14)]"
+          >
+            <MarketToolItems
+              ticker={ticker}
+              pathname={pathname}
+              onNavigate={() => setOpen(false)}
+            />
+          </div>,
+          document.body,
+        )}
+    </li>
+  );
 }
 
 const COLLAPSE_KEY = "sidebar_collapsed";
@@ -530,7 +889,17 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
 
         <div className="divider-dashed mx-2 my-4" />
 
-        <ul className={collapsed ? "flex flex-col items-center" : undefined}>
+        <ul
+          className={`space-y-0.5 ${
+            collapsed ? "flex flex-col items-center" : ""
+          }`}
+        >
+          <MarketsNav
+            collapsed={collapsed}
+            isDrawer={isDrawer}
+            ticker={ticker}
+            pathname={pathname}
+          />
           <li>
             <Link
               href="/deals"

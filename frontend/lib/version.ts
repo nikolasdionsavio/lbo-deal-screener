@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,15 @@ export interface Release {
 
 // Newest first. Keep entries factual — only features that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.5.0",
+    date: "3 July 2026",
+    title: "Markets tools",
+    changes: [
+      "A new Markets menu (hover to open) with five market tools: a stock screener, a markets overview, a sector heatmap, an economic calendar, and per-company technicals.",
+      "Powered by TradingView, kept clearly separate from — and complementary to — the app's primary-source fundamentals.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2 July 2026",
