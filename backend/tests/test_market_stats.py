@@ -164,7 +164,46 @@ def test_fmp_fallback_when_yahoo_blocked(monkeypatch: pytest.MonkeyPatch) -> Non
     assert s.dividends.dividend_yield == pytest.approx(0.011)  # 2.2 / 200
     assert s.stats.beta == pytest.approx(1.1)
     assert s.analysts.target_mean is None  # FMP free has no targets
-    assert any("Alpha Vantage" in w for w in s.warnings)
+    assert any("premium data source" in w for w in s.warnings)
+
+
+def test_rating_from_recommendations() -> None:
+    key, mean, count = market_stats._rating_from_recommendations(
+        [{"strongBuy": 12, "buy": 14, "hold": 4, "sell": 0, "strongSell": 0}]
+    )
+    assert count == 30
+    assert key in ("strong_buy", "buy")
+    assert 1.0 <= mean <= 2.5
+    # No data -> all None.
+    assert market_stats._rating_from_recommendations([]) == (None, None, None)
+
+
+def test_finnhub_fallback_provides_rating(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Finnhub (preferred server fallback) yields a consensus rating + key stats
+    + dividends, but no price target."""
+    monkeypatch.setattr(market_stats, "_fetch_info", lambda t: None)
+    finnhub_info = {
+        "currency": "USD",
+        "currentPrice": 200.0,
+        "beta": 1.3,
+        "fiftyTwoWeekHigh": 260.0,
+        "fiftyTwoWeekLow": 160.0,
+        "dividendRate": 2.2,
+        "recommendationKey": "buy",
+        "recommendationMean": 2.1,
+        "numberOfAnalystOpinions": 30,
+    }
+    monkeypatch.setattr(market_stats, "_fetch_finnhub_info", lambda t: finnhub_info)
+    market_stats.reset_cache()
+    s = market_stats.get_market_stats("AAPL")
+    assert s is not None
+    assert s.source == market_stats.FINNHUB_DATA_SOURCE
+    assert s.analysts.rating == "buy"
+    assert s.analysts.analyst_count == 30
+    assert s.analysts.target_mean is None  # targets are Finnhub premium
+    assert s.stats.beta == pytest.approx(1.3)
+    assert s.dividends.dividend_rate == pytest.approx(2.2)
+    assert s.dividends.dividend_yield == pytest.approx(0.011)  # 2.2 / 200
 
 
 def test_no_fmp_key_degrades_to_empty(monkeypatch: pytest.MonkeyPatch) -> None:

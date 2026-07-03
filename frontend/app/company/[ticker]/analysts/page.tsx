@@ -173,16 +173,41 @@ export default function AnalystsPage() {
       <WarningList warnings={data.warnings} />
 
       <section>
-        <SectionHeader title="Price target" subtitle="Consensus of covering analysts" />
+        <SectionHeader
+          title="Analyst consensus"
+          subtitle="Sell-side rating and price target across covering analysts"
+        />
         <Card>
-          {a.target_mean !== null &&
-          a.target_low !== null &&
-          a.target_high !== null ? (
+          {a.rating !== null ||
+          a.analyst_count !== null ||
+          a.target_mean !== null ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
+                  label="Rating"
+                  value={a.rating ? <RatingBadge rating={a.rating} /> : "—"}
+                  sub={
+                    a.analyst_count !== null
+                      ? `${a.analyst_count} analyst${a.analyst_count === 1 ? "" : "s"}${
+                          a.rating_score !== null
+                            ? ` · ${a.rating_score.toFixed(1)} / 5`
+                            : ""
+                        }`
+                      : undefined
+                  }
+                />
+                <StatCard
                   label="Mean target"
-                  value={fmtPerShare(a.target_mean, currency)}
+                  value={
+                    a.target_mean !== null
+                      ? fmtPerShare(a.target_mean, currency)
+                      : "—"
+                  }
+                  sub={
+                    a.target_mean === null
+                      ? "Requires a premium source"
+                      : undefined
+                  }
                 />
                 <StatCard
                   label="Current price"
@@ -199,35 +224,24 @@ export default function AnalystsPage() {
                   }
                   sub="Mean target vs current price"
                 />
-                <StatCard
-                  label="Rating"
-                  value={
-                    a.rating ? <RatingBadge rating={a.rating} /> : "—"
-                  }
-                  sub={
-                    a.analyst_count !== null
-                      ? `${a.analyst_count} analyst${a.analyst_count === 1 ? "" : "s"}${
-                          a.rating_score !== null
-                            ? ` · ${a.rating_score.toFixed(1)} / 5`
-                            : ""
-                        }`
-                      : undefined
-                  }
-                />
               </div>
-              <TargetRange
-                low={a.target_low}
-                mean={a.target_mean}
-                high={a.target_high}
-                current={a.current_price}
-                currency={currency}
-              />
+              {a.target_mean !== null &&
+                a.target_low !== null &&
+                a.target_high !== null && (
+                  <TargetRange
+                    low={a.target_low}
+                    mean={a.target_mean}
+                    high={a.target_high}
+                    current={a.current_price}
+                    currency={currency}
+                  />
+                )}
             </>
           ) : (
             <p className="text-sm text-ink-secondary">
-              No sell-side price target is available for {ticker} from the free
-              data source. This is common outside large-cap US names, where
-              broker research is not publicly aggregated.
+              No sell-side coverage is available for {ticker} from the free data
+              source. This is common outside large-cap US names, where broker
+              research is not publicly aggregated.
             </p>
           )}
         </Card>

@@ -26,6 +26,7 @@ from app.schemas.market_stats import (
 
 DATA_SOURCE = "Yahoo Finance (unofficial endpoints, via yfinance)"
 FMP_DATA_SOURCE = "Financial Modeling Prep"
+FINNHUB_DATA_SOURCE = "Finnhub"
 # 6-hour cache for a result that carries data: analyst rating, beta, dividend
 # and 52-week levels are reference stats that do not need intraday freshness, so
 # a long cache slashes upstream API calls (the FMP free tier is only 250/day).
@@ -99,28 +100,39 @@ def get_market_stats(ticker: str) -> MarketStats | None:
         ttl = _EMPTY_TTL_SECONDS if _is_empty(cached_stats) else _TTL_SECONDS
         if now - ts < ttl:
             return cached_stats
-    # Prefer Yahoo .info (full coverage: analyst, ownership, dividends, stats)
-    # when reachable — it works from residential IPs. From a datacenter IP
-    # (e.g. the hosted server) Yahoo blocks .info, so fall back to FMP, which
-    # yields dividends and key stats but not analyst targets or ownership.
+    # Source chain. Yahoo .info is the fullest (analyst targets + ownership) and
+    # works from residential IPs; datacenter IPs (the hosted server) get blocked
+    # by Yahoo, so fall back to Finnhub (free, no daily cap: consensus rating +
+    # key stats + dividends, but no targets/ownership) and then FMP (250/day:
+    # dividends + key stats). Each yields an ".info"-shaped dict so one builder
+    # serves them all.
+    ANALYST_OWNERSHIP_NOTE = (
+        "Analyst price targets and institutional ownership require a premium "
+        "data source and are unavailable on the free tier."
+    )
     info = _fetch_info(key)
     if isinstance(info, dict) and info:
         stats = _build(key, info)
     else:
-        fmp_info = _fetch_fmp_info(key)
-        if fmp_info:
+        finnhub_info = _fetch_finnhub_info(key)
+        if finnhub_info:
             stats = _build(
                 key,
-                fmp_info,
-                source=FMP_DATA_SOURCE,
-                extra_warnings=[
-                    "Analyst targets and ownership are not available on the "
-                    "current data tier; add an Alpha Vantage key for full "
-                    "coverage."
-                ],
+                finnhub_info,
+                source=FINNHUB_DATA_SOURCE,
+                extra_warnings=[ANALYST_OWNERSHIP_NOTE],
             )
         else:
-            stats = _build(key, {})
+            fmp_info = _fetch_fmp_info(key)
+            if fmp_info:
+                stats = _build(
+                    key,
+                    fmp_info,
+                    source=FMP_DATA_SOURCE,
+                    extra_warnings=[ANALYST_OWNERSHIP_NOTE],
+                )
+            else:
+                stats = _build(key, {})
     _CACHE[key] = (now, stats)
     return stats
 
@@ -141,6 +153,102 @@ def _is_empty(stats: MarketStats) -> bool:
         and s.beta is None
         and s.fifty_two_week_low is None
     )
+
+
+def _pct(value: Any) -> float | None:
+    """A percentage number (25.3) to a decimal (0.253); None passthrough."""
+    v = _f(value)
+    return v / 100.0 if v is not None else None
+
+
+def _rating_from_recommendations(
+    recs: list[dict[str, Any]],
+) -> tuple[str | None, float | None, int | None]:
+    """Consensus (key, mean 1-5, analyst count) from the latest recommendation
+    trend row. Mirrors Yahoo's recommendationKey / recommendationMean scale so
+    the shared builder maps it unchanged."""
+    if not recs:
+        return None, None, None
+    latest = recs[0]  # Finnhub returns newest period first
+    sb = _f(latest.get("strongBuy")) or 0.0
+    b = _f(latest.get("buy")) or 0.0
+    h = _f(latest.get("hold")) or 0.0
+    s = _f(latest.get("sell")) or 0.0
+    ss = _f(latest.get("strongSell")) or 0.0
+    total = sb + b + h + s + ss
+    if total <= 0:
+        return None, None, None
+    mean = (1 * sb + 2 * b + 3 * h + 4 * s + 5 * ss) / total
+    if mean < 1.5:
+        key = "strong_buy"
+    elif mean < 2.5:
+        key = "buy"
+    elif mean < 3.5:
+        key = "hold"
+    elif mean < 4.5:
+        key = "sell"
+    else:
+        key = "strong_sell"
+    return key, mean, int(total)
+
+
+def _fetch_finnhub_info(ticker: str) -> dict[str, Any] | None:
+    """Yahoo-.info-shaped dict from Finnhub's free endpoints, or None.
+
+    Free tier (60 req/min, no daily cap, datacenter-friendly): quote, profile2,
+    basic metrics and analyst recommendation trends. Yields the consensus
+    RATING, key stats (beta, 52-week, P/E, P/B, margins, ROE) and dividends;
+    price targets and ownership are Finnhub premium and stay absent. Each call
+    is independent so one failing endpoint does not sink the rest.
+    """
+    from app.core.config import settings
+
+    api_key = settings.finnhub_api_key.strip()
+    if not api_key:
+        return None
+    try:
+        from app.providers.finnhub import FinnhubClient
+
+        fh = FinnhubClient(api_key)
+    except Exception:
+        return None
+
+    def _safe(fetch: Any, default: Any) -> Any:
+        try:
+            return fetch(ticker) or default
+        except Exception:  # per-endpoint HTTP/network/rate-limit tolerance
+            return default
+
+    quote = _safe(fh.quote, {})
+    profile = _safe(fh.profile2, {})
+    metric = _safe(fh.metrics, {})
+    recs = _safe(fh.recommendations, [])
+    if not quote and not profile and not metric and not recs:
+        return None
+
+    rating_key, rating_mean, rating_count = _rating_from_recommendations(recs)
+    shares = _f(profile.get("shareOutstanding"))  # Finnhub reports in millions
+    mapped = {
+        "currency": profile.get("currency") or None,
+        "currentPrice": _f(quote.get("c")),
+        "beta": metric.get("beta"),
+        "fiftyTwoWeekHigh": metric.get("52WeekHigh"),
+        "fiftyTwoWeekLow": metric.get("52WeekLow"),
+        "trailingPE": metric.get("peTTM") or metric.get("peBasicExclExtraTTM"),
+        "priceToBook": metric.get("pbQuarterly") or metric.get("pbAnnual"),
+        "trailingEps": metric.get("epsTTM")
+        or metric.get("epsBasicExclExtraItemsTTM"),
+        "profitMargins": _pct(metric.get("netProfitMarginTTM")),
+        "returnOnEquity": _pct(metric.get("roeTTM")),
+        "dividendRate": metric.get("dividendPerShareAnnual"),
+        "payoutRatio": _pct(metric.get("payoutRatioTTM")),
+        "sharesOutstanding": shares * 1e6 if shares is not None else None,
+        "recommendationKey": rating_key,
+        "recommendationMean": rating_mean,
+        "numberOfAnalystOpinions": rating_count,
+    }
+    cleaned = {k: v for k, v in mapped.items() if v is not None}
+    return cleaned or None
 
 
 def _fetch_fmp_info(ticker: str) -> dict[str, Any] | None:
