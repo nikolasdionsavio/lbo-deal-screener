@@ -29,6 +29,12 @@ def get_by_email(db: Session, email: str) -> User | None:
     return db.scalar(select(User).where(User.email == email.strip().lower()))
 
 
+def list_emails(db: Session) -> list[str]:
+    """Every registered user's email (for owner-only broadcasts)."""
+    rows = db.scalars(select(User.email)).all()
+    return [e for e in rows if e]
+
+
 def get_or_create_oauth_user(
     db: Session, email: str, provider: str, password_hash: str
 ) -> tuple[User, bool]:

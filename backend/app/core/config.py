@@ -14,6 +14,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./lbo_screener.db"
     jwt_secret: str = "dev-secret-change-me"
+    # Shared secret gating the owner-only /api/admin/* endpoints (announcements).
+    # Empty disables them entirely (the default), so they are inert until set.
+    admin_token: str = ""
     data_provider: Literal["auto", "mock", "live", "yahoo"] = "auto"
     sec_edgar_user_agent: str = ""
     fmp_api_key: str = ""

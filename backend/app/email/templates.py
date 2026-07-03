@@ -172,6 +172,65 @@ def welcome_email(to: str) -> tuple[str, str, str]:
     return subject, html, text
 
 
+def update_announcement_email(to: str) -> tuple[str, str, str]:
+    """Product-update announcement (markets tools, analyst data, risk page)."""
+    subject = (
+        "New in Investment Intelligence: markets tools, analyst data and a risk assessment"
+    )
+    paragraphs = [
+        "A few substantial additions to Investment Intelligence since you last "
+        "stopped by.",
+        "<strong>Markets tools.</strong> A new Markets menu with a stock "
+        "screener, a markets overview, a sector heatmap, an economic calendar "
+        "and per-company technicals.",
+        "<strong>Analyst, ownership and dividend data.</strong> Three new "
+        "company pages covering sell-side consensus ratings, institutional and "
+        "insider ownership, and dividend yield, rate and payout.",
+        "<strong>Risk assessment.</strong> A new Risks page pairing a "
+        "financial-risk profile (bankruptcy-distress and financial-strength "
+        "scores, plus leverage, liquidity and earnings-quality flags) with the "
+        "company's own risk factors, pulled straight from its latest 10-K.",
+        "Everything is built on primary-source filings and free market data, "
+        "and every figure traces back to where it came from.",
+    ]
+    html = _layout(
+        preheader="New markets tools, analyst data and a full risk assessment.",
+        heading="New in Investment Intelligence",
+        paragraphs=paragraphs,
+        button_label="See what's new",
+        button_url=f"{_SITE_URL}/whats-new",
+        note=(
+            "You're receiving this because you have an Investment Intelligence "
+            "account. To stop product-update emails, reply with 'unsubscribe' "
+            "and I'll remove you."
+        ),
+        signoff=True,
+    )
+    text = (
+        "New in Investment Intelligence\n\n"
+        "A few substantial additions since you last stopped by.\n\n"
+        "Markets tools. A new Markets menu with a stock screener, a markets "
+        "overview, a sector heatmap, an economic calendar and per-company "
+        "technicals.\n\n"
+        "Analyst, ownership and dividend data. Three new company pages covering "
+        "sell-side consensus ratings, institutional and insider ownership, and "
+        "dividend yield, rate and payout.\n\n"
+        "Risk assessment. A new Risks page pairing a financial-risk profile "
+        "(bankruptcy-distress and financial-strength scores, plus leverage, "
+        "liquidity and earnings-quality flags) with the company's own risk "
+        "factors, pulled straight from its latest 10-K.\n\n"
+        "Everything is built on primary-source filings and free market data, "
+        "and every figure traces back to where it came from.\n\n"
+        f"See what's new: {_SITE_URL}/whats-new\n\n"
+        "Thanks again,\nNikolas\nNikolas Dion Savio, Investment Intelligence\n\n"
+        "You're receiving this because you have an Investment Intelligence "
+        "account. To stop product-update emails, reply with 'unsubscribe'.\n"
+        f"{_BRAND} is a screening tool for educational and research purposes. "
+        "It is not investment advice."
+    )
+    return subject, html, text
+
+
 def password_reset_email(to: str, reset_url: str) -> tuple[str, str, str]:
     """Password-reset email containing the one-time reset link."""
     subject = "Reset your Investment Intelligence password"

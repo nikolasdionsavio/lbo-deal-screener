@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.deps import _resolve_provider
+from app.api.routes_admin import router as admin_router
 from app.api.routes_auth import router as auth_router
 from app.api.routes_companies import router as companies_router
 from app.api.routes_deals import router as deals_router
@@ -30,3 +31,4 @@ api_router.include_router(companies_router)
 api_router.include_router(auth_router)
 api_router.include_router(oauth_router)
 api_router.include_router(deals_router)
+api_router.include_router(admin_router)
