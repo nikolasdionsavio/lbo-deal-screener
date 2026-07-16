@@ -773,9 +773,20 @@ class SecEdgarProvider(DataProvider):
 
         normalize_financials(years)
         if not years:
-            warnings.append(
-                "No annual report facts (10-K/20-F/40-F) found on SEC EDGAR "
-                "for this company."
+            # No annual-report XBRL on file — e.g. a company that has only just
+            # IPO'd and not yet filed a first 10-K/20-F (SK hynix / SKHY, listed
+            # Jul 2026, is the canonical case). Every per-field "<x> unavailable"
+            # warning is then just noise, so drop the whole set and lead with one
+            # plain-language explanation: the UI shows a designed empty state
+            # rather than a wall of twenty apologies.
+            warnings[:] = [
+                w for w in warnings if not w.endswith("unavailable from SEC EDGAR")
+            ]
+            warnings.insert(
+                0,
+                "No annual report (10-K or 20-F) is on file with the SEC yet, so "
+                "financial statements are not available here. A newly listed "
+                "company appears in full once it files its first annual report.",
             )
 
         info = CompanyInfo(
