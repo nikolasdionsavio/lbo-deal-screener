@@ -23,6 +23,16 @@ from app.schemas.company import CompanyDataBundle, CompanyProfile
 
 CACHE_TTL_HOURS = 24
 MARKET_DATA_UNAVAILABLE_WARNING = "Market data unavailable"
+# Shown when a filer has no annual-report financials at all (e.g. a company that
+# has only just IPO'd, like SK hynix / SKHY in Jul 2026). Computed here from the
+# persisted financials rather than the provider warnings, which the 24h company
+# cache does not round-trip — so it survives a cache hit and reads as a designed
+# empty state instead of a bare blank page.
+NO_ANNUAL_REPORT_WARNING = (
+    "No annual report (10-K or 20-F) is on file with the SEC yet, so financial "
+    "statements are not available. A newly listed company appears here in full "
+    "once it files its first annual report."
+)
 
 
 def get_bundle(
@@ -88,8 +98,9 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
         if message not in warnings:
             warnings.append(message)
 
-    if latest is None:
-        _warn("No annual financial data available")
+    no_financials = latest is None
+    if no_financials:
+        _warn(NO_ANNUAL_REPORT_WARNING)
 
     market = bundle.market
     share_price = market.share_price if market is not None else None
@@ -111,7 +122,10 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
     net_debt = (
         total_debt - cash if total_debt is not None and cash is not None else None
     )
-    if net_debt is None:
+    if net_debt is None and not no_financials:
+        # When there are no financials at all the lead warning already covers it;
+        # only flag net debt specifically when we have statements but this line
+        # is missing.
         _warn(
             "Net debt unavailable (total debt or cash missing for the latest "
             "fiscal year)"
@@ -127,7 +141,7 @@ def build_profile(bundle: CompanyDataBundle) -> CompanyProfile:
             if market_cap is not None and net_debt is not None
             else None
         )
-        if enterprise_value is None:
+        if enterprise_value is None and not no_financials:
             _warn("Enterprise value unavailable (market cap or net debt missing)")
 
     data_as_of = (
