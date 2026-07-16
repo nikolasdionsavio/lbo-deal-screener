@@ -15,6 +15,8 @@ FY2024-FY2026 only), so every asserted number is ground truth from EDGAR:
 """
 
 import json
+import os
+import time
 from pathlib import Path
 from typing import Iterator
 
@@ -26,6 +28,8 @@ from app.api.deps import get_provider_dep
 from app.main import app
 from app.providers.edgar import (
     COMPANYFACTS_URL,
+    TICKER_MAP_CACHE_FILENAME,
+    TICKER_MAP_TTL_SECONDS,
     TICKER_MAP_URL,
     SecEdgarProvider,
 )
@@ -82,6 +86,60 @@ def _crwd_provider(tmp_path: Path) -> SecEdgarProvider:
 @pytest.fixture()
 def crwd_bundle(tmp_path: Path):
     return _crwd_provider(tmp_path).get_company("CRWD")
+
+
+# --- ticker index freshness (so a new listing like SKHY isn't hidden forever) ---
+
+
+def _map_provider(cache_dir: Path, calls: list[int]) -> SecEdgarProvider:
+    """Provider whose ticker-map fetch is counted, so we can assert refetches."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == TICKER_MAP_URL:
+            calls.append(1)
+            return httpx.Response(
+                200,
+                json={"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."}},
+            )
+        return httpx.Response(404, json={"detail": "not found"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    return SecEdgarProvider(TEST_USER_AGENT, client=client, cache_dir=cache_dir)
+
+
+def test_ticker_map_refetches_when_cache_ages_past_ttl(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "cache"
+    calls: list[int] = []
+    # Cold cache -> one network fetch that seeds the on-disk copy.
+    _map_provider(cache_dir, calls)._ticker_map()
+    assert len(calls) == 1
+    # A fresh copy is served from disk by a brand-new provider (no refetch).
+    _map_provider(cache_dir, calls)._ticker_map()
+    assert len(calls) == 1
+    # Age the file past the TTL -> the next cold provider refetches.
+    cache_file = cache_dir / TICKER_MAP_CACHE_FILENAME
+    stale = time.time() - (TICKER_MAP_TTL_SECONDS + 60)
+    os.utime(cache_file, (stale, stale))
+    _map_provider(cache_dir, calls)._ticker_map()
+    assert len(calls) == 2
+
+
+def test_ticker_map_keeps_stale_cache_when_refetch_fails(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "cache"
+    # Seed a good (but soon-to-be-stale) cache.
+    _map_provider(cache_dir, [])._ticker_map()
+    cache_file = cache_dir / TICKER_MAP_CACHE_FILENAME
+    stale = time.time() - (TICKER_MAP_TTL_SECONDS + 60)
+    os.utime(cache_file, (stale, stale))
+
+    # SEC is down (HTTP 500) on refetch: the stale copy must still be served.
+    def failing(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"detail": "boom"})
+
+    client = httpx.Client(transport=httpx.MockTransport(failing))
+    provider = SecEdgarProvider(TEST_USER_AGENT, client=client, cache_dir=cache_dir)
+    ticker_map = provider._ticker_map()
+    assert {v["ticker"] for v in ticker_map.values()} == {"AAPL"}
 
 
 def test_crwd_revenue_from_including_assessed_tax_tag(crwd_bundle) -> None:

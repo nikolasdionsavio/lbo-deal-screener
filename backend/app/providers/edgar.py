@@ -52,6 +52,13 @@ DEFAULT_CACHE_DIR = _BACKEND_DIR / "data" / "cache"
 TICKER_MAP_CACHE_FILENAME = "company_tickers.json"
 
 TICKER_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
+# The ticker->CIK/name index is seeded from a committed cache so a cold start
+# never depends on a live SEC call (shared cloud IPs get rate-limited). But a
+# frozen copy silently hides every company listed since it was captured (e.g. a
+# fresh IPO like SK hynix / SKHY in Jul 2026), so refresh it in the background
+# once the on-disk copy ages past this TTL. On a refetch failure the stale copy
+# is kept — a slightly old index beats a hard failure.
+TICKER_MAP_TTL_SECONDS = 3 * 24 * 3600  # 3 days
 COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 
 TIMEOUT_SECONDS = 15.0
@@ -492,13 +499,28 @@ class SecEdgarProvider(DataProvider):
         if self._ticker_map_mem is not None:
             return self._ticker_map_mem
         cache_file = self._cache_dir / TICKER_MAP_CACHE_FILENAME
+        cached: dict[str, Any] | None = None
+        cached_fresh = False
         if cache_file.is_file():
             try:
-                self._ticker_map_mem = json.loads(cache_file.read_text(encoding="utf-8"))
-                return self._ticker_map_mem
+                cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                age = time.time() - cache_file.stat().st_mtime
+                cached_fresh = age < TICKER_MAP_TTL_SECONDS
             except (ValueError, OSError):
-                pass  # corrupt/unreadable cache -> refetch
-        data = self._request_json(TICKER_MAP_URL, what="SEC EDGAR ticker list")
+                cached = None  # corrupt/unreadable -> refetch
+        if cached is not None and cached_fresh:
+            self._ticker_map_mem = cached
+            return cached
+        # Missing, corrupt, or stale past the TTL: refetch. If SEC is unreachable
+        # but a stale copy is still on disk, keep serving it — a slightly old
+        # index beats a hard failure for every search.
+        try:
+            data = self._request_json(TICKER_MAP_URL, what="SEC EDGAR ticker list")
+        except ProviderError:
+            if cached is not None:
+                self._ticker_map_mem = cached
+                return cached
+            raise
         try:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
             cache_file.write_text(json.dumps(data), encoding="utf-8")
