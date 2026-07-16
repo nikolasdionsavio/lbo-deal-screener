@@ -465,7 +465,7 @@ export default function LboPage() {
                     </h3>
                     <p className="mt-0.5 text-xs text-ink-muted">
                       The base case bracketed by a strategic-buyer upside and a
-                      downturn downside — a range, not a point estimate.
+                      downturn downside. A range, not a point estimate.
                     </p>
                     <ScenarioCards scenarios={lbo.scenarios} />
                   </div>

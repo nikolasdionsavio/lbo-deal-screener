@@ -333,7 +333,7 @@ export default function RisksPage() {
                 rel="noopener noreferrer"
                 className="underline decoration-dotted underline-offset-2 hover:text-ink"
               >
-                {data.risk_factors_period ?? "10-K"}, Item 1A — SEC EDGAR
+                {data.risk_factors_period ?? "10-K"}, Item 1A · SEC EDGAR
               </a>
               . Shown verbatim; not summarised.
             </p>

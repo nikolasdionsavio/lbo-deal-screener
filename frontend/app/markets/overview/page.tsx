@@ -13,7 +13,7 @@ export default function MarketsOverviewPage() {
   return (
     <MarketToolPage
       title="Markets Overview"
-      subtitle="Indices, futures, bonds and FX at a glance — the macro backdrop for any screen."
+      subtitle="Indices, futures, bonds and FX at a glance: the macro backdrop for any screen."
       scriptSrc="embed-widget-market-overview.js"
       config={{
         width: "100%",

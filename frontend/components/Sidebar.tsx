@@ -909,7 +909,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
                       }`}
                       title={
                         collapsed
-                          ? `${page.label} — search a company first`
+                          ? `${page.label}: search a company first`
                           : "Search a company first"
                       }
                       aria-disabled="true"

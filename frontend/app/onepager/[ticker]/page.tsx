@@ -182,7 +182,7 @@ export default function OnePagerPage({
       {/* LBO base case + scenarios */}
       {lbo && (
         <section className="mt-5 border-t border-line pt-4">
-          <h2 className="text-sm font-semibold text-ink">LBO — returns range</h2>
+          <h2 className="text-sm font-semibold text-ink">LBO returns range</h2>
           <div className="mt-2 grid grid-cols-3 gap-3">
             {scenarios.map((sc) => (
               <div

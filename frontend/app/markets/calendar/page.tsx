@@ -14,7 +14,7 @@ export default function CalendarPage() {
   return (
     <MarketToolPage
       title="Economic Calendar"
-      subtitle="Upcoming macro releases across the major economies — context for entry timing."
+      subtitle="Upcoming macro releases across the major economies: context for entry timing."
       scriptSrc="embed-widget-events.js"
       config={{
         width: "100%",

@@ -11,7 +11,7 @@ import { APP_VERSION, RELEASES } from "@/lib/version";
 export const metadata: Metadata = {
   title: "What's New · Investment Intelligence",
   description:
-    "Release notes for Investment Intelligence — the latest features and improvements to the deal-screening platform.",
+    "Release notes for Investment Intelligence: the latest features and improvements to the deal-screening platform.",
 };
 
 export default function WhatsNewPage() {

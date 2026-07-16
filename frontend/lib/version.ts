@@ -21,7 +21,7 @@ export const RELEASES: Release[] = [
     changes: [
       "A new Risks page: a rating-agency-style read combining a financial risk profile, sector context, and the company's own disclosed risk factors.",
       "Quantitative: Altman Z''-distress score, Piotroski F-score, and red-amber-green credit metrics (leverage, coverage, liquidity, cash runway, earnings-quality accruals) with the formula shown on each.",
-      "Qualitative: the company's actual risk factors pulled verbatim from its 10-K (Item 1A), keyword-categorised and linked to the SEC filing — never summarised.",
+      "Qualitative: the company's actual risk factors pulled verbatim from its 10-K (Item 1A), keyword-categorised and linked to the SEC filing, never summarised.",
       "Sector context: how the company's risk metrics compare to its peers, and a going-concern flag when the filing uses that language.",
     ],
   },
@@ -42,7 +42,7 @@ export const RELEASES: Release[] = [
     title: "Markets tools",
     changes: [
       "A new Markets menu (hover to open) with five market tools: a stock screener, a markets overview, a sector heatmap, an economic calendar, and per-company technicals.",
-      "Powered by TradingView, kept clearly separate from — and complementary to — the app's primary-source fundamentals.",
+      "Powered by TradingView, kept clearly separate from, and complementary to, the app's primary-source fundamentals.",
     ],
   },
   {
@@ -51,7 +51,7 @@ export const RELEASES: Release[] = [
     title: "Deal-memo depth",
     changes: [
       "Sources & Uses table on the LBO, with transaction fees funded as a use and pro-forma opening leverage.",
-      "Underwriting scenarios — base case bracketed by a strategic-buyer upside and a downturn downside — so returns read as a range, not a point estimate.",
+      "Underwriting scenarios: the base case bracketed by a strategic-buyer upside and a downturn downside, so returns read as a range, not a point estimate.",
       "Covenant-headroom stress panel testing each modeled year against a maintenance package (net leverage, interest coverage, DSCR).",
       "IC one-pager: a print-to-PDF deal summary composing the score, the returns range and the memo, reachable from the LBO page.",
       "This What's New page, a methodology page, and an in-app version marker.",

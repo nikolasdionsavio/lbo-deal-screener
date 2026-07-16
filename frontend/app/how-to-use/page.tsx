@@ -29,7 +29,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: "Financials",
-    body: "Review the three statements — income statement, balance sheet, and cash flow — across multiple fiscal years, drawn from the company's filings.",
+    body: "Review the three statements (income statement, balance sheet, and cash flow) across multiple fiscal years, drawn from the company's filings.",
   },
   {
     title: "Valuation",
@@ -49,7 +49,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: "Memo",
-    body: "Open the investment memo, assembled automatically from the figures on these pages. Save it to a watchlist to keep a snapshot — saving requires an account.",
+    body: "Open the investment memo, assembled automatically from the figures on these pages. Save it to a watchlist to keep a snapshot. Saving requires an account.",
   },
 ];
 

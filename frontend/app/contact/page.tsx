@@ -41,7 +41,7 @@ export default function ContactPage() {
 
         <Card>
           <p className="max-w-prose text-sm leading-relaxed text-ink-secondary">
-            Questions, feedback, or opportunities — reach me directly by email.
+            Questions, feedback, or opportunities: reach me directly by email.
           </p>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
