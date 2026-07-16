@@ -48,7 +48,7 @@ export default function SearchBar({
 
   return (
     <div ref={search.containerRef} className={`relative ${className}`}>
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-card transition-shadow duration-150 focus-within:shadow-card-hover sm:p-5">
+      <div className="rounded-md border border-line-strong bg-surface-raised p-3.5 transition-colors duration-150 focus-within:border-brand sm:p-4">
         <input
           ref={search.inputRef}
           type="text"
@@ -81,7 +81,7 @@ export default function SearchBar({
               type="button"
               onClick={search.submitTop}
               aria-label="Open the top search result"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-surface transition duration-150 hover:-translate-y-px hover:shadow-card-hover active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-brand text-white transition duration-150 hover:bg-brand-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               <ArrowIcon />
             </button>

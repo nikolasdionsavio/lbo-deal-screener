@@ -17,6 +17,7 @@ const config: Config = {
         bg: "var(--bg)",
         surface: {
           DEFAULT: "var(--surface)",
+          raised: "var(--surface-raised)",
           sunken: "var(--surface-sunken)",
         },
         ink: {
@@ -41,6 +42,9 @@ const config: Config = {
         positive: {
           text: "var(--positive-text)",
         },
+        // Provenance markers: where a figure came from.
+        filed: "var(--filed)",
+        assumption: "var(--assumption)",
         negative: {
           DEFAULT: "var(--negative)",
           hover: "var(--negative-hover)",
@@ -56,17 +60,25 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
-      // Radius scale per DESIGN.md Aesthetic v2: 8px controls, 14px cards,
-      // 999px pills. Tailwind defaults supply 16px (2xl, hero prompt box)
-      // and 24px (3xl, hero container).
+      // Restrained radii (redesign): 3px controls, 5px search, 6px drawers /
+      // menus / chart frames. Nothing larger reads as a research surface, not a
+      // SaaS card. Everything above md is capped at 6px so untouched components
+      // pick up the discipline; rounded-full stays for the few true pills.
       borderRadius: {
-        DEFAULT: "8px",
-        lg: "14px",
+        DEFAULT: "3px",
+        sm: "3px",
+        md: "5px",
+        lg: "6px",
+        xl: "6px",
+        "2xl": "6px",
+        "3xl": "6px",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         "card-hover": "var(--shadow-card-hover)",
+        pop: "var(--shadow-pop)",
       },
     },
   },

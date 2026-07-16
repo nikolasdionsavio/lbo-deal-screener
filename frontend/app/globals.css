@@ -5,89 +5,107 @@
 /* Semantic design tokens (DESIGN.md). Variables hold full color values;
    Tailwind opacity modifiers are not used on semantic tokens — soft tints
    get their own *-soft variables instead. */
+/* Research-workspace palette (redesign 2026): light, cool, green-tinted. A
+   working-notebook surface for company analysis, not an institutional
+   dashboard. One brand green carries actions and current state; filed and
+   assumption markers get their own quiet hues so provenance is legible
+   without color-shouting. Values are full colors (no opacity modifiers on
+   tokens; soft tints are separate variables). */
 :root {
   color-scheme: light;
 
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-sunken: #eef0f4;
+  --bg: #f2f4f3;
+  --surface: #fafbf9;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ecefec;
 
-  --ink: #0f172a;
-  --ink-secondary: #3f4c63;
-  --ink-muted: #5b6779;
+  --ink: #18201e;
+  --ink-secondary: #586460;
+  --ink-muted: #7a8581;
 
-  --line: rgba(15, 23, 42, 0.08);
-  --line-strong: rgba(15, 23, 42, 0.16);
+  --line: #d4dad7;
+  --line-strong: #aeb8b4;
 
-  --brand: #1e3a5f;
-  --brand-hover: #16304f;
-  --brand-text: #1e3a5f;
-  --brand-soft: rgba(30, 58, 95, 0.07);
+  --brand: #265f57;
+  --brand-hover: #1f4e48;
+  --brand-text: #1f4e48;
+  --brand-soft: #e1ece8;
 
-  --accent: #0d9488;
-  --accent-soft: rgba(13, 148, 136, 0.1);
-  --positive-text: #0f766e;
+  --accent: #265f57;
+  --accent-soft: #e1ece8;
+  --positive-text: #3f7054;
 
-  --negative: #b91c1c;
-  --negative-hover: #991b1b;
-  --negative-text: #b91c1c;
-  --negative-soft: rgba(185, 28, 28, 0.07);
+  --negative: #a34436;
+  --negative-hover: #8a3a2e;
+  --negative-text: #9a4032;
+  --negative-soft: #f3e5e2;
 
-  --warn: #b45309;
-  --warn-text: #92400e;
-  --warn-soft: rgba(180, 83, 9, 0.09);
+  /* Warnings share the assumption ochre: a caution tone, never alarm-red. */
+  --warn: #7b6336;
+  --warn-text: #6b5630;
+  --warn-soft: #f0ebe0;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-card-hover: 0 2px 8px rgba(15, 23, 42, 0.07);
+  /* Provenance markers: where a figure came from. */
+  --filed: #4f6872; /* reported in a filing */
+  --assumption: #7b6336; /* a model input / user assumption */
+
+  /* Shadows are for things that sit ABOVE the page only (menus, tooltips,
+     modals). Surfaces sit on the page with rules, not lift. */
+  --shadow-card: none;
+  --shadow-pop: 0 4px 16px rgba(24, 32, 30, 0.1), 0 1px 3px rgba(24, 32, 30, 0.08);
+  --shadow-card-hover: 0 1px 3px rgba(24, 32, 30, 0.07);
 
   /* Sensitivity-matrix cell tinting (SensitivityTable). RGB channel triplets
-     so the cell alpha can be computed per step in JS while the hue and the
-     per-step alpha stay theme-aware. */
-  --sens-positive-rgb: 13, 148, 136;
-  --sens-negative-rgb: 185, 28, 28;
+     so cell alpha can be computed per step in JS while hue stays theme-aware. */
+  --sens-positive-rgb: 63, 112, 84;
+  --sens-negative-rgb: 163, 68, 54;
   --sens-alpha-step: 0.12;
 }
 
 .dark {
   color-scheme: dark;
 
-  /* Deepened per BUILD_SPEC section 19.7 (Sanjaya reference). --ink-muted
-     #8e99ac measures ~6.6:1 on --surface #0e1116, comfortably over the
-     4.5:1 floor, so the ink scale carries over unchanged. */
-  --bg: #07090d;
-  --surface: #0e1116;
-  --surface-sunken: #0a0d12;
+  /* Dark is a first-class equal: the same research surface at night. Deep
+     green-charcoal, one step of layering, the same brand-green family. */
+  --bg: #10140f;
+  --surface: #151b17;
+  --surface-raised: #1a211c;
+  --surface-sunken: #0e120e;
 
-  --ink: #e7ebf3;
-  --ink-secondary: #b6c0d0;
-  --ink-muted: #8e99ac;
+  --ink: #e7ece8;
+  --ink-secondary: #aab4ae;
+  --ink-muted: #869089;
 
-  --line: rgba(231, 235, 243, 0.08);
-  --line-strong: rgba(231, 235, 243, 0.16);
+  --line: #29332c;
+  --line-strong: #3a463d;
 
-  --brand: #466a96;
-  --brand-hover: #5379a8;
-  --brand-text: #8db0d6;
-  --brand-soft: rgba(120, 160, 205, 0.12);
+  --brand: #4e8c81;
+  --brand-hover: #5c9c90;
+  --brand-text: #8fc3b8;
+  --brand-soft: #1e2a26;
 
-  --accent: #14b8a6;
-  --accent-soft: rgba(45, 212, 191, 0.12);
-  --positive-text: #2dd4bf;
+  --accent: #4e8c81;
+  --accent-soft: #1e2a26;
+  --positive-text: #7fb79a;
 
-  --negative: #dc2626;
-  --negative-hover: #b91c1c;
-  --negative-text: #f87171;
-  --negative-soft: rgba(248, 113, 113, 0.1);
+  --negative: #c86a5b;
+  --negative-hover: #b45949;
+  --negative-text: #e0917f;
+  --negative-soft: #2a1e1b;
 
-  --warn: #d97706;
-  --warn-text: #fbbf24;
-  --warn-soft: rgba(251, 191, 36, 0.1);
+  --warn: #c2a56a;
+  --warn-text: #d8be86;
+  --warn-soft: #241f16;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --filed: #8aa6b2;
+  --assumption: #c2a56a;
 
-  --sens-positive-rgb: 20, 184, 166;
-  --sens-negative-rgb: 248, 113, 113;
+  --shadow-card: none;
+  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --sens-positive-rgb: 127, 183, 154;
+  --sens-negative-rgb: 224, 145, 127;
   --sens-alpha-step: 0.15;
 }
 
@@ -116,23 +134,24 @@
      geometry). Sizing stays at call sites; these classes carry shape,
      color, hover, focus, active and disabled. */
   .btn {
-    @apply inline-flex items-center justify-center rounded-full font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-[0.45];
+    @apply inline-flex items-center justify-center rounded font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-[0.45];
   }
-  /* Ink pill: inverse fill in both themes (tokens swap ink/surface, so the
-     dark theme renders a light pill with dark text). Hover lifts slightly,
-     active settles back down. */
+  /* Primary = brand-green fill, white text. A deliberate action color, not a
+     pill. Hover deepens the green; active settles. */
   .btn-primary {
-    @apply bg-ink text-surface hover:-translate-y-px hover:shadow-card-hover active:translate-y-0 active:shadow-none;
+    @apply bg-brand text-white hover:bg-brand-hover active:translate-y-px;
   }
   .btn-secondary {
-    @apply border border-line-strong bg-surface text-ink hover:bg-surface-sunken active:translate-y-px;
+    @apply border border-line-strong bg-surface-raised text-ink hover:bg-surface-sunken active:translate-y-px;
   }
   .btn-destructive {
     @apply border border-negative text-negative-text hover:bg-negative hover:text-white active:translate-y-px;
   }
 
+  /* Inputs read as model fields, not SaaS form controls: quiet raised surface,
+     thin rule, a 5px radius, brand focus ring. */
   .input {
-    @apply w-full rounded border border-line bg-surface-sunken px-3 py-2 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft;
+    @apply w-full rounded-md border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft;
   }
 
   /* Skeleton: surface-sunken with a 1.2s linear shimmer (DESIGN.md). The

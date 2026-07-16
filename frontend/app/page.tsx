@@ -1,190 +1,214 @@
 "use client";
 
-// Landing page (DESIGN.md Aesthetic v2): a hero inside a soft rounded
-// container — outlined capsule label (the one deliberate capsule in the
-// app), serif headline, sub line, and the search as a large prompt box with
-// sample-ticker chips in its footer. Below, the Screen/Model/Memo points as
-// icon-tile rows separated by dashed dividers.
+// Landing page (redesign 2026): author-led, not feature-led. A person built a
+// research tool; the page opens with who, why, and a working search, then a
+// real research path, one live worked example, and an honest statement of what
+// the tool does and does not do. No marketing hero, no feature cards.
 
 import Link from "next/link";
 import SearchBar from "@/components/search/SearchBar";
-import Reveal from "@/components/landing/Reveal";
+import HomeWorkedExample from "@/components/landing/HomeWorkedExample";
 import Disclaimer from "@/components/ui/Disclaimer";
 
-const SAMPLE_TICKERS = ["AAPL", "MSFT", "HD", "KO", "DE"];
-
-// 16px, 1.5px-stroke tile icons (DESIGN.md Iconography).
-function tileIconAttrs() {
-  return {
-    width: 16,
-    height: 16,
-    viewBox: "0 0 16 16",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true as const,
-  };
-}
-
-function ScreenIcon() {
-  return (
-    <svg {...tileIconAttrs()}>
-      <circle cx="7" cy="7" r="4.25" />
-      <path d="M10.2 10.2 14 14" />
-    </svg>
-  );
-}
-
-function ModelIcon() {
-  return (
-    <svg {...tileIconAttrs()}>
-      <rect x="3" y="1.5" width="10" height="13" rx="1.5" />
-      <path d="M5.5 4.5h5" />
-      <path d="M5.5 8h.01M8 8h.01M10.5 8h.01M5.5 11h.01M8 11h.01M10.5 11h.01" />
-    </svg>
-  );
-}
-
-function MemoIcon() {
-  return (
-    <svg {...tileIconAttrs()}>
-      <path d="M9.5 1.5h-5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V4.5l-3-3Z" />
-      <path d="M9.5 1.5v3h3" />
-      <path d="M5.5 8.5h5M5.5 11h5" />
-    </svg>
-  );
-}
-
-const POINTS = [
+// Three real starting points. Each reason is supported by the data the tool
+// actually returns for that company (checked against the live API).
+const STARTERS = [
   {
-    title: "Screen",
-    body: "Company dashboard, traceable KPIs, filed statements, valuation multiples, and a 0–100 deal score. Every figure shows its formula, inputs, and period.",
-    Icon: ScreenIcon,
+    ticker: "AAPL",
+    name: "Apple",
+    reason:
+      "A large, cash-generative business. A good test of how the screen weighs operating quality against a high entry price.",
   },
   {
-    title: "Model",
-    body: "A simplified five-year LBO with editable assumptions, IRR and multiple of money, and sensitivity tables across entry, exit, growth, and margin.",
-    Icon: ModelIcon,
+    ticker: "HD",
+    name: "Home Depot",
+    reason:
+      "A retailer with steady margins and tight working capital to read across the cycle.",
   },
   {
-    title: "Memo",
-    body: "An investment memo assembled from the computed figures on these pages. Missing data is stated as missing, never invented.",
-    Icon: MemoIcon,
+    ticker: "DE",
+    name: "Deere",
+    reason:
+      "A cyclical industrial with a financing arm, so the statements need more care.",
   },
 ];
 
-/**
- * Decorative orbit arcs for the hero (BUILD_SPEC section 19.7): three 1px
- * partial circles in --line-strong, offset like orbit lines, positioned
- * behind the hero content. Purely ornamental, hidden from assistive tech.
- */
-function HeroArcs() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      viewBox="0 0 720 480"
-      preserveAspectRatio="xMidYMid slice"
-      fill="none"
-    >
-      <g stroke="var(--line-strong)" strokeWidth="1">
-        <circle
-          cx="360"
-          cy="700"
-          r="520"
-          pathLength="100"
-          strokeDasharray="22 78"
-          strokeDashoffset="-64"
-        />
-        <circle
-          cx="330"
-          cy="730"
-          r="600"
-          pathLength="100"
-          strokeDasharray="28 72"
-          strokeDashoffset="-58"
-        />
-        <circle
-          cx="400"
-          cy="760"
-          r="680"
-          pathLength="100"
-          strokeDasharray="16 84"
-          strokeDashoffset="-69"
-        />
-      </g>
-    </svg>
-  );
-}
+const WORKFLOW = [
+  {
+    title: "Understand the business",
+    body: "Review the description, filings, market data, and operating history.",
+  },
+  {
+    title: "Test the economics",
+    body: "Inspect KPIs, financial statements, valuation, and comparable companies.",
+  },
+  {
+    title: "Form a first view",
+    body: "Adjust the LBO assumptions, review the screening score, and produce a sourced memo.",
+  },
+];
+
+const DOES = [
+  "Organises public filing and market data",
+  "Calculates transparent screening metrics",
+  "Lets you edit the key assumptions",
+  "Produces a structured first-pass memo",
+];
+
+const DOES_NOT = [
+  "Replace full investment due diligence",
+  "Verify management guidance",
+  "Model every transaction detail",
+  "Provide investment advice",
+];
 
 export default function LandingPage() {
   return (
-    // Full viewport height minus the h-12 top bar.
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 sm:px-8">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-16">
-        <Reveal>
-          <section className="relative overflow-hidden rounded-3xl bg-surface-sunken px-6 py-12 text-center sm:px-12 sm:py-14">
-            <HeroArcs />
-            <div className="relative">
-              <span className="inline-flex items-center rounded-full border border-line-strong px-3 py-1 text-[11px] font-medium tracking-wide text-ink-muted">
-                PUBLIC COMPANY ANALYSIS
-              </span>
-              <h1 className="mt-5 font-display text-3xl font-semibold leading-tight text-ink sm:text-[2.5rem]">
-                Investment Intelligence
-              </h1>
-              <p className="mx-auto mt-3 max-w-2xl text-base text-ink-secondary">
-                Analyze any US-listed company from its public filings: financial
-                statements, KPIs, valuation, a five-year LBO model, peer
-                comparables, and an investment memo. Every figure traces back to
-                its source.
-              </p>
+    <div className="px-4 py-12 sm:px-8 sm:py-16">
+      <div className="mx-auto w-full max-w-[1180px]">
+        {/* Author + heading + search: left-aligned, no centred hero. */}
+        <div className="max-w-2xl">
+          <Link
+            href="/about"
+            className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-ink-muted transition-colors hover:text-ink"
+          >
+            Built by Nikolas Savio
+          </Link>
+          <h1 className="mt-4 text-[2.5rem] font-semibold leading-[1.08] tracking-tight text-ink sm:text-[3.25rem]">
+            Company research you can check
+          </h1>
+          <p className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed text-ink-secondary">
+            Search a US-listed company and work through its filings, operating
+            KPIs, valuation, peer set, and a five-year LBO model. Every
+            calculated figure shows the source or assumption behind it.
+          </p>
 
-              <SearchBar
-                className="mx-auto mt-8 w-full max-w-xl text-left"
-                autoFocus
-                footer={SAMPLE_TICKERS.map((ticker) => (
-                  <Link
-                    key={ticker}
-                    href={`/company/${ticker}/dashboard`}
-                    className="rounded-full border border-line px-2.5 py-1 text-xs font-medium tabular-nums text-ink-muted transition-colors duration-150 hover:border-line-strong hover:text-ink"
-                  >
-                    {ticker}
-                  </Link>
-                ))}
-              />
-            </div>
-          </section>
-        </Reveal>
+          <SearchBar
+            className="mt-7"
+            autoFocus
+            placeholder="Search by company name or ticker"
+          />
 
-        <Reveal className="mt-12">
-          <div className="mx-auto max-w-2xl">
-            {POINTS.map((point, index) => (
-              <div key={point.title}>
-                {index > 0 && <div className="divider-dashed" />}
-                <div className="flex items-start gap-4 py-5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface text-ink-secondary">
-                    <point.Icon />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-semibold text-ink">
-                      {point.title}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-                      {point.body}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="mt-5 space-y-px">
+            {STARTERS.map((s) => (
+              <Link
+                key={s.ticker}
+                href={`/company/${s.ticker}/dashboard`}
+                className="group flex items-baseline gap-3 border-t border-line py-2.5 transition-colors hover:bg-brand-soft"
+              >
+                <span className="font-mono text-xs text-filed">{s.ticker}</span>
+                <span className="w-[4.5rem] shrink-0 text-sm font-medium text-ink">
+                  {s.name}
+                </span>
+                <span className="text-sm leading-snug text-ink-muted">
+                  {s.reason}
+                </span>
+              </Link>
             ))}
           </div>
-        </Reveal>
-      </div>
+        </div>
 
-      <Reveal className="mx-auto w-full max-w-3xl">
-        <Disclaimer />
-      </Reveal>
+        {/* Founder note: the one piece of editorial serif on the page. */}
+        <figure className="mt-14 max-w-2xl">
+          <figcaption className="font-mono text-xs uppercase tracking-wide text-ink-muted">
+            Why I built it
+          </figcaption>
+          <blockquote className="mt-3 font-display text-[1.2rem] leading-relaxed text-ink-secondary">
+            I wanted one place where I could move from public filings to a
+            first-pass investment view without copying figures across several
+            tools or losing track of where they came from. Investment
+            Intelligence is the result. It shows the work behind each output,
+            including the parts that remain incomplete.
+          </blockquote>
+        </figure>
+
+        {/* The research path: a real ordered sequence, not three feature cards. */}
+        <section className="mt-16">
+          <h2 className="text-sm font-semibold text-ink">How the work goes</h2>
+          <ol className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-3">
+            {WORKFLOW.map((step, i) => (
+              <li key={step.title} className="relative">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line-strong font-mono text-xs text-ink-secondary">
+                    {i + 1}
+                  </span>
+                  {i < WORKFLOW.length - 1 && (
+                    <span
+                      aria-hidden
+                      className="hidden h-px flex-1 bg-line sm:block"
+                    />
+                  )}
+                </div>
+                <h3 className="mt-3 text-[0.95rem] font-semibold text-ink">
+                  {step.title}
+                </h3>
+                <p className="mt-1 text-sm leading-snug text-ink-muted">
+                  {step.body}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* One live worked example, drawn from the real API. */}
+        <HomeWorkedExample />
+
+        {/* Honest scope. */}
+        <section className="mt-16 grid max-w-3xl gap-8 sm:grid-cols-2">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">
+              What the tool does
+            </h2>
+            <ul className="mt-3">
+              {DOES.map((d) => (
+                <li
+                  key={d}
+                  className="border-t border-line py-2 text-sm text-ink-secondary"
+                >
+                  {d}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">
+              What it does not do
+            </h2>
+            <ul className="mt-3">
+              {DOES_NOT.map((d) => (
+                <li
+                  key={d}
+                  className="border-t border-line py-2 text-sm text-ink-muted"
+                >
+                  {d}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <p className="mt-8 max-w-3xl text-sm text-ink-muted">
+          More on sources and formulas in the{" "}
+          <Link
+            href="/methodology"
+            className="text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
+          >
+            methodology
+          </Link>
+          , and what has changed in the{" "}
+          <Link
+            href="/changelog"
+            className="text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
+          >
+            changelog
+          </Link>
+          .
+        </p>
+
+        <div className="max-w-3xl">
+          <Disclaimer />
+        </div>
+      </div>
     </div>
   );
 }

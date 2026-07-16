@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.8.0";
 
 export interface Release {
   version: string;
@@ -12,8 +12,19 @@ export interface Release {
   changes: string[];
 }
 
-// Newest first. Keep entries factual — only features that actually shipped.
+// Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.8.0",
+    date: "16 July 2026",
+    title: "Research workspace",
+    changes: [
+      "Rebuilt the site around a research-workspace design: an author-led homepage, a live worked example on Apple, and a clearer path from search to memo.",
+      "Newly listed companies now appear in search as soon as they file with the SEC, and a company with no annual report yet shows a plain explanation instead of a blank page.",
+      "The SEC ticker index now refreshes on its own, so a fresh listing is no longer missed until the next deploy.",
+      "A methodology page and this changelog, so the sources and formulas behind each figure sit in one place.",
+    ],
+  },
   {
     version: "1.7.0",
     date: "3 July 2026",
