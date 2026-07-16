@@ -1005,7 +1005,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
               href="/register"
               title="Register"
               aria-label="Register"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white shadow-sm transition-all duration-150 hover:bg-teal-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:bg-teal-400 dark:text-teal-950 dark:hover:bg-teal-300"
+              className="flex h-9 w-9 items-center justify-center rounded bg-brand text-white transition-colors duration-150 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <svg {...iconAttrs()}>
                 <circle cx="6" cy="5.5" r="2.5" />
@@ -1015,17 +1015,17 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
             </Link>
           </div>
         ) : (
-          // Expanded: prominent teal CTAs (Register primary, Log in outline).
+          // Expanded: Register primary (green), Log in outline.
           <div className="mt-3 space-y-2 px-1">
             <Link
               href="/register"
-              className="flex w-full items-center justify-center rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-teal-700 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:bg-teal-400 dark:text-teal-950 dark:hover:bg-teal-300"
+              className="flex w-full items-center justify-center rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               Register
             </Link>
             <Link
               href="/login"
-              className="flex w-full items-center justify-center rounded-full border border-teal-600/40 px-4 py-2 text-sm font-medium text-teal-700 transition-colors duration-150 hover:border-teal-600 hover:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:border-teal-400/40 dark:text-teal-300 dark:hover:bg-teal-400/10"
+              className="flex w-full items-center justify-center rounded border border-line-strong px-4 py-2 text-sm font-medium text-brand-text transition-colors duration-150 hover:border-brand hover:bg-brand-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               Log in
             </Link>
