@@ -65,7 +65,13 @@ export default function AssumptionsPanel({
       )}
       <Card>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Assumptions</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Assumptions</h2>
+            <p className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] text-ink-muted">
+              <span className="inline-block h-2.5 w-2.5 rounded-[2px] border border-line-strong bg-assumption-soft" />
+              ochre cells are yours to edit
+            </p>
+          </div>
           <button
             type="button"
             onClick={onReset}

@@ -57,16 +57,19 @@ export default function AssumptionField({
     onChange(unit === "%" ? parsed / 100 : parsed);
   }
 
+  // Editable assumptions are ochre, never blue form fields (DESIGN.md: ochre is
+  // reserved for user-editable model inputs), and their values use the data
+  // font so they line up like a model sheet.
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-medium text-ink-secondary">
+      <span className="mb-1 block text-[11px] font-medium text-ink-secondary">
         {label}
       </span>
-      <span className="flex items-center rounded border border-line bg-surface-sunken transition-colors duration-150 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft">
+      <span className="flex items-center rounded-[3px] border border-line-strong bg-assumption-soft transition-colors duration-150 focus-within:border-assumption focus-within:ring-1 focus-within:ring-assumption">
         <input
           type="number"
           inputMode="decimal"
-          className="w-full min-w-0 rounded bg-transparent px-2 py-1.5 text-right text-sm tabular-nums outline-none"
+          className="w-full min-w-0 rounded-[3px] bg-transparent px-2 py-1.5 text-right font-mono text-[13px] tabular-nums text-ink outline-none"
           value={text}
           step={step}
           min={min}
@@ -74,7 +77,7 @@ export default function AssumptionField({
           onChange={handleChange}
         />
         {unit !== "" && (
-          <span className="pr-2 text-xs text-ink-muted">{unit}</span>
+          <span className="pr-2 font-mono text-[11px] text-assumption">{unit}</span>
         )}
       </span>
     </label>
