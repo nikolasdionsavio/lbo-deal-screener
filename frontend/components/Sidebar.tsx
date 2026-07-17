@@ -17,7 +17,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
-import Logo from "@/components/Logo";
+import Wordmark from "@/components/chrome/Wordmark";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { APP_VERSION } from "@/lib/version";
@@ -349,28 +349,33 @@ function ChevronRightIcon({ className }: IconProps) {
 // Company-scoped pages. `slug` builds the default /company/{ticker}/{slug}
 // href; an optional `build` overrides it for pages that live outside that tree
 // (the IC one-pager renders chrome-free at /onepager/{ticker}).
+// Grouped by research stage, not a flat equal menu (DESIGN.md): the analysis
+// path first, then the market view, then the export. KPIs -> Operations and
+// Deal Score -> Screening score match the redesigned pages.
 const COMPANY_PAGES: {
   slug: string;
   label: string;
+  group: string;
   Icon: ComponentType<IconProps>;
   build?: (ticker: string) => string;
 }[] = [
-  { slug: "dashboard", label: "Dashboard", Icon: GridIcon },
-  { slug: "kpis", label: "KPIs", Icon: PercentIcon },
-  { slug: "financials", label: "Financials", Icon: TableIcon },
-  { slug: "valuation", label: "Valuation", Icon: ScalesIcon },
-  { slug: "analysts", label: "Analysts", Icon: TargetIcon },
-  { slug: "ownership", label: "Ownership", Icon: PieIcon },
-  { slug: "dividends", label: "Dividends", Icon: CoinsIcon },
-  { slug: "peers", label: "Peer Comps", Icon: PeopleIcon },
-  { slug: "lbo", label: "LBO Model", Icon: CalculatorIcon },
-  { slug: "score", label: "Deal Score", Icon: GaugeIcon },
-  { slug: "risks", label: "Risks", Icon: ShieldIcon },
-  { slug: "memo", label: "Memo", Icon: DocumentIcon },
-  { slug: "news", label: "News", Icon: NewspaperIcon },
+  { slug: "dashboard", label: "Overview", group: "Analysis", Icon: GridIcon },
+  { slug: "kpis", label: "Operations", group: "Analysis", Icon: PercentIcon },
+  { slug: "financials", label: "Financials", group: "Analysis", Icon: TableIcon },
+  { slug: "valuation", label: "Valuation", group: "Analysis", Icon: ScalesIcon },
+  { slug: "peers", label: "Peers", group: "Analysis", Icon: PeopleIcon },
+  { slug: "lbo", label: "LBO", group: "Analysis", Icon: CalculatorIcon },
+  { slug: "score", label: "Screening score", group: "Analysis", Icon: GaugeIcon },
+  { slug: "memo", label: "Memo", group: "Analysis", Icon: DocumentIcon },
+  { slug: "news", label: "News", group: "Analysis", Icon: NewspaperIcon },
+  { slug: "analysts", label: "Analysts", group: "Market view", Icon: TargetIcon },
+  { slug: "ownership", label: "Ownership", group: "Market view", Icon: PieIcon },
+  { slug: "dividends", label: "Dividends", group: "Market view", Icon: CoinsIcon },
+  { slug: "risks", label: "Risks", group: "Market view", Icon: ShieldIcon },
   {
     slug: "onepager",
-    label: "IC One-Pager",
+    label: "IC one-pager",
+    group: "Export",
     Icon: PrinterIcon,
     build: (ticker) => `/onepager/${encodeURIComponent(ticker)}`,
   },
@@ -499,11 +504,14 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
 function linkClass(active: boolean, collapsed: boolean): string {
   const shape = collapsed
     ? "h-9 w-10 justify-center"
-    : "gap-2.5 px-3 py-1.5";
-  return `flex items-center rounded border text-sm transition-colors duration-150 ${shape} ${
+    : "gap-2.5 py-1.5 pl-2.5 pr-3";
+  // Selected item: a 2px accent line + a faint accent wash + a small weight
+  // bump (DESIGN.md application shell). No pill, no raised card. The left
+  // border stays 2px in both states so geometry never shifts.
+  return `flex items-center border-l-2 text-[0.8125rem] transition-colors duration-150 ${shape} ${
     active
-      ? "border-line bg-surface font-medium text-ink shadow-card"
-      : "border-transparent text-ink-muted hover:bg-brand-soft hover:text-ink"
+      ? "border-l-brand bg-brand-soft font-medium text-ink"
+      : "border-l-transparent text-ink-secondary hover:bg-brand-soft hover:text-ink"
   }`;
 }
 
@@ -821,27 +829,17 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
           <div className="flex flex-col items-center gap-3">
             <Link
               href="/"
-              className="flex justify-center"
+              className="font-display text-[1.1rem] font-semibold leading-none text-ink"
               aria-label="Investment Intelligence home"
               title="Investment Intelligence"
             >
-              <Logo size={24} />
+              II
             </Link>
             {toggleButton}
           </div>
         ) : (
           <div className="flex items-start justify-between gap-2">
-            <Link href="/" className="flex min-w-0 items-center gap-2.5">
-              <Logo size={26} className="shrink-0" />
-              <span className="min-w-0">
-                <span className="block text-[15px] font-semibold leading-tight text-ink">
-                  Investment Intelligence
-                </span>
-                <span className="mt-0.5 block text-xs text-ink-muted">
-                  Public company analysis
-                </span>
-              </span>
-            </Link>
+            <Wordmark size="compact" />
             {!isDrawer && <span className="shrink-0">{toggleButton}</span>}
           </div>
         )}
@@ -876,10 +874,18 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
                 collapsed ? "flex flex-col items-center" : ""
               }`}
             >
-              {COMPANY_PAGES.map((page) => {
+              {COMPANY_PAGES.map((page, i) => {
                 const href = companyHref(page, ticker);
+                const showGroup =
+                  !collapsed &&
+                  (i === 0 || COMPANY_PAGES[i - 1].group !== page.group);
                 return (
-                  <li key={page.slug}>
+                  <li key={page.slug} className={showGroup ? "pt-2 first:pt-0" : ""}>
+                    {showGroup && (
+                      <div className="px-2.5 pb-1 pt-1 font-mono text-[10px] uppercase tracking-[0.04em] text-ink-muted">
+                        {page.group}
+                      </div>
+                    )}
                     <Link
                       href={href}
                       className={linkClass(pathname === href, collapsed)}
