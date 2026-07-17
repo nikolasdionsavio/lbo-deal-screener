@@ -6,7 +6,10 @@
 // The 14 KPIs render as one table with four quiet group subheads
 // (BUILD_SPEC section 19.7): Growth, Margins, Cash flow, Leverage & returns.
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
+import SourceDrawer, {
+  type SourceRecord,
+} from "@/components/source/SourceDrawer";
 import CapitalReturnsChart from "@/components/charts/CapitalReturnsChart";
 import MarginChart, {
   type MarginSeries,
@@ -71,7 +74,28 @@ function inputsTitle(kpi: TracedValue, currency: string | null): string {
   );
 }
 
-function kpiColumns(currency: string | null): Column<TracedValue>[] {
+/** A KPI as a source record: it is a calculated value, so the drawer leads with
+ *  the formula and lists each reported input. */
+function kpiRecord(kpi: TracedValue, currency: string | null): SourceRecord {
+  return {
+    metric: kpi.label,
+    displayValue: fmtTraced(kpi, currency),
+    classification: "calculated",
+    period: kpi.period,
+    statement: "Operating & credit KPI",
+    formula: kpi.formula,
+    inputs: kpi.inputs.map((input) => ({
+      label: `${input.field} · ${input.period}`,
+      value: fmtInputValue(input.value, currency),
+    })),
+    note: "Computed by the app from filed figures. Each input is a reported line item; open Financials to see them in the statements.",
+  };
+}
+
+function kpiColumns(
+  currency: string | null,
+  onInspect: (record: SourceRecord) => void,
+): Column<TracedValue>[] {
   return [
     {
       key: "kpi",
@@ -100,14 +124,21 @@ function kpiColumns(currency: string | null): Column<TracedValue>[] {
       key: "value",
       header: "Value",
       numeric: true,
-      render: (kpi) => (
-        <span
-          className="font-medium text-ink"
-          title={kpi.value === null ? "Not available" : undefined}
-        >
-          {fmtTraced(kpi, currency)}
-        </span>
-      ),
+      render: (kpi) =>
+        kpi.value === null ? (
+          <span className="font-mono text-ink-muted" title="Not available">
+            n/a
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onInspect(kpiRecord(kpi, currency))}
+            title={`${kpi.label} — calculated. Open source record.`}
+            className="font-mono font-medium text-ink underline decoration-line-strong decoration-dotted underline-offset-[3px] transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            {fmtTraced(kpi, currency)}
+          </button>
+        ),
     },
     {
       key: "period",
@@ -151,11 +182,13 @@ const KPI_GROUPS: { label: string; keys: string[] }[] = [
 function GroupedKpiTable({
   kpis,
   currency,
+  onInspect,
 }: {
   kpis: TracedValue[];
   currency: string | null;
+  onInspect: (record: SourceRecord) => void;
 }) {
-  const columns = kpiColumns(currency);
+  const columns = kpiColumns(currency, onInspect);
   const byKey = new Map(kpis.map((kpi) => [kpi.key, kpi]));
   const groups = KPI_GROUPS.map((group) => ({
     label: group.label,
@@ -194,7 +227,7 @@ function GroupedKpiTable({
                 <th
                   colSpan={columns.length}
                   scope="colgroup"
-                  className="px-3 pb-1.5 pt-4 text-left text-[11px] font-medium uppercase tracking-wide text-ink-muted"
+                  className="px-3 pb-1.5 pt-4 text-left font-mono text-[10px] uppercase tracking-[0.04em] text-ink-muted"
                 >
                   {group.label}
                 </th>
@@ -250,6 +283,7 @@ export default function KpisPage() {
     () => getKpis(ticker),
     [ticker],
   );
+  const [record, setRecord] = useState<SourceRecord | null>(null);
 
   if (loading) {
     return <LoadingState lines={8} />;
@@ -303,9 +337,14 @@ export default function KpisPage() {
           subtitle="Fourteen traced metrics; every value carries its formula, inputs, and period."
         />
         <Card>
-          <GroupedKpiTable kpis={data.kpis} currency={currency} />
+          <GroupedKpiTable
+            kpis={data.kpis}
+            currency={currency}
+            onInspect={setRecord}
+          />
           <p className="mt-3 text-xs text-ink-muted">
-            Hover a KPI name to see the inputs behind the calculation.
+            Click any value for its source record: the formula and the reported
+            inputs behind it.
           </p>
         </Card>
       </section>
@@ -318,7 +357,7 @@ export default function KpisPage() {
           />
           <Card>
             <DataTable
-              columns={kpiColumns(currency)}
+              columns={kpiColumns(currency, setRecord)}
               rows={diagnostics}
               rowKey={(kpi) => kpi.key}
             />
@@ -381,6 +420,7 @@ export default function KpisPage() {
       )}
 
       <Disclaimer />
+      <SourceDrawer record={record} onClose={() => setRecord(null)} />
     </div>
   );
 }
