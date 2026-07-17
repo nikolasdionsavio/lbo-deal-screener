@@ -10,6 +10,9 @@ import { useCompany } from "@/components/company/CompanyContext";
 import StatementTable, {
   type StatementKey,
 } from "@/components/financials/StatementTable";
+import SourceDrawer, {
+  type SourceRecord,
+} from "@/components/source/SourceDrawer";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import ErrorState from "@/components/ui/ErrorState";
@@ -19,6 +22,13 @@ import WarningList from "@/components/ui/WarningList";
 import { getStatements } from "@/lib/api";
 import { fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+
+/** The issuer's filing list on SEC EDGAR (accepts a ticker as the CIK param). */
+function edgarFilingsUrl(ticker: string): string {
+  return `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(
+    ticker,
+  )}&type=10-K&dateb=&owner=include&count=40`;
+}
 
 const TABS: { key: StatementKey; label: string }[] = [
   { key: "income_statement", label: "Income statement" },
@@ -94,6 +104,7 @@ export default function FinancialsPage() {
   const { profile } = useCompany();
   const ticker = profile.ticker;
   const [active, setActive] = useState<StatementKey>("income_statement");
+  const [record, setRecord] = useState<SourceRecord | null>(null);
 
   const { data, error, loading, retry } = useApi(
     () => getStatements(ticker),
@@ -155,34 +166,34 @@ export default function FinancialsPage() {
         <WarningList warnings={data.warnings} className="mb-4" />
 
         {yearCount === 0 ? (
-          <Card>
-            <p className="text-sm text-ink-muted">
-              No filed annual statements are available for {ticker}.
-            </p>
-          </Card>
+          <p className="border-t border-line py-4 text-sm text-ink-muted">
+            No filed annual statements are available for {ticker}.
+          </p>
         ) : (
           <>
             <StatementTabs active={active} onChange={setActive} />
-            <Card className="mt-4">
-              <div
-                id="statement-panel"
-                role="tabpanel"
-                aria-labelledby={`statement-tab-${active}`}
-              >
-                <StatementTable
-                  statement={active}
-                  years={years}
-                  currency={data.currency ?? null}
-                />
-              </div>
-            </Card>
+            <div
+              id="statement-panel"
+              role="tabpanel"
+              aria-labelledby={`statement-tab-${active}`}
+              className="mt-4"
+            >
+              <StatementTable
+                statement={active}
+                years={years}
+                currency={data.currency ?? null}
+                onInspect={setRecord}
+                filingsUrl={edgarFilingsUrl(ticker)}
+              />
+            </div>
             <p className="mt-3 text-xs text-ink-muted">
-              Annual figures as filed; the LBO page carries the forward case.
+              Annual figures as filed. The LBO page carries the forward case.
             </p>
           </>
         )}
       </section>
 
+      <SourceDrawer record={record} onClose={() => setRecord(null)} />
       <Disclaimer />
     </div>
   );

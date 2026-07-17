@@ -20,8 +20,15 @@ import type {
   StatementYear,
 } from "@/lib/types";
 import { fmtDate, fmtPerShare, fmtShareCount } from "@/lib/format";
+import type { SourceRecord } from "@/components/source/SourceDrawer";
 
 export type StatementKey = "income_statement" | "balance_sheet" | "cash_flow";
+
+const STATEMENT_LABEL: Record<StatementKey, string> = {
+  income_statement: "Income statement",
+  balance_sheet: "Balance sheet",
+  cash_flow: "Cash flow statement",
+};
 
 type RowStyle = "item" | "subtotal" | "strong";
 type RowFormat = "money" | "per_share" | "shares";
@@ -213,6 +220,10 @@ interface StatementTableProps {
   years: StatementYear[];
   currency: string | null;
   className?: string;
+  /** Opens the source record for a cell (makes values clickable). */
+  onInspect?: (record: SourceRecord) => void;
+  /** SEC EDGAR filing list for the issuer, linked from each source record. */
+  filingsUrl?: string;
 }
 
 export default function StatementTable({
@@ -220,6 +231,8 @@ export default function StatementTable({
   years,
   currency,
   className = "",
+  onInspect,
+  filingsUrl,
 }: StatementTableProps) {
   // Hide rows that carry no value in any shown year (older backends and
   // sparse filers simply lack the line).
@@ -275,7 +288,7 @@ export default function StatementTable({
                 >
                   <th
                     scope="row"
-                    className={`${STICKY_CELL} py-2 pr-3 text-left font-normal ${
+                    className={`${STICKY_CELL} h-8 py-0 pr-3 text-left font-normal group-hover:text-ink ${
                       line.indent === true ? "pl-7" : "pl-3"
                     } ${ROW_TEXT[style]}`}
                   >
@@ -285,21 +298,66 @@ export default function StatementTable({
                     const value = lineValue(year, statement, line.key);
                     const derived =
                       value !== null && year.derived_fields.includes(line.key);
+                    const display = fmtCell(value, line, scale, currency);
+
+                    if (value === null) {
+                      return (
+                        <td
+                          key={year.fiscal_year}
+                          className="h-8 whitespace-nowrap px-3 py-0 text-right font-mono text-[12px] tabular-nums text-ink-muted"
+                          title="Not reported for this period"
+                        >
+                          n/a
+                        </td>
+                      );
+                    }
+
+                    const cellText = `font-mono text-[12px] tabular-nums group-hover:text-ink ${ROW_TEXT[style]}`;
+                    // Calculated values carry a dotted underline; filed values
+                    // are plain ink (DESIGN.md source-state treatment).
+                    const mark = derived
+                      ? "underline decoration-dotted decoration-line-strong underline-offset-[3px]"
+                      : "";
+
+                    if (!onInspect) {
+                      return (
+                        <td
+                          key={year.fiscal_year}
+                          className={`h-8 whitespace-nowrap px-3 py-0 text-right ${cellText}`}
+                        >
+                          <span className={mark}>{display}</span>
+                        </td>
+                      );
+                    }
+
                     return (
                       <td
                         key={year.fiscal_year}
-                        className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${ROW_TEXT[style]}`}
-                        title={value === null ? "Not available" : undefined}
+                        className={`h-8 whitespace-nowrap p-0 text-right ${cellText}`}
                       >
-                        {fmtCell(value, line, scale, currency)}
-                        {derived && (
-                          <sup
-                            className="ml-0.5 text-[10px] text-ink-muted"
-                            title="Derived from filed figures"
-                          >
-                            †
-                          </sup>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onInspect(
+                              buildRecord(
+                                line,
+                                year,
+                                statement,
+                                display,
+                                scale,
+                                currency,
+                                derived,
+                                filingsUrl,
+                              ),
+                            )
+                          }
+                          title={`${line.label} — ${
+                            derived ? "calculated" : "filed"
+                          }. Open source record.`}
+                          className="h-8 w-full px-3 text-right transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent"
+                        >
+                          <span className={mark}>{display}</span>
+                        </button>
                       </td>
                     );
                   })}
@@ -309,11 +367,67 @@ export default function StatementTable({
           </tbody>
         </table>
       </div>
-      {hasDerived && (
-        <p className="mt-2 text-xs text-ink-muted">
-          † derived from filed figures
-        </p>
-      )}
+      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-2 font-mono text-[11px] text-ink-muted">
+        <span>
+          <span className="text-ink-secondary">Filed</span> plain ·{" "}
+          <span className="underline decoration-dotted decoration-line-strong underline-offset-2">
+            Calculated
+          </span>{" "}
+          dotted · <span>n/a</span> not reported
+        </span>
+        {onInspect && <span>Click any figure for its source record</span>}
+      </p>
     </div>
   );
+}
+
+// Known derivations, shown in the source record for calculated lines. The
+// /statements API flags a value as derived but does not return the exact tag;
+// these are the app's documented reconstructions.
+const FORMULA_BY_KEY: Record<string, string> = {
+  gross_profit: "Revenue − cost of revenue",
+  operating_income: "Gross profit − operating expenses",
+  ebitda: "Operating income + depreciation & amortization",
+  pretax_income: "Operating income − interest expense",
+  net_income: "Pretax income − tax expense",
+  total_debt: "Short-term debt + long-term debt",
+  free_cash_flow: "Operating cash flow − capital expenditure",
+};
+
+function buildRecord(
+  line: LineDef,
+  year: StatementYear,
+  statement: StatementKey,
+  display: string,
+  scale: Scale,
+  currency: string | null,
+  derived: boolean,
+  filingsUrl?: string,
+): SourceRecord {
+  const unit =
+    line.format === "per_share"
+      ? `${currency ?? "USD"} per share`
+      : line.format === "shares"
+        ? "share count (millions)"
+        : scale.label;
+  const period = `FY${year.fiscal_year}${
+    year.period_end ? ` · period ended ${fmtDate(year.period_end)}` : ""
+  }`;
+  return {
+    metric: line.label,
+    displayValue: display,
+    classification: derived ? "calculated" : "filed",
+    period,
+    unit,
+    statement: STATEMENT_LABEL[statement],
+    filing: "Annual report (10-K / 20-F / 40-F)",
+    formula: derived
+      ? (FORMULA_BY_KEY[line.key] ?? "Derived from other filed figures")
+      : undefined,
+    sourceUrl: filingsUrl,
+    sourceLabel: "See the company's filings on SEC EDGAR",
+    note: derived
+      ? "This figure is calculated by the app from filed line items. The exact XBRL tag is not shown here; open the filing to see the reported components."
+      : "Reported in the company's annual filing. Open the filing on SEC EDGAR to see it in context.",
+  };
 }

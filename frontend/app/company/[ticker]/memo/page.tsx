@@ -6,10 +6,9 @@
 // Save to watchlist requires auth; 409 is treated as already saved.
 
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import MemoRenderer from "@/components/memo/MemoRenderer";
-import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
 import ErrorState from "@/components/ui/ErrorState";
 import LoadingState from "@/components/ui/LoadingState";
@@ -111,21 +110,36 @@ function SaveToWatchlist({ ticker }: { ticker: string }) {
 }
 
 function MemoSectionBlock({ section }: { section: MemoSection }) {
+  // Shaded note block, reserved for missing evidence / gaps (DESIGN.md).
   if (section.key === "data_gaps") {
     return (
-      <section className="rounded-lg bg-warn-soft p-5">
-        <h2 className="font-display text-lg font-semibold text-warn-text">
+      <section className="border border-warn-soft bg-warn-soft px-4 py-3">
+        <h2 className="text-[0.8125rem] font-semibold text-warn-text">
           {section.title}
         </h2>
-        <MemoRenderer content={section.content} tone="warn" className="mt-3" />
+        <MemoRenderer content={section.content} tone="warn" className="mt-2" />
       </section>
     );
   }
   return (
     <section>
-      <SectionHeader title={section.title} variant="document" className="mb-2" />
-      <MemoRenderer content={section.content} />
+      <h2 className="text-[1.0625rem] font-semibold text-ink">
+        {section.title}
+      </h2>
+      <MemoRenderer content={section.content} className="mt-2" />
     </section>
+  );
+}
+
+/** One labelled row in the memo metadata rail. */
+function RailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="border-t border-line py-2.5">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.03em] text-ink-muted">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-[0.8125rem] text-ink">{children}</dd>
+    </div>
   );
 }
 
@@ -165,40 +179,78 @@ export default function MemoPage() {
     );
   }
 
+  const gaps = data.sections.find((s) => s.key === "data_gaps");
+
   return (
-    // key forces a remount at the loading→content swap (150ms fade-in).
-    <div key="content" className="fade-in max-w-3xl">
-      <header className="mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="font-display text-[1.375rem] font-semibold leading-snug text-ink">
-              Investment memo
-            </h2>
-            <RatingBadge rating={data.rating} />
-          </div>
-          <SaveToWatchlist ticker={ticker} />
+    <div key="content" className="fade-in">
+      <header className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-5">
+        <div>
+          <h2 className="font-display text-[1.625rem] font-semibold leading-snug text-ink">
+            First-pass investment memo
+          </h2>
+          <p className="mt-1 font-mono text-[11px] text-ink-muted">
+            {profile.name} · {ticker}
+            {profile.exchange ? ` · ${profile.exchange}` : ""}
+          </p>
         </div>
-        <p className="mt-2 text-sm text-ink-muted">
-          Generated {fmtDateTime(data.generated_at)}
-        </p>
-        <p className="mt-1 text-sm text-ink-muted">{data.disclaimer}</p>
-        <p className="mt-1 text-xs text-ink-muted">
-          Built from the figures on these pages at default LBO assumptions.
-          Anything missing is stated as missing.
-        </p>
+        <SaveToWatchlist ticker={ticker} />
       </header>
 
-      <Card>
-        {/* Memo sections separated by dashed dividers (Aesthetic v2). */}
-        <article>
-          {data.sections.map((section, index) => (
-            <Fragment key={section.key}>
-              {index > 0 && <div className="divider-dashed my-7" />}
-              <MemoSectionBlock section={section} />
-            </Fragment>
-          ))}
+      {/* Reading column + narrow metadata rail (DESIGN.md memo layout). */}
+      <div className="mt-8 gap-10 lg:grid lg:grid-cols-[minmax(0,720px)_13rem]">
+        <article className="max-w-[720px] space-y-7">
+          {data.sections
+            .filter((s) => s.key !== "data_gaps")
+            .map((section) => (
+              <MemoSectionBlock key={section.key} section={section} />
+            ))}
+          {gaps && <MemoSectionBlock section={gaps} />}
+          <p className="border-t border-line pt-4 text-[0.8125rem] text-ink-muted">
+            {data.disclaimer}
+          </p>
         </article>
-      </Card>
+
+        <aside className="mt-10 lg:mt-0">
+          <div className="lg:sticky lg:top-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-muted">
+              About this draft
+            </p>
+            <dl className="mt-2">
+              <RailRow label="Rating">
+                <RatingBadge rating={data.rating} />
+              </RailRow>
+              <RailRow label="Fiscal period">
+                <span className="font-mono">
+                  {profile.latest_fiscal_year
+                    ? `FY${profile.latest_fiscal_year}`
+                    : "n/a"}
+                </span>
+              </RailRow>
+              <RailRow label="Generated">
+                <span className="font-mono">
+                  {fmtDateTime(data.generated_at)}
+                </span>
+              </RailRow>
+              <RailRow label="Assumptions">Default LBO case</RailRow>
+              <RailRow label="Missing inputs">
+                {gaps ? "Noted in the draft" : "None flagged"}
+              </RailRow>
+              <RailRow label="Sources">
+                <Link
+                  href={`/company/${ticker}/financials`}
+                  className="text-link underline decoration-line-strong underline-offset-2 hover:text-link-hover"
+                >
+                  Filed financials
+                </Link>
+              </RailRow>
+            </dl>
+            <p className="mt-3 text-[0.75rem] leading-snug text-ink-muted">
+              Assembled from the figures on the analysis pages at the default
+              LBO case. Anything missing is stated as missing, not filled in.
+            </p>
+          </div>
+        </aside>
+      </div>
 
       <Disclaimer />
     </div>
