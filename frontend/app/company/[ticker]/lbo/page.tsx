@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCompany } from "@/components/company/CompanyContext";
 import AssumptionsPanel from "@/components/lbo/AssumptionsPanel";
@@ -14,12 +14,10 @@ import Disclaimer from "@/components/ui/Disclaimer";
 import ErrorState from "@/components/ui/ErrorState";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionHeader from "@/components/ui/SectionHeader";
-import StatCard from "@/components/ui/StatCard";
 import WarningList from "@/components/ui/WarningList";
 import { getLboDefaults, runLbo } from "@/lib/api";
 import { fmtCurrency, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi, useDebounced } from "@/lib/hooks";
-import { useCountUp } from "@/lib/useCountUp";
 import type {
   LboAssumptions,
   LboEntry,
@@ -102,8 +100,8 @@ function yearColumns(currency: string | null): Column<LboYear>[] {
   ];
 }
 
-/** IRR/MoM hero value: counts up once on first mount (motion pass);
- *  recomputes after edits render directly. */
+/** IRR/MoM headline value. Rendered directly, never counted up (DESIGN.md
+ *  motion: no number-count animation). */
 function HeroFigure({
   value,
   format,
@@ -111,20 +109,109 @@ function HeroFigure({
   value: number | null;
   format: (value: number | null) => string;
 }) {
-  const text = useCountUp(value, format);
-  return <span className="text-3xl">{text}</span>;
+  return (
+    <div className="mt-1 font-mono text-[2rem] leading-none tabular-nums text-ink">
+      {format(value)}
+    </div>
+  );
 }
 
+/** One aligned output figure: label over a data-font value, no card. */
 function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-semibold tabular-nums text-ink">
+      <div className="text-[11px] text-ink-muted">{label}</div>
+      <div className="mt-1 font-mono text-[0.9375rem] tabular-nums text-ink">
         {value}
       </div>
     </div>
+  );
+}
+
+// Named for the change statement shown after an edit. Arrays (per-year growth /
+// margin) are reported generically; the first changed scalar names itself.
+const ASSUMPTION_LABELS: { key: string; label: string; unit: "x" | "%" | "" }[] = [
+  { key: "entry_multiple", label: "Entry multiple", unit: "x" },
+  { key: "debt_multiple", label: "Debt multiple", unit: "x" },
+  { key: "exit_multiple", label: "Exit multiple", unit: "x" },
+  { key: "entry_leverage_pct", label: "Leverage", unit: "%" },
+  { key: "tax_rate", label: "Tax rate", unit: "%" },
+  { key: "interest_rate", label: "Interest rate", unit: "%" },
+  { key: "capex_pct_revenue", label: "Capex", unit: "%" },
+  { key: "nwc_pct_revenue", label: "Change in NWC", unit: "%" },
+  { key: "mandatory_repayment_pct", label: "Mandatory repayment", unit: "%" },
+  { key: "transaction_fee_pct", label: "Transaction fees", unit: "%" },
+  { key: "holding_period", label: "Holding period", unit: "" },
+];
+
+function fmtAssume(v: number, unit: "x" | "%" | ""): string {
+  if (unit === "%") return `${(v * 100).toFixed(1)}%`;
+  if (unit === "x") return `${v.toFixed(1)}x`;
+  return `${v}`;
+}
+
+/** The first changed scalar assumption, named as "X changed from A to B". */
+function diffAssumptions(
+  prev: LboAssumptions,
+  curr: LboAssumptions,
+): string | null {
+  for (const { key, label, unit } of ASSUMPTION_LABELS) {
+    const a = (prev as unknown as Record<string, unknown>)[key];
+    const b = (curr as unknown as Record<string, unknown>)[key];
+    if (typeof a === "number" && typeof b === "number" && Math.abs(a - b) > 1e-9) {
+      return `${label} changed from ${fmtAssume(a, unit)} to ${fmtAssume(b, unit)}`;
+    }
+  }
+  return null;
+}
+
+/** After an edit, states precisely what changed and how the return moved
+ *  (DESIGN.md). Its own component so the page's early returns never gate a
+ *  hook. No number-count animation; the value simply updates. */
+function ChangeNote({ lbo }: { lbo: LboResponse | null }) {
+  const prev = useRef<{
+    assumptions: LboAssumptions;
+    irr: number | null;
+    mom: number | null;
+  } | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!lbo) return;
+    const curr = {
+      assumptions: lbo.assumptions,
+      irr: lbo.exit.irr,
+      mom: lbo.exit.mom,
+    };
+    const before = prev.current;
+    if (before) {
+      const what = diffAssumptions(before.assumptions, curr.assumptions);
+      const moved = before.irr !== curr.irr || before.mom !== curr.mom;
+      if (what || moved) {
+        const parts: string[] = [];
+        if (what) parts.push(`${what}.`);
+        if (moved) {
+          parts.push(
+            `Five-year IRR ${fmtPercent(before.irr)} → ${fmtPercent(
+              curr.irr,
+            )}, MoM ${fmtMom(before.mom)} → ${fmtMom(curr.mom)}.`,
+          );
+        }
+        setNote(parts.join(" "));
+      }
+    }
+    prev.current = curr;
+  }, [lbo]);
+
+  if (note === null) return null;
+  return (
+    <p
+      className="border-y border-line py-2 font-mono text-[11px] leading-relaxed text-ink-secondary"
+      role="status"
+      aria-live="polite"
+    >
+      {note}
+    </p>
   );
 }
 
@@ -349,6 +436,7 @@ export default function LboPage() {
   return (
     <div className="space-y-6">
       {header}
+      <ChangeNote lbo={lbo} />
 
       {lbo && lbo.warnings.length > 0 && <WarningList warnings={lbo.warnings} />}
 
@@ -389,8 +477,8 @@ export default function LboPage() {
                         )} of opening debt`
                   }
                 />
-                <Card>
-                  <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <div className="grid gap-x-10 gap-y-3 border-y border-line py-4 sm:grid-cols-3">
                     <Figure
                       label="Entry EV"
                       value={fmtCurrency(lbo.entry.entry_ev, currency)}
@@ -414,7 +502,7 @@ export default function LboPage() {
                     {fmtCurrency(lbo.entry.entry_ebitda, currency)} on revenue{" "}
                     {fmtCurrency(lbo.entry.entry_revenue, currency)}.
                   </p>
-                </Card>
+                </div>
               </section>
 
               <section className="divider-dashed mt-8 pt-8">
@@ -426,35 +514,34 @@ export default function LboPage() {
                     lbo.assumptions.holding_period === 1 ? "year" : "years"
                   }`}
                 />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <StatCard
-                    label="IRR"
-                    value={
-                      <HeroFigure value={lbo.exit.irr} format={fmtPercent} />
-                    }
-                    sub="Internal rate of return on sponsor equity"
-                  />
-                  <StatCard
-                    label="MoM"
-                    value={<HeroFigure value={lbo.exit.mom} format={fmtMom} />}
-                    sub="Multiple of money, exit equity over sponsor equity"
-                  />
+                <div className="grid gap-x-10 gap-y-5 border-y border-line py-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-[11px] text-ink-muted">IRR</div>
+                    <HeroFigure value={lbo.exit.irr} format={fmtPercent} />
+                    <div className="mt-1.5 text-xs text-ink-muted">
+                      Internal rate of return on sponsor equity
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-ink-muted">MoM</div>
+                    <HeroFigure value={lbo.exit.mom} format={fmtMom} />
+                    <div className="mt-1.5 text-xs text-ink-muted">
+                      Multiple of money, exit equity over sponsor equity
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <StatCard
+                <div className="mt-5 grid gap-x-10 gap-y-3 sm:grid-cols-3">
+                  <Figure
                     label="Exit EBITDA"
                     value={fmtCurrency(lbo.exit.exit_ebitda, currency)}
-                    sub={`Year ${lbo.assumptions.holding_period} EBITDA`}
                   />
-                  <StatCard
+                  <Figure
                     label="Exit EV"
                     value={fmtCurrency(lbo.exit.exit_ev, currency)}
-                    sub="Exit multiple × exit EBITDA"
                   />
-                  <StatCard
+                  <Figure
                     label="Exit equity"
                     value={fmtCurrency(lbo.exit.exit_equity, currency)}
-                    sub="Exit EV − ending debt + ending cash"
                   />
                 </div>
 
