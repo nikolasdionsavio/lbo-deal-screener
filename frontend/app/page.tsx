@@ -1,56 +1,54 @@
 "use client";
 
-// Landing page (redesign 2026): author-led, not feature-led. A person built a
-// research tool; the page opens with who, why, and a working search, then a
-// real research path, one live worked example, and an honest statement of what
-// the tool does and does not do. No marketing hero, no feature cards.
+// Landing (DESIGN.md: annotated analyst workbook, public density).
+// Asymmetric opening: the authored statement on the left, the working search on
+// the right. Then one annotated research sheet, a note from Nikolas, the real
+// research path, and an honest statement of scope. No SaaS hero, no feature
+// cards, no centred column.
 
 import Link from "next/link";
 import SearchBar from "@/components/search/SearchBar";
 import HomeWorkedExample from "@/components/landing/HomeWorkedExample";
 import Disclaimer from "@/components/ui/Disclaimer";
 
-// Three real starting points. Each reason is supported by the data the tool
+// Three real starting points. Each note is supported by the data this tool
 // actually returns for that company (checked against the live API).
 const STARTERS = [
   {
     ticker: "AAPL",
     name: "Apple",
-    reason:
-      "A large, cash-generative business. A good test of how the screen weighs operating quality against a high entry price.",
+    note: "Large and cash-generative. Shows how the screen weighs operating quality against a high entry price.",
   },
   {
     ticker: "HD",
     name: "Home Depot",
-    reason:
-      "A retailer with steady margins and tight working capital to read across the cycle.",
+    note: "Steady margins and tight working capital to read across the cycle.",
   },
   {
     ticker: "DE",
     name: "Deere",
-    reason:
-      "A cyclical industrial with a financing arm, so the statements need more care.",
+    note: "A cyclical industrial with a financing arm, so the statements need more care.",
   },
 ];
 
 const WORKFLOW = [
   {
     title: "Understand the business",
-    body: "Review the description, filings, market data, and operating history.",
+    body: "Read the description, the filings, market data, and the operating history.",
   },
   {
     title: "Test the economics",
-    body: "Inspect KPIs, financial statements, valuation, and comparable companies.",
+    body: "Inspect the KPIs, the filed statements, valuation, and the peer set.",
   },
   {
     title: "Form a first view",
-    body: "Adjust the LBO assumptions, review the screening score, and produce a sourced memo.",
+    body: "Adjust the LBO assumptions, read the screening score, and produce a sourced memo.",
   },
 ];
 
 const DOES = [
   "Organises public filing and market data",
-  "Calculates transparent screening metrics",
+  "Calculates screening metrics that show their formula",
   "Lets you edit the key assumptions",
   "Produces a structured first-pass memo",
 ];
@@ -64,150 +62,174 @@ const DOES_NOT = [
 
 export default function LandingPage() {
   return (
-    <div className="px-4 py-12 sm:px-8 sm:py-16">
-      <div className="mx-auto w-full max-w-[1180px]">
-        {/* Author + heading + search: left-aligned, no centred hero. */}
-        <div className="max-w-2xl">
-          <Link
-            href="/about"
-            className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-ink-muted transition-colors hover:text-ink"
-          >
-            Built by Nikolas Savio
-          </Link>
-          <h1 className="mt-4 text-[2.5rem] font-semibold leading-[1.08] tracking-tight text-ink sm:text-[3.25rem]">
-            Company research you can check
-          </h1>
-          <p className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed text-ink-secondary">
-            Search a US-listed company and work through its filings, operating
-            KPIs, valuation, peer set, and a five-year LBO model. Every
-            calculated figure shows the source or assumption behind it.
-          </p>
-
-          <SearchBar
-            className="mt-7"
-            autoFocus
-            placeholder="Search by company name or ticker"
-          />
-
-          <div className="mt-5 space-y-px">
-            {STARTERS.map((s) => (
+    <div className="px-[18px] py-14 sm:px-8 lg:px-12 lg:py-20">
+      <div className="mx-auto w-full max-w-[1240px]">
+        {/* Asymmetric opening. */}
+        <div className="grid grid-cols-12 gap-x-6 gap-y-12">
+          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
+            <p className="font-mono text-[11px] text-ink-muted">
+              Built and maintained by{" "}
               <Link
-                key={s.ticker}
-                href={`/company/${s.ticker}/dashboard`}
-                className="group flex items-baseline gap-3 border-t border-line py-2.5 transition-colors hover:bg-brand-soft"
+                href="/about"
+                className="text-link underline decoration-line-strong underline-offset-2 transition-colors hover:text-link-hover"
               >
-                <span className="font-mono text-xs text-filed">{s.ticker}</span>
-                <span className="w-[4.5rem] shrink-0 text-sm font-medium text-ink">
-                  {s.name}
-                </span>
-                <span className="text-sm leading-snug text-ink-muted">
-                  {s.reason}
-                </span>
+                Nikolas Savio
               </Link>
-            ))}
+            </p>
+            <h1 className="mt-5 max-w-[11ch] font-display text-[3.25rem] font-normal leading-[1.04] tracking-[-0.01em] text-ink sm:text-[3.5rem] lg:text-[3.75rem]">
+              Company research you can check
+            </h1>
+            <p className="mt-6 max-w-[54ch] text-[1.1875rem] leading-[1.55] text-ink-secondary">
+              Search a US-listed company and work through its filings, operating
+              results, valuation, peer set, and a simplified LBO case.
+              Calculated figures show the source or assumption behind them.
+            </p>
+            <p className="mt-6">
+              <Link
+                href="/methodology"
+                className="text-[0.95rem] text-link underline decoration-line-strong underline-offset-[3px] transition-colors hover:text-link-hover hover:decoration-link"
+              >
+                How the figures are sourced
+              </Link>
+            </p>
+          </div>
+
+          <div className="col-span-12 lg:col-span-6 lg:pt-1 xl:col-start-8 xl:col-span-5">
+            <SearchBar autoFocus />
+            <p className="mt-3 font-mono text-[11px] text-ink-muted">
+              Or start with one of these
+            </p>
+            <ul className="mt-2">
+              {STARTERS.map((s) => (
+                <li key={s.ticker}>
+                  <Link
+                    href={`/company/${s.ticker}/dashboard`}
+                    className="group grid grid-cols-[3.5rem_1fr] items-baseline gap-x-3 border-t border-line py-3 transition-colors hover:bg-brand-soft"
+                  >
+                    <span className="font-mono text-[11px] text-ink-muted transition-colors group-hover:text-brand-text">
+                      {s.ticker}
+                    </span>
+                    <span>
+                      <span className="text-[0.95rem] font-medium text-ink">
+                        {s.name}
+                      </span>
+                      <span className="mt-0.5 block text-[0.8125rem] leading-snug text-ink-muted">
+                        {s.note}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              <li className="border-t border-line" />
+            </ul>
           </div>
         </div>
 
-        {/* Founder note: the one piece of editorial serif on the page. */}
-        <figure className="mt-14 max-w-2xl">
-          <figcaption className="font-mono text-xs uppercase tracking-wide text-ink-muted">
-            Why I built it
-          </figcaption>
-          <blockquote className="mt-3 font-display text-[1.2rem] leading-relaxed text-ink-secondary">
-            I wanted one place where I could move from public filings to a
-            first-pass investment view without copying figures across several
-            tools or losing track of where they came from. Investment
-            Intelligence is the result. It shows the work behind each output,
-            including the parts that remain incomplete.
-          </blockquote>
-        </figure>
-
-        {/* The research path: a real ordered sequence, not three feature cards. */}
-        <section className="mt-16">
-          <h2 className="text-sm font-semibold text-ink">How the work goes</h2>
-          <ol className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-3">
-            {WORKFLOW.map((step, i) => (
-              <li key={step.title} className="relative">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line-strong font-mono text-xs text-ink-secondary">
-                    {i + 1}
-                  </span>
-                  {i < WORKFLOW.length - 1 && (
-                    <span
-                      aria-hidden
-                      className="hidden h-px flex-1 bg-line sm:block"
-                    />
-                  )}
-                </div>
-                <h3 className="mt-3 text-[0.95rem] font-semibold text-ink">
-                  {step.title}
-                </h3>
-                <p className="mt-1 text-sm leading-snug text-ink-muted">
-                  {step.body}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {/* One live worked example, drawn from the real API. */}
+        {/* One annotated research sheet, drawn live from the API. */}
         <HomeWorkedExample />
 
-        {/* Honest scope. */}
-        <section className="mt-16 grid max-w-3xl gap-8 sm:grid-cols-2">
-          <div>
-            <h2 className="text-sm font-semibold text-ink">
-              What the tool does
+        {/* Nikolas's note: thin rule, Charter, small authorship label. */}
+        <section className="mt-20 grid grid-cols-12 gap-x-6">
+          <figure className="col-span-12 border-l border-line-strong pl-6 md:col-span-7 lg:col-span-6">
+            <figcaption className="font-mono text-[11px] text-ink-muted">
+              Nikolas&rsquo;s note
+            </figcaption>
+            <blockquote className="mt-3 font-display text-[1.1875rem] leading-[1.6] text-ink-secondary">
+              I built this tool because I wanted a quicker way to move from a
+              filing to a first-pass investment view without losing track of
+              where each number came from. The output is meant to be questioned,
+              adjusted, and checked.
+            </blockquote>
+          </figure>
+        </section>
+
+        {/* The research path: a real ordered sequence. */}
+        <section className="mt-20 border-t border-line pt-8">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+            <h2 className="col-span-12 text-[0.8125rem] font-semibold text-ink md:col-span-3">
+              How the work goes
             </h2>
-            <ul className="mt-3">
-              {DOES.map((d) => (
+            <ol className="col-span-12 md:col-span-9">
+              {WORKFLOW.map((step, i) => (
                 <li
-                  key={d}
-                  className="border-t border-line py-2 text-sm text-ink-secondary"
+                  key={step.title}
+                  className="grid grid-cols-[2rem_1fr] gap-x-3 border-b border-line py-4 last:border-b-0"
                 >
-                  {d}
+                  <span className="font-mono text-[11px] text-ink-muted">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3 className="text-[0.95rem] font-medium text-ink">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1 max-w-[62ch] text-[0.875rem] leading-snug text-ink-muted">
+                      {step.body}
+                    </p>
+                  </div>
                 </li>
               ))}
-            </ul>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-ink">
-              What it does not do
-            </h2>
-            <ul className="mt-3">
-              {DOES_NOT.map((d) => (
-                <li
-                  key={d}
-                  className="border-t border-line py-2 text-sm text-ink-muted"
-                >
-                  {d}
-                </li>
-              ))}
-            </ul>
+            </ol>
           </div>
         </section>
 
-        <p className="mt-8 max-w-3xl text-sm text-ink-muted">
-          More on sources and formulas in the{" "}
+        {/* Honest scope. */}
+        <section className="mt-16 border-t border-line pt-8">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-8">
+            <h2 className="col-span-12 text-[0.8125rem] font-semibold text-ink md:col-span-3">
+              What this is
+            </h2>
+            <div className="col-span-12 grid gap-x-6 gap-y-8 md:col-span-9 md:grid-cols-2">
+              <div>
+                <p className="font-mono text-[11px] text-ink-muted">It does</p>
+                <ul className="mt-2">
+                  {DOES.map((d) => (
+                    <li
+                      key={d}
+                      className="border-t border-line py-2 text-[0.875rem] text-ink-secondary"
+                    >
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="font-mono text-[11px] text-ink-muted">
+                  It does not
+                </p>
+                <ul className="mt-2">
+                  {DOES_NOT.map((d) => (
+                    <li
+                      key={d}
+                      className="border-t border-line py-2 text-[0.875rem] text-ink-muted"
+                    >
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <p className="mt-10 text-[0.875rem] text-ink-muted">
+          Sources and formulas are documented in the{" "}
           <Link
             href="/methodology"
-            className="text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
+            className="text-link underline decoration-line-strong underline-offset-2 hover:text-link-hover"
           >
             methodology
           </Link>
-          , and what has changed in the{" "}
+          . What has changed, and when, is in the{" "}
           <Link
             href="/changelog"
-            className="text-brand-text underline decoration-line-strong underline-offset-2 hover:decoration-brand"
+            className="text-link underline decoration-line-strong underline-offset-2 hover:text-link-hover"
           >
             changelog
           </Link>
           .
         </p>
 
-        <div className="max-w-3xl">
-          <Disclaimer />
-        </div>
+        <Disclaimer />
       </div>
     </div>
   );

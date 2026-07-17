@@ -5,108 +5,122 @@
 /* Semantic design tokens (DESIGN.md). Variables hold full color values;
    Tailwind opacity modifiers are not used on semantic tokens — soft tints
    get their own *-soft variables instead. */
-/* Research-workspace palette (redesign 2026): light, cool, green-tinted. A
-   working-notebook surface for company analysis, not an institutional
-   dashboard. One brand green carries actions and current state; filed and
-   assumption markers get their own quiet hues so provenance is legible
-   without color-shouting. Values are full colors (no opacity modifiers on
-   tokens; soft tints are separate variables). */
+/* ANNOTATED ANALYST WORKBOOK (DESIGN.md is the contract).
+   Paper, ink, filing tabs, model annotations. The palette is mostly neutral:
+   the warm canvas carries the character, and colour is reserved for meaning.
+     green  = navigation, selection, active research actions
+     blue   = source links and external documents
+     ochre  = editable assumptions only
+     red    = errors, material warnings, genuine negatives
+   Tokens hold full colours (no opacity modifiers); soft tints are their own
+   variables. */
 :root {
   color-scheme: light;
 
-  --bg: #f2f4f3;
-  --surface: #fafbf9;
-  --surface-raised: #ffffff;
-  --surface-sunken: #ecefec;
+  --bg: #f3f2ed; /* canvas */
+  --surface: #fcfbf7; /* paper */
+  --surface-raised: #ffffff; /* paper-raised */
+  --surface-sunken: #ebeae3;
 
-  --ink: #18201e;
-  --ink-secondary: #586460;
-  --ink-muted: #7a8581;
+  --ink: #19201e;
+  --ink-secondary: #59635f;
+  --ink-muted: #7a827f;
 
-  --line: #d4dad7;
-  --line-strong: #aeb8b4;
+  --line: #d7d6cf; /* rule */
+  --line-strong: #aeb4b0; /* rule-strong */
 
-  --brand: #265f57;
-  --brand-hover: #1f4e48;
-  --brand-text: #1f4e48;
-  --brand-soft: #e1ece8;
+  --brand: #215b52;
+  --brand-hover: #194a43;
+  --brand-text: #194a43;
+  --brand-soft: #e2ece8;
 
-  --accent: #265f57;
-  --accent-soft: #e1ece8;
-  --positive-text: #3f7054;
+  --accent: #215b52;
+  --accent-soft: #e2ece8;
 
-  --negative: #a34436;
-  --negative-hover: #8a3a2e;
-  --negative-text: #9a4032;
-  --negative-soft: #f3e5e2;
+  /* Source / document links are blue. Nothing else is. */
+  --link: #315f82;
+  --link-hover: #244a67;
 
-  /* Warnings share the assumption ochre: a caution tone, never alarm-red. */
-  --warn: #7b6336;
-  --warn-text: #6b5630;
-  --warn-soft: #f0ebe0;
+  --positive-text: #3d6d51;
+  --positive-soft: #e5eee7;
 
-  /* Provenance markers: where a figure came from. */
-  --filed: #4f6872; /* reported in a filing */
-  --assumption: #7b6336; /* a model input / user assumption */
+  --negative: #a34738;
+  --negative-hover: #8c3c2f;
+  --negative-text: #a34738;
+  --negative-soft: #f5e5e1;
 
-  /* Shadows are for things that sit ABOVE the page only (menus, tooltips,
-     modals). Surfaces sit on the page with rules, not lift. */
+  /* Editable assumptions only. */
+  --assumption: #8d6926;
+  --assumption-soft: #f4ebd6;
+  --warn: #8d6926;
+  --warn-text: #7a5b21;
+  --warn-soft: #f4ebd6;
+
+  /* Filed figures are just ink; the marker system carries provenance. */
+  --filed: #59635f;
+
+  /* Shadows only for things above the page (menus, tooltips, drawers). */
   --shadow-card: none;
-  --shadow-pop: 0 4px 16px rgba(24, 32, 30, 0.1), 0 1px 3px rgba(24, 32, 30, 0.08);
-  --shadow-card-hover: 0 1px 3px rgba(24, 32, 30, 0.07);
+  --shadow-pop: 0 6px 24px rgba(25, 32, 30, 0.1), 0 1px 3px rgba(25, 32, 30, 0.08);
+  --shadow-card-hover: none;
 
-  /* Sensitivity-matrix cell tinting (SensitivityTable). RGB channel triplets
-     so cell alpha can be computed per step in JS while hue stays theme-aware. */
-  --sens-positive-rgb: 63, 112, 84;
-  --sens-negative-rgb: 163, 68, 54;
-  --sens-alpha-step: 0.12;
+  /* Sensitivity matrix: muted sequential tints, never a red-green heatmap. */
+  --sens-positive-rgb: 61, 109, 81;
+  --sens-negative-rgb: 163, 71, 56;
+  --sens-alpha-step: 0.1;
 }
 
 .dark {
   color-scheme: dark;
 
-  /* Dark is a first-class equal: the same research surface at night. Deep
-     green-charcoal, one step of layering, the same brand-green family. */
-  --bg: #10140f;
-  --surface: #151b17;
-  --surface-raised: #1a211c;
-  --surface-sunken: #0e120e;
+  /* Light is the default. Dark keeps the same workbook logic (paper becomes a
+     warm-neutral dark board, same green / blue / ochre / red meanings). */
+  --bg: #161814;
+  --surface: #1c1f1a;
+  --surface-raised: #22261f;
+  --surface-sunken: #131511;
 
-  --ink: #e7ece8;
-  --ink-secondary: #aab4ae;
-  --ink-muted: #869089;
+  --ink: #e9e9e2;
+  --ink-secondary: #b0b5ae;
+  --ink-muted: #878d86;
 
-  --line: #29332c;
-  --line-strong: #3a463d;
+  --line: #2e322b;
+  --line-strong: #434840;
 
-  --brand: #4e8c81;
-  --brand-hover: #5c9c90;
-  --brand-text: #8fc3b8;
-  --brand-soft: #1e2a26;
+  --brand: #4f9184;
+  --brand-hover: #5da296;
+  --brand-text: #8cc4b8;
+  --brand-soft: #1d2a26;
 
-  --accent: #4e8c81;
-  --accent-soft: #1e2a26;
-  --positive-text: #7fb79a;
+  --accent: #4f9184;
+  --accent-soft: #1d2a26;
 
-  --negative: #c86a5b;
-  --negative-hover: #b45949;
-  --negative-text: #e0917f;
-  --negative-soft: #2a1e1b;
+  --link: #7aa8cc;
+  --link-hover: #93bcdb;
 
-  --warn: #c2a56a;
-  --warn-text: #d8be86;
-  --warn-soft: #241f16;
+  --positive-text: #7cb392;
+  --positive-soft: #1b271f;
 
-  --filed: #8aa6b2;
-  --assumption: #c2a56a;
+  --negative: #c4705f;
+  --negative-hover: #b05f4f;
+  --negative-text: #dd917f;
+  --negative-soft: #2b1e1a;
+
+  --assumption: #c4a468;
+  --assumption-soft: #272115;
+  --warn: #c4a468;
+  --warn-text: #d9bd84;
+  --warn-soft: #272115;
+
+  --filed: #b0b5ae;
 
   --shadow-card: none;
-  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: none;
 
-  --sens-positive-rgb: 127, 183, 154;
-  --sens-negative-rgb: 224, 145, 127;
-  --sens-alpha-step: 0.15;
+  --sens-positive-rgb: 124, 179, 146;
+  --sens-negative-rgb: 221, 145, 127;
+  --sens-alpha-step: 0.12;
 }
 
 @layer base {

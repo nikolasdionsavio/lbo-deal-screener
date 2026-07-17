@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Source_Sans_3, Source_Serif_4, DM_Mono } from "next/font/google";
+import { Source_Sans_3, Charis_SIL, Azeret_Mono } from "next/font/google";
 import "./globals.css";
 import TopBar from "@/components/chrome/TopBar";
 import Sidebar from "@/components/Sidebar";
@@ -8,23 +8,30 @@ import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 import { RELEASES } from "@/lib/version";
 
-// Humanist sans for the whole interface (nav, labels, body, tables). Source
-// Serif 4 is reserved for short editorial text only (founder note, memo title,
-// methodology intro). DM Mono carries tickers, dates, source refs, formulas and
-// aligned financial metadata.
+// Three roles, per DESIGN.md:
+//  - Source Sans 3: the whole interface (nav, body, buttons, forms, tables).
+//  - Charter: authored editorial only (homepage statement, Nikolas's notes,
+//    methodology intros, memo titles). Charter is Matthew Carter's Bitstream
+//    face and is NOT on Google Fonts, so the stack prefers a locally installed
+//    Charter and falls back to Charis SIL, which is derived from Charter and
+//    is served here as the webfont. See tailwind.config fontFamily.display.
+//  - Azeret Mono: data only (tickers, dates, filing types, formula variables,
+//    source refs, model assumptions, technical metadata).
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
 });
 
-const sourceSerif = Source_Serif_4({
+const charisSil = Charis_SIL({
   subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
   display: "swap",
-  variable: "--font-display",
+  variable: "--font-charis",
 });
 
-const dmMono = DM_Mono({
+const azeretMono = Azeret_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   display: "swap",
@@ -50,7 +57,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sourceSans.variable} ${sourceSerif.variable} ${dmMono.variable}`}
+      className={`${sourceSans.variable} ${charisSil.variable} ${azeretMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

@@ -41,10 +41,20 @@ const config: Config = {
         },
         positive: {
           text: "var(--positive-text)",
+          soft: "var(--positive-soft)",
         },
-        // Provenance markers: where a figure came from.
+        // Source / document links are the only blue in the system.
+        link: {
+          DEFAULT: "var(--link)",
+          hover: "var(--link-hover)",
+        },
+        // Provenance: filed figures are plain ink; ochre marks editable
+        // assumptions only.
         filed: "var(--filed)",
-        assumption: "var(--assumption)",
+        assumption: {
+          DEFAULT: "var(--assumption)",
+          soft: "var(--assumption-soft)",
+        },
         negative: {
           DEFAULT: "var(--negative)",
           hover: "var(--negative-hover)",
@@ -59,7 +69,17 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        // Editorial only. Prefer a locally installed Charter (Matthew Carter's
+        // Bitstream face, not on Google Fonts); fall back to Charis SIL, which
+        // is derived from Charter and ships here as the webfont.
+        display: [
+          "Charter",
+          "Bitstream Charter",
+          "var(--font-charis)",
+          "Charis SIL",
+          "Georgia",
+          "serif",
+        ],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       // Restrained radii (redesign): 3px controls, 5px search, 6px drawers /
