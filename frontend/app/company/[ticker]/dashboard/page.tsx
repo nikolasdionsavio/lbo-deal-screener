@@ -12,8 +12,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useCompany } from "@/components/company/CompanyContext";
 import {
-  DiligenceReadBand,
-  EvSplitBar,
   NetDebtBridge,
   type DiligenceSeries,
 } from "@/components/company/DiligenceRead";
@@ -21,13 +19,13 @@ import TradingViewChart from "@/components/company/TradingViewChart";
 import FinancialTrendChart from "@/components/charts/FinancialTrendChart";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
-import { FigureGroup, FigureRow, MISSING } from "@/components/ui/figure";
+import { FigureRow, MISSING } from "@/components/ui/figure";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Sparkline from "@/components/ui/Sparkline";
 import WarningList from "@/components/ui/WarningList";
 import { getFilings, getFinancials } from "@/lib/api";
-import { fmtCurrency, fmtDate } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtPercent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import type { Filing, FinancialsResponse } from "@/lib/types";
 
@@ -254,18 +252,34 @@ function RecentFilings({ ticker }: { ticker: string }) {
   );
 }
 
+/** One figure in the company summary strip: a direct label over a value, no
+ *  background box. Columns are separated by spacing; the strip by thin rules
+ *  (DESIGN.md company summary aesthetic, not a row of KPI cards). */
+function StripFigure({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="py-3">
+      <div className="text-[11px] leading-tight text-ink-muted">{label}</div>
+      <div className="mt-1 font-mono text-[0.9375rem] tabular-nums text-ink">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { profile } = useCompany();
   const currency = profile.currency ?? null;
-  const ticker = encodeURIComponent(profile.ticker);
 
   const fmtMoney = (value: number | null) => fmtCurrency(value, currency);
   // A money figure for a ledger row, or the muted dash when it is missing.
   const fig = (value: number | null) =>
     value === null ? MISSING : fmtMoney(value);
-  // Only link a row when its figure is present (no drill-down on missing data).
-  const linkIf = (value: number | null, href: string) =>
-    value === null ? undefined : href;
 
   const fyNote =
     profile.latest_fiscal_year !== null
@@ -279,53 +293,45 @@ export default function DashboardPage() {
     () => getFinancials(profile.ticker),
     [profile.ticker],
   );
-  const { series, rowSparks } = useMemo(
-    () => buildSeries(financials),
-    [financials],
-  );
+  const { rowSparks } = useMemo(() => buildSeries(financials), [financials]);
+
+  const ebitdaMargin =
+    isFin(profile.ebitda) && isFin(profile.revenue) && profile.revenue !== 0
+      ? profile.ebitda / profile.revenue
+      : null;
+  const netDebt = profile.net_debt;
+  const netLabel = isFin(netDebt) && netDebt < 0 ? "Net cash" : "Net debt";
+  const netValue = isFin(netDebt) ? fmtMoney(Math.abs(netDebt)) : MISSING;
 
   return (
     <div>
+      {/* Company summary: an aligned information strip, not KPI cards. */}
       <section>
-        <SectionHeader
-          title="Snapshot"
-          subtitle="Live market figures alongside the latest reported fiscal year."
-        />
-        <Card>
-          <div className="grid gap-y-6 sm:grid-cols-2 sm:gap-y-0">
-            <FigureGroup heading="At market" className="sm:pr-8">
-              <FigureRow
-                label="Share price"
-                value={fig(profile.share_price)}
-                emphasis
-                href={linkIf(profile.share_price, "#price-chart")}
-                hrefTitle="Jump to the price chart"
-              />
-              <FigureRow
-                label="Market cap"
-                value={fig(profile.market_cap)}
-                emphasis
-                href={linkIf(profile.market_cap, `/company/${ticker}/valuation`)}
-                hrefTitle="Open valuation"
-              />
-              <FigureRow
-                label="Enterprise value"
-                value={fig(profile.enterprise_value)}
-                emphasis
-                href={linkIf(
-                  profile.enterprise_value,
-                  `/company/${ticker}/valuation`,
-                )}
-                hrefTitle="Open valuation"
-              />
-            </FigureGroup>
-            <DiligenceReadBand profile={profile} series={series} />
-          </div>
-          <EvSplitBar profile={profile} />
-          <p className="mt-3 text-xs text-ink-muted">
-            Enterprise value = market cap + net debt. Reported figures as of {fyNote}.
-          </p>
-        </Card>
+        <div className="grid grid-cols-2 gap-x-6 border-y border-line py-1 sm:grid-cols-3 lg:grid-cols-6">
+          <StripFigure label="Share price" value={fig(profile.share_price)} />
+          <StripFigure label="Market cap" value={fig(profile.market_cap)} />
+          <StripFigure
+            label="Enterprise value"
+            value={fig(profile.enterprise_value)}
+          />
+          <StripFigure label={`Revenue ${fyNote}`} value={fig(profile.revenue)} />
+          <StripFigure
+            label="EBITDA margin"
+            value={ebitdaMargin === null ? MISSING : fmtPercent(ebitdaMargin)}
+          />
+          <StripFigure label={netLabel} value={netValue} />
+        </div>
+        <p className="mt-2.5 font-mono text-[11px] leading-relaxed text-ink-muted">
+          Market data{" "}
+          {profile.data_as_of !== null
+            ? `as of ${fmtDate(profile.data_as_of)}`
+            : "unavailable"}{" "}
+          · financial figures from {fyNote} · {profile.data_source}
+        </p>
+        <p className="mt-2 text-xs text-ink-muted">
+          Start here: confirm the reporting period before opening the model.
+          Enterprise value = market cap + net debt.
+        </p>
       </section>
 
       {profile.description !== null && profile.description !== "" && (
