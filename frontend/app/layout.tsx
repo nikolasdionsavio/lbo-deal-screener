@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { Source_Sans_3, Charis_SIL, Azeret_Mono } from "next/font/google";
 import "./globals.css";
-import TopBar from "@/components/chrome/TopBar";
-import Sidebar from "@/components/Sidebar";
-import Link from "next/link";
+import Shell from "@/components/chrome/Shell";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
-import { RELEASES } from "@/lib/version";
 
 // Three roles, per DESIGN.md:
 //  - Source Sans 3: the whole interface (nav, body, buttons, forms, tables).
@@ -65,24 +62,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ThemeProvider>
           <AuthProvider>
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <TopBar />
-                <main className="min-w-0 flex-1">{children}</main>
-                <footer className="border-t border-line px-4 py-4 sm:px-8">
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 font-mono text-xs text-ink-muted">
-                    <span>Investment Intelligence · a personal research tool</span>
-                    <Link
-                      href="/changelog"
-                      className="transition-colors hover:text-ink"
-                    >
-                      Last updated {RELEASES[0].date}
-                    </Link>
-                  </div>
-                </footer>
-              </div>
-            </div>
+            <Shell>{children}</Shell>
           </AuthProvider>
         </ThemeProvider>
       </body>
