@@ -61,6 +61,7 @@ class StatementCashFlow(BaseModel):
 class StatementYear(BaseModel):
     fiscal_year: int
     period_end: str | None = None
+    period_label: str | None = None
     derived_fields: list[str] = Field(default_factory=list)
     income_statement: StatementIncome
     balance_sheet: StatementBalance

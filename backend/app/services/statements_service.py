@@ -58,6 +58,7 @@ def _statement_year(year: FiscalYearFinancials) -> StatementYear:
     return StatementYear(
         fiscal_year=year.fiscal_year,
         period_end=year.period_end,
+        period_label=year.period_label,
         derived_fields=list(year.derived_fields),
         income_statement=StatementIncome(
             revenue=year.revenue,

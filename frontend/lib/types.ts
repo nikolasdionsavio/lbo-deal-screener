@@ -60,6 +60,8 @@ export interface SearchResult {
 export interface FiscalYearFinancials {
   fiscal_year: number;
   period_end: string | null;
+  /** Set for an interim (10-Q) period when no annual report exists yet. */
+  period_label?: string | null;
   revenue: number | null;
   cost_of_revenue: number | null;
   gross_profit: number | null;
@@ -235,6 +237,8 @@ export interface CashFlowLines {
 export interface StatementYear {
   fiscal_year: number;
   period_end: string | null;
+  /** Set for an interim (10-Q) period when no annual report exists yet. */
+  period_label?: string | null;
   /** Canonical field names whose values were derived rather than filed. */
   derived_fields: string[];
   income_statement: IncomeStatementLines;

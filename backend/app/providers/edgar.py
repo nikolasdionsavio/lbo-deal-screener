@@ -426,6 +426,112 @@ def _select_annual_values(
     return values, unit
 
 
+# Interim (quarterly) reports. A just-IPO'd company (e.g. SPCX, listed Jun 2026,
+# first 10-Q Aug 2026) has quarterly XBRL but no 10-K yet. We surface the latest
+# interim income snapshot so its real figures show, clearly labelled, instead of
+# a blank page. Kept small and USD-oriented on purpose: this is a labelled
+# latest-quarter read, not the full annual machinery.
+INTERIM_FORMS = {"10-Q", "10-Q/A"}
+
+_INTERIM_TAGS: dict[str, list[str]] = {
+    "revenue": [
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+        "Revenues",
+        "RevenueFromContractWithCustomerIncludingAssessedTax",
+        "SalesRevenueNet",
+    ],
+    "cost_of_revenue": ["CostOfRevenue", "CostOfGoodsAndServicesSold"],
+    "gross_profit": ["GrossProfit"],
+    "operating_income": ["OperatingIncomeLoss"],
+    "net_income": ["NetIncomeLoss", "ProfitLoss"],
+    "operating_cash_flow": ["NetCashProvidedByUsedInOperatingActivities"],
+    "cash_and_equivalents": [
+        "CashAndCashEquivalentsAtCarryingValue",
+        "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+    ],
+    "total_debt": ["LongTermDebt", "LongTermDebtNoncurrent"],
+    "total_equity": [
+        "StockholdersEquity",
+        "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+    ],
+}
+
+
+def _select_interim_value(tag_payload: dict[str, Any]) -> tuple[str, float, int] | None:
+    """The single latest interim (10-Q) value for a tag: (period_end, value,
+    span_days). Prefers USD, the most recent ``end``, and the longest duration
+    at that end (year-to-date over a single quarter). None if no interim USD
+    monetary fact exists."""
+    per_unit: dict[str, dict[str, tuple[int, str, float]]] = {}
+    for unit, entries in (tag_payload.get("units") or {}).items():
+        if not _MONETARY_UNIT_RE.match(unit):
+            continue
+        best: dict[str, tuple[int, str, float]] = {}
+        for entry in entries:
+            if entry.get("form") not in INTERIM_FORMS:
+                continue
+            end = entry.get("end")
+            val = entry.get("val")
+            if not end or val is None:
+                continue
+            start = entry.get("start")
+            span = 0
+            if start:
+                try:
+                    span = (date.fromisoformat(end) - date.fromisoformat(start)).days
+                except ValueError:
+                    continue
+            filed = str(entry.get("filed") or "")
+            cur = best.get(end)
+            if cur is None or (span, filed) > (cur[0], cur[1]):
+                best[end] = (span, filed, float(val))
+        if best:
+            per_unit[unit] = best
+    if not per_unit:
+        return None
+    unit = "USD" if "USD" in per_unit else sorted(per_unit)[0]
+    entries = per_unit[unit]
+    latest_end = max(entries)  # ISO dates sort lexically
+    span, _filed, val = entries[latest_end]
+    return latest_end, val, span
+
+
+def _latest_interim_row(gaap: dict[str, Any]) -> FiscalYearFinancials | None:
+    """One labelled interim row from the latest 10-Q, or None if no interim
+    revenue is on file. Balance items are instant (span 0); flow items use the
+    year-to-date value at the most recent period end."""
+    field_values: dict[str, float] = {}
+    latest_end: str | None = None
+    revenue_span: int | None = None
+    for field, tags in _INTERIM_TAGS.items():
+        for tag in tags:
+            payload = gaap.get(tag)
+            if not isinstance(payload, dict):
+                continue
+            picked = _select_interim_value(payload)
+            if picked is None:
+                continue
+            end, val, span = picked
+            if tag in _ABS_VALUE_TAGS:
+                val = abs(val)
+            field_values[field] = val
+            if latest_end is None or end > latest_end:
+                latest_end = end
+            if field == "revenue":
+                revenue_span = span
+            break
+    if "revenue" not in field_values or latest_end is None:
+        return None
+    label_end = date.fromisoformat(latest_end).strftime("%-d %b %Y")
+    months = max(1, round((revenue_span or 90) / 30))
+    return FiscalYearFinancials(
+        fiscal_year=int(latest_end[:4]),
+        period_end=latest_end,
+        period_label=f"Interim · {months}mo to {label_end}",
+        **field_values,
+    )
+
+
 class SecEdgarProvider(DataProvider):
     name = "sec_edgar"
 
@@ -773,21 +879,33 @@ class SecEdgarProvider(DataProvider):
 
         normalize_financials(years)
         if not years:
-            # No annual-report XBRL on file — e.g. a company that has only just
-            # IPO'd and not yet filed a first 10-K/20-F (SK hynix / SKHY, listed
-            # Jul 2026, is the canonical case). Every per-field "<x> unavailable"
-            # warning is then just noise, so drop the whole set and lead with one
-            # plain-language explanation: the UI shows a designed empty state
-            # rather than a wall of twenty apologies.
+            # No annual-report XBRL on file — a company that has only just IPO'd
+            # (SK hynix / SKHY Jul 2026; SpaceX / SPCX Jun 2026) has no 10-K yet.
+            # The per-field "<x> unavailable" warnings are then just noise.
             warnings[:] = [
                 w for w in warnings if not w.endswith("unavailable from SEC EDGAR")
             ]
-            warnings.insert(
-                0,
-                "No annual report (10-K or 20-F) is on file with the SEC yet, so "
-                "financial statements are not available here. A newly listed "
-                "company appears in full once it files its first annual report.",
-            )
+            # But a fresh filer may already have quarterly (10-Q) figures. Surface
+            # the latest interim period, clearly labelled, instead of a blank page.
+            interim = _latest_interim_row(gaap)
+            if interim is not None:
+                normalize_financials([interim])
+                years = [interim]
+                warnings.insert(
+                    0,
+                    "No annual report (10-K or 20-F) is on file yet, so the figures "
+                    "below are the latest interim period, taken from the company's "
+                    "most recent quarterly report (10-Q). Ratios and the LBO model, "
+                    "which need a full fiscal year, stay limited until the first "
+                    "annual report is filed.",
+                )
+            else:
+                warnings.insert(
+                    0,
+                    "No annual report (10-K or 20-F) is on file with the SEC yet, so "
+                    "financial statements are not available here. A newly listed "
+                    "company appears in full once it files its first annual report.",
+                )
 
         info = CompanyInfo(
             ticker=ticker.strip().upper(),

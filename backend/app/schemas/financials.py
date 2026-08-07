@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 class FiscalYearFinancials(BaseModel):
     fiscal_year: int
     period_end: str | None = None  # ISO date, e.g. "2025-09-27"
+    # Set only for an interim (10-Q) period on a company with no annual report
+    # yet, e.g. "Interim · 6mo to 30 Jun 2026". None means a full fiscal year.
+    period_label: str | None = None
 
     revenue: float | None = None
     cost_of_revenue: float | None = None
