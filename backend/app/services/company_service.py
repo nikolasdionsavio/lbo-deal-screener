@@ -48,7 +48,11 @@ def get_bundle(
         return provider.get_company(ticker)  # mock is instant; never cache
 
     cached = companies_crud.get_cached(db, ticker, CACHE_TTL_HOURS)
-    if cached is not None:
+    # Only trust a cache hit that actually carries financials. A company cached
+    # with zero rows is almost always a just-IPO'd filer we saw before it (or the
+    # app) had its numbers; re-fetching lets a fresh 10-Q/10-K appear without
+    # waiting out the 24h TTL (fixes SPCX: viewed empty at IPO, then filed).
+    if cached is not None and cached.financials:
         _refresh_market_data(cached, ticker, provider)
         return cached
 
