@@ -227,6 +227,50 @@ class InvestmentMemo(Base):
     )
 
 
+class ScreenIndexRow(Base):
+    """One US filer's latest annual figures, for cross-company screening.
+
+    Built from the SEC frames API (app.screening.frames), one row per CIK. This
+    is a rebuildable index, not a system of record: ``rebuild_index`` upserts by
+    CIK so a refresh replaces figures in place.
+
+    ``ebitda`` is CALCULATED (operating income + D&A) and is NULL whenever the
+    filer did not tag D&A separately. ``coverage`` says which case a row is, so
+    the UI can show "not disclosed" instead of implying a missing figure is zero.
+    """
+
+    __tablename__ = "screen_index"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cik: Mapped[int] = mapped_column(Integer, unique=True, nullable=False, index=True)
+    ticker: Mapped[str | None] = mapped_column(String(16), index=True)
+    entity_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    # SIC industry classification from the EDGAR submissions endpoint.
+    sic: Mapped[str | None] = mapped_column(String(8), index=True)
+    sic_description: Mapped[str | None] = mapped_column(String(160), index=True)
+    exchange: Mapped[str | None] = mapped_column(String(32))
+
+    period: Mapped[str] = mapped_column(String(8), nullable=False)  # "CY2025"
+    period_end: Mapped[str | None] = mapped_column(String(16))
+    accession: Mapped[str | None] = mapped_column(String(32))
+
+    revenue: Mapped[float] = mapped_column(Float, nullable=False, index=True)
+    revenue_tag: Mapped[str | None] = mapped_column(String(80))
+    operating_income: Mapped[float | None] = mapped_column(Float)
+    depreciation_amortization: Mapped[float | None] = mapped_column(Float)
+    ebitda: Mapped[float | None] = mapped_column(Float, index=True)
+    ebitda_margin: Mapped[float | None] = mapped_column(Float)
+    coverage: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    # Set when a filed figure is arithmetically right but misleading as filed
+    # (currently: EBITDA above revenue, i.e. a one-off gain inside operating
+    # income). Flagged rather than removed, and never silently ranked first.
+    quality_flag: Mapped[str | None] = mapped_column(String(32), index=True)
+
+    refreshed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+
 class SavedDeal(Base):
     __tablename__ = "saved_deals"
     __table_args__ = (

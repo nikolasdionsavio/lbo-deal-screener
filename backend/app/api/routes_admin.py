@@ -23,6 +23,14 @@ from app.crud import users as users_crud
 from app.db.base import get_db
 from app.email.sender import send_email
 from app.email.templates import update_announcement_email
+from app.providers.exceptions import ProviderConfigError, ProviderError
+from app.screening.frames import SecFramesClient
+from app.screening.index_service import (
+    DEFAULT_PERIODS,
+    coverage_summary,
+    enrich_missing_sectors,
+    rebuild_index,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -102,4 +110,62 @@ def announce(
     raise HTTPException(
         status_code=400,
         detail="Specify test_email (preview) or confirm_send_all=true (broadcast).",
+    )
+
+
+class ScreenRebuildRequest(BaseModel):
+    """Periods to pull, newest first. Defaults to the two most recent years."""
+
+    periods: list[str] | None = None
+    # Companies to enrich with SIC sector in this call. Sector needs one SEC
+    # request per company, so a full pass is chunked across several calls
+    # rather than held open in a single long request.
+    sector_limit: int = 0
+
+
+class ScreenRebuildResult(BaseModel):
+    fetched: int
+    listed: int
+    written: int
+    sectors_enriched: int
+    coverage: dict
+
+
+@router.post("/screen/rebuild")
+def rebuild_screen_index(
+    body: ScreenRebuildRequest,
+    x_admin_token: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> ScreenRebuildResult:
+    """Rebuild the US screening index from the SEC frames API.
+
+    The frames pass is fast (a handful of requests). Sector enrichment is the
+    slow half, so it is opt-in per call via ``sector_limit`` and resumes where
+    it left off, letting a full backfill run as several short requests instead
+    of one that would outlive the request timeout.
+    """
+    _require_admin(x_admin_token)
+    try:
+        client = SecFramesClient(settings.sec_edgar_user_agent)
+    except ProviderConfigError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
+        result = rebuild_index(
+            db, client, periods=tuple(body.periods) if body.periods else DEFAULT_PERIODS
+        )
+        enriched = (
+            enrich_missing_sectors(db, client, limit=body.sector_limit)
+            if body.sector_limit > 0
+            else 0
+        )
+    except ProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return ScreenRebuildResult(
+        fetched=result.fetched,
+        listed=result.listed,
+        written=result.written,
+        sectors_enriched=enriched,
+        coverage=coverage_summary(db),
     )
