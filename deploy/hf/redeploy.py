@@ -49,7 +49,15 @@ OPTIONAL_FROM_ENV = [
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
     "RESEND_API_KEY",
+    # Gates /api/admin/* (announcements, screening-index rebuild).
+    "ADMIN_TOKEN",
+    # UK Companies House REST + document API.
+    "COMPANIES_HOUSE_API_KEY",
+    # Required by the SEC frames ingestion behind the screening index.
+    "SEC_EDGAR_USER_AGENT",
 ]
+
+COMMIT_MESSAGE = "Backend redeploy"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_DIR = REPO_ROOT / "backend"
@@ -84,13 +92,13 @@ def main() -> None:
         else:
             print(f"  skip {key} (not provided)")
 
-    print("Uploading backend (email link domain + OAuth routes)...")
+    print("Uploading backend...")
     api.upload_folder(
         repo_id=SPACE_ID,
         repo_type="space",
         folder_path=str(BACKEND_DIR),
         ignore_patterns=IGNORE_PATTERNS,
-        commit_message="Email link domain + Google/GitHub OAuth sign-in",
+        commit_message=os.environ.get("COMMIT_MESSAGE", COMMIT_MESSAGE),
     )
     print("Re-uploading Space README...")
     api.upload_file(
