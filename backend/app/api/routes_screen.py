@@ -103,7 +103,8 @@ def _to_out(record: ScreenIndexRow) -> ScreenRowOut:
         ticker=record.ticker,
         name=record.entity_name,
         sector=record.sic_description,
-        sic=record.sic,
+        # "" is the "checked, none on record" marker; surface it as absent.
+        sic=record.sic or None,
         exchange=record.exchange,
         period=record.period,
         period_end=record.period_end,

@@ -525,3 +525,68 @@ def test_flagged_row_carries_an_explanation_through_the_api(
     assert row["quality_flag"] == "ebitda_exceeds_revenue"
     assert "one-off gain" in row["quality_note"]
     assert body["coverage"]["flagged"] == 1
+
+
+# ------------------------------------------------- sector enrichment retries --
+
+
+class _FakeSubmissionClient:
+    """Counts submission fetches so a re-fetch of the same company is visible."""
+
+    def __init__(self, submissions: dict[int, dict | None]):
+        self.submissions = submissions
+        self.calls: list[int] = []
+
+    def fetch_submission(self, cik: int) -> dict | None:
+        self.calls.append(cik)
+        return self.submissions.get(cik)
+
+
+def test_filer_without_a_sic_is_not_refetched_forever(client: TestClient) -> None:
+    """A company whose SEC submission carries no SIC must be marked as checked.
+
+    Leaving it NULL means the pending query re-selects it on every future run,
+    burning an SEC request each time and never converging. The live enrichment
+    log showed exactly this: one company re-fetched on every pass.
+    """
+    from app.screening.index_service import enrich_missing_sectors
+
+    db = client.session_factory()
+    db.add_all([
+        ScreenIndexRow(cik=301, ticker="WSIC", entity_name="With SIC Corp",
+                       period="CY2025", revenue=1e6, coverage="revenue_only"),
+        ScreenIndexRow(cik=302, ticker="NSIC", entity_name="No SIC Corp",
+                       period="CY2025", revenue=1e6, coverage="revenue_only"),
+    ])
+    db.commit()
+
+    fake = _FakeSubmissionClient({
+        301: {"sic": "3559", "sicDescription": "Special Industry Machinery"},
+        302: {"sicDescription": None},  # filer with no SIC on record
+    })
+
+    first = enrich_missing_sectors(db, fake)
+    assert first == 2
+    assert sorted(fake.calls) == [301, 302]
+
+    # Second pass must fetch NOTHING: both are settled, including the SIC-less one.
+    fake.calls.clear()
+    second = enrich_missing_sectors(db, fake)
+    db.close()
+    assert second == 0, "a filer with no SIC must not be re-fetched"
+    assert fake.calls == [], "no SEC request should be made on a converged index"
+
+
+def test_missing_sic_is_reported_as_absent_not_empty_string(
+    client: TestClient,
+) -> None:
+    """The empty-string marker is storage detail; the API must show it as null."""
+    db = client.session_factory()
+    db.add(ScreenIndexRow(cik=303, ticker="NSIC", entity_name="No SIC Corp",
+                          sic="", sic_description=None, period="CY2025",
+                          revenue=1e6, coverage="revenue_only"))
+    db.commit()
+    db.close()
+    row = client.get("/api/screen", params={"q": "No SIC"}).json()["rows"][0]
+    assert row["sic"] is None
+    assert row["sector"] is None

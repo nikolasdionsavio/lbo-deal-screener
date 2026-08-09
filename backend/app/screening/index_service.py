@@ -124,7 +124,11 @@ def enrich_missing_sectors(
         if not isinstance(submission, dict):
             continue
         sic = submission.get("sic")
-        record.sic = str(sic).strip() if sic else None
+        # A filer with no SIC on record gets an empty-string marker, NOT NULL.
+        # The pending query selects on NULL, so leaving it NULL would re-fetch
+        # this company on every future run and never converge: the enrichment
+        # log showed exactly that, one company re-fetched each pass forever.
+        record.sic = str(sic).strip() if sic else ""
         description = submission.get("sicDescription")
         record.sic_description = str(description).strip() if description else None
         exchanges = submission.get("exchanges")
