@@ -197,6 +197,14 @@ function CompassIcon({ className }: IconProps) {
   );
 }
 
+function FunnelIcon({ className }: IconProps) {
+  return (
+    <svg {...iconAttrs(className)}>
+      <path d="M1.75 2.75h12.5l-4.75 5.5v4.5l-3 1.5v-6z" />
+    </svg>
+  );
+}
+
 function SparkleIcon({ className }: IconProps) {
   return (
     <svg {...iconAttrs(className)}>
@@ -396,6 +404,9 @@ const APP_PAGES: {
   label: string;
   Icon: ComponentType<IconProps>;
 }[] = [
+  // Sourcing comes before the reference pages: it is where research starts
+  // when you do not yet have a company in mind.
+  { href: "/screen", label: "Deal screen", Icon: FunnelIcon },
   { href: "/whats-new", label: "What's New", Icon: SparkleIcon },
   { href: "/methodology", label: "Methodology", Icon: CompassIcon },
   { href: "/how-to-use", label: "How to use", Icon: GuideIcon },

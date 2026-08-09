@@ -17,6 +17,9 @@ import type {
   SavedDeal,
   SaveDealRequest,
   ScoreResponse,
+  ScreenQuery,
+  ScreenResponse,
+  ScreenSector,
   SearchResult,
   StatementsResponse,
   TokenResponse,
@@ -298,4 +301,24 @@ export function updateDealAssumptions(
 
 export function deleteDeal(id: number): Promise<void> {
   return request<void>(`/api/deals/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// US screening index
+// ---------------------------------------------------------------------------
+
+export function getScreen(query: ScreenQuery = {}): Promise<ScreenResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    // Skip unset filters so the backend applies its own defaults rather than
+    // receiving "null" as a literal string.
+    if (value === null || value === undefined || value === "") continue;
+    params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return request<ScreenResponse>(`/api/screen${qs ? `?${qs}` : ""}`);
+}
+
+export function getScreenSectors(): Promise<ScreenSector[]> {
+  return request<ScreenSector[]>("/api/screen/sectors");
 }

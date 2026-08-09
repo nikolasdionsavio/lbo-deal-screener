@@ -738,3 +738,76 @@ export interface MarketStats {
   stats: KeyStats;
   warnings: string[];
 }
+
+// ---------------------------------------------------------------------------
+// US screening index (SEC frames). Cross-company financials, one row per filer.
+// ---------------------------------------------------------------------------
+
+/** How much of the income statement a filer tagged, and so what is screenable. */
+export type ScreenCoverage = "full" | "ebit_only" | "revenue_only";
+
+/** A filed figure that is right as filed but would mislead if read plainly. */
+export type ScreenQualityFlag = "ebitda_exceeds_revenue";
+
+export interface ScreenRow {
+  cik: number;
+  ticker: string | null;
+  name: string;
+  sector: string | null;
+  sic: string | null;
+  exchange: string | null;
+  period: string;
+  period_end: string | null;
+  revenue: number;
+  operating_income: number | null;
+  depreciation_amortization: number | null;
+  /** null whenever the filer did not disclose D&A. Never inferred from EBIT. */
+  ebitda: number | null;
+  ebitda_margin: number | null;
+  coverage: ScreenCoverage;
+  coverage_note: string;
+  quality_flag: ScreenQualityFlag | null;
+  quality_note: string | null;
+  revenue_tag: string | null;
+  filing_url: string | null;
+}
+
+export interface ScreenCoverageSummary {
+  total: number;
+  with_ebitda: number;
+  ebit_only: number;
+  revenue_only: number;
+  flagged: number;
+  refreshed_at: string | null;
+}
+
+export interface ScreenResponse {
+  rows: ScreenRow[];
+  total: number;
+  limit: number;
+  offset: number;
+  coverage: ScreenCoverageSummary;
+  source: string;
+  note: string;
+}
+
+export interface ScreenSector {
+  sic: string | null;
+  name: string;
+  count: number;
+}
+
+export interface ScreenQuery {
+  revenue_min?: number | null;
+  revenue_max?: number | null;
+  ebitda_min?: number | null;
+  ebitda_positive?: boolean;
+  margin_min?: number | null;
+  sector?: string | null;
+  q?: string | null;
+  exclude_flagged?: boolean;
+  sort?: string;
+  direction?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}
