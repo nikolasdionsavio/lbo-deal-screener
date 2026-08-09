@@ -33,6 +33,34 @@ function toFraction(percent: string): number | null {
   return Number.isFinite(n) ? n / 100 : null;
 }
 
+/** Filters carried in the URL, so a link can arrive pre-filtered.
+ *
+ * Read on mount from window.location rather than useSearchParams: the latter
+ * forces this route into a Suspense boundary at build time, and the page is
+ * otherwise fully static.
+ */
+function filtersFromUrl(): ScreenFilterState | null {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search);
+  if ([...p.keys()].length === 0) return null;
+  const toM = (key: string) => {
+    const raw = p.get(key);
+    const n = raw === null ? NaN : Number.parseFloat(raw);
+    return Number.isFinite(n) ? String(n / 1e6) : "";
+  };
+  const margin = Number.parseFloat(p.get("margin_min") ?? "");
+  return {
+    ...EMPTY_FILTERS,
+    revenueMinM: toM("revenue_min"),
+    revenueMaxM: toM("revenue_max"),
+    ebitdaPositive: p.get("ebitda_positive") === "true",
+    marginMinPct: Number.isFinite(margin) ? String(margin * 100) : "",
+    sector: p.get("sector") ?? "",
+    q: p.get("q") ?? "",
+    excludeFlagged: p.get("exclude_flagged") !== "false",
+  };
+}
+
 export default function ScreenPage() {
   const [filters, setFilters] = useState<ScreenFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState("revenue");
@@ -88,6 +116,12 @@ export default function ScreenPage() {
     const timer = setTimeout(run, 250);
     return () => clearTimeout(timer);
   }, [run]);
+
+  // Apply any filters carried in the URL, once, after hydration.
+  useEffect(() => {
+    const fromUrl = filtersFromUrl();
+    if (fromUrl) setFilters(fromUrl);
+  }, []);
 
   // Any filter change invalidates the current page position.
   useEffect(() => setOffset(0), [filters, sort, direction]);

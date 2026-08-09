@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.8.0";
+export const APP_VERSION = "1.9.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,18 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.9.0",
+    date: "9 August 2026",
+    title: "Deal screen",
+    changes: [
+      "A new Deal screen: filter every US-listed filer by revenue, EBITDA, EBITDA margin and sector, then open any result straight into its research workspace. Built for sourcing, when you do not yet have a company in mind.",
+      "The index is built from the SEC's XBRL company-facts data, so every figure is the one the company filed. Each row states its own reporting period and links to the filing the revenue came from.",
+      "EBITDA is calculated as operating income plus depreciation and amortisation. Roughly four in ten filers do not tag D&A separately, so their EBITDA is shown as not disclosed rather than estimated, and an EBITDA filter leaves them out instead of guessing.",
+      "Companies whose EBITDA exceeds their revenue are flagged as filing artifacts, which usually means a one-off gain sits inside reported operating income. They are marked rather than hidden, and can be excluded with one toggle.",
+      "Quarterly figures now count: a company that has filed only a 10-Q, such as a recent listing, shows its interim results instead of an empty page.",
+    ],
+  },
   {
     version: "1.8.0",
     date: "16 July 2026",

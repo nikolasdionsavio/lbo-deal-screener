@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import SearchBar from "@/components/search/SearchBar";
+import HomeScreenExample from "@/components/landing/HomeScreenExample";
 import HomeWorkedExample from "@/components/landing/HomeWorkedExample";
 import Disclaimer from "@/components/ui/Disclaimer";
 
@@ -80,9 +81,10 @@ export default function LandingPage() {
               Company research you can check
             </h1>
             <p className="mt-6 max-w-[54ch] text-[1.1875rem] leading-[1.55] text-ink-secondary">
-              Search a US-listed company and work through its filings, operating
-              results, valuation, peer set, and a simplified LBO case.
-              Calculated figures show the source or assumption behind them.
+              Screen every US-listed filer on revenue and EBITDA, then work
+              through one company&rsquo;s filings, operating results, valuation,
+              peer set, and a simplified LBO case. Calculated figures show the
+              source or assumption behind them.
             </p>
             <p className="mt-6">
               <Link
@@ -122,10 +124,28 @@ export default function LandingPage() {
               ))}
               <li className="border-t border-line" />
             </ul>
+            {/* The second way in. Starting from a ticker assumes you already
+                have a company in mind; this is the path for when you do not. */}
+            <p className="mt-4">
+              <Link
+                href="/screen"
+                className="text-[0.95rem] text-link underline decoration-line-strong underline-offset-[3px] transition-colors hover:text-link-hover hover:decoration-link"
+              >
+                Or screen every US-listed filer by revenue and EBITDA
+              </Link>
+              <span className="mt-1 block text-[0.8125rem] leading-snug text-ink-muted">
+                Figures taken from each company&rsquo;s own SEC filings. Filter
+                by revenue band, EBITDA and sector to build a shortlist.
+              </span>
+            </p>
           </div>
         </div>
 
         {/* One annotated research sheet, drawn live from the API. */}
+        {/* Screening comes before the single-company example: it is the step
+            that finds the company you then research. */}
+        <HomeScreenExample />
+
         <HomeWorkedExample />
 
         {/* Nikolas's note: thin rule, Charter, small authorship label. */}

@@ -9,7 +9,11 @@ import Link from "next/link";
 import Wordmark from "@/components/chrome/Wordmark";
 import { useAuth } from "@/lib/auth";
 
+// The screen comes first: it is the one tool here, and the rest are reference
+// pages. Without it the screen is only reachable from inside a company page,
+// which makes it invisible to anyone arriving at the site.
 const LINKS = [
+  { href: "/screen", label: "Deal screen" },
   { href: "/methodology", label: "Methodology" },
   { href: "/changelog", label: "Changelog" },
   { href: "/about", label: "About" },
