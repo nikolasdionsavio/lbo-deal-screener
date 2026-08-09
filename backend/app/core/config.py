@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     sec_edgar_user_agent: str = ""
     fmp_api_key: str = ""
     finnhub_api_key: str = ""
+    # UK Companies House REST + document API key (free; Basic auth as username).
+    companies_house_api_key: str = ""
     polygon_api_key: str = ""
     alphavantage_api_key: str = ""
     tiingo_api_key: str = ""

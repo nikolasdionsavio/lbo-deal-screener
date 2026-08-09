@@ -131,6 +131,7 @@ def test_statements_mock_shape_five_years_descending(api: TestClient) -> None:
         assert set(year) == {
             "fiscal_year",
             "period_end",
+            "period_label",
             "derived_fields",
             "income_statement",
             "balance_sheet",
