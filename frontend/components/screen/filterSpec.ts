@@ -210,6 +210,10 @@ export function toSearchParams(state: ScreenFilterState): string {
     if (value === null || value === undefined || value === "") continue;
     params.set(key, String(value));
   }
+  // Written in BOTH states, unlike the API query which omits the default.
+  // A shared link has to record that this was switched off, while a link
+  // written by hand (with no such param) should still get the page default.
+  params.set("exclude_flagged", String(state.excludeFlagged));
   return params.toString();
 }
 
@@ -220,8 +224,12 @@ export function fromSearchParams(search: string): ScreenFilterState | null {
   const state: ScreenFilterState = {
     ...EMPTY_FILTERS,
     ranges: {},
-    // Absent means false here, since a link records what was switched on.
-    excludeFlagged: params.get("exclude_flagged") === "true",
+    // Absent means "use the page default", so a hand-written link behaves the
+    // same as arriving at /screen fresh. Links the app writes always state it
+    // explicitly, so switching it off still survives being shared.
+    excludeFlagged: params.has("exclude_flagged")
+      ? params.get("exclude_flagged") === "true"
+      : EMPTY_FILTERS.excludeFlagged,
   };
   for (const field of ALL_FIELDS) {
     const scale = UNIT_SCALE[field.unit];
