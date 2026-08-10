@@ -77,7 +77,7 @@ export default function LandingPage() {
                 Nikolas Savio
               </Link>
             </p>
-            <h1 className="mt-5 max-w-[11ch] font-display text-[2.625rem] font-normal leading-[1.05] tracking-[-0.01em] text-ink sm:text-[3.375rem] lg:text-[3.75rem]">
+            <h1 className="type-display mt-5 max-w-[11ch] font-display text-[2.625rem] font-normal text-ink sm:text-[3.375rem] lg:text-[3.75rem]">
               Company research you can check
             </h1>
             <p className="mt-6 max-w-[54ch] text-[1.1875rem] leading-[1.55] text-ink-secondary">

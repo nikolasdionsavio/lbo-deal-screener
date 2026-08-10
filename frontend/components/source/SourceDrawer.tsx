@@ -7,8 +7,11 @@
 // link to the filing on SEC EDGAR. It never invents a line-item tag or filing
 // date the API does not expose, and it is never called an "AI explanation".
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+/** Matches the exit animation in globals.css (.drawer-right[data-closing]). */
+const EXIT_MS = 160;
 
 export type SourceClass = "filed" | "calculated" | "assumption" | "missing";
 
@@ -76,33 +79,72 @@ export default function SourceDrawer({
   record: SourceRecord | null;
   onClose: () => void;
 }) {
+  // The record is held locally so the panel can finish leaving after the
+  // caller has already cleared it. Without this it slides in and then simply
+  // disappears, which reads as a glitch rather than a dismissal.
+  const [shown, setShown] = useState<SourceRecord | null>(record);
+  const [closing, setClosing] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!record) return;
+    if (timer.current) clearTimeout(timer.current);
+    if (record) {
+      setShown(record);
+      setClosing(false);
+      return;
+    }
+    if (!shown) return;
+    // Reduced motion has no exit travel to wait for, so drop it immediately.
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setShown(null);
+      return;
+    }
+    setClosing(true);
+    timer.current = setTimeout(() => {
+      setShown(null);
+      setClosing(false);
+    }, EXIT_MS);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [record, shown]);
+
+  const requestClose = useCallback(() => onClose(), [onClose]);
+
+  useEffect(() => {
+    if (!shown) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [record, onClose]);
+  }, [shown, requestClose]);
 
-  if (typeof document === "undefined" || !record) return null;
+  if (typeof document === "undefined" || !shown) return null;
+  const drawerRecord = shown;
 
   return createPortal(
     <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Source record">
       <button
         type="button"
         aria-label="Close source record"
-        onClick={onClose}
+        onClick={requestClose}
+        data-closing={closing}
         className="drawer-scrim absolute inset-0 bg-ink/20"
       />
-      <aside className="drawer-right absolute right-0 top-0 flex h-full w-full max-w-[24rem] flex-col border-l border-line-strong bg-surface-raised shadow-pop">
+      <aside
+        data-closing={closing}
+        className="drawer-right absolute right-0 top-0 flex h-full w-full max-w-[24rem] flex-col border-l border-line-strong bg-surface-raised shadow-pop">
         <div className="flex items-center justify-between border-b border-line px-5 py-3">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-muted">
             Source record
           </span>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
             className="rounded-[3px] p-1 text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
@@ -115,36 +157,36 @@ export default function SourceDrawer({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="flex items-baseline gap-2">
             <span
-              className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border font-mono text-[10px] ${CLASS_MARK_STYLE[record.classification]}`}
+              className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border font-mono text-[10px] ${CLASS_MARK_STYLE[drawerRecord.classification]}`}
               aria-hidden="true"
             >
-              {CLASS_MARK[record.classification]}
+              {CLASS_MARK[drawerRecord.classification]}
             </span>
             <h2 className="text-[0.9375rem] font-semibold text-ink">
-              {record.metric}
+              {drawerRecord.metric}
             </h2>
           </div>
           <p className="mt-1 font-mono text-[1.375rem] tabular-nums text-ink">
-            {record.displayValue}
+            {drawerRecord.displayValue}
           </p>
 
           <dl className="mt-4">
-            <Row label="Classification">{CLASS_LABEL[record.classification]}</Row>
-            {record.period && <Row label="Period">{record.period}</Row>}
-            {record.unit && <Row label="Unit">{record.unit}</Row>}
-            {record.statement && <Row label="Statement">{record.statement}</Row>}
-            {record.filing && <Row label="Filing">{record.filing}</Row>}
-            {record.formula && (
+            <Row label="Classification">{CLASS_LABEL[drawerRecord.classification]}</Row>
+            {drawerRecord.period && <Row label="Period">{drawerRecord.period}</Row>}
+            {drawerRecord.unit && <Row label="Unit">{drawerRecord.unit}</Row>}
+            {drawerRecord.statement && <Row label="Statement">{drawerRecord.statement}</Row>}
+            {drawerRecord.filing && <Row label="Filing">{drawerRecord.filing}</Row>}
+            {drawerRecord.formula && (
               <Row label="Formula">
                 <span className="font-mono text-[0.75rem] text-ink-secondary">
-                  {record.formula}
+                  {drawerRecord.formula}
                 </span>
               </Row>
             )}
-            {record.inputs && record.inputs.length > 0 && (
+            {drawerRecord.inputs && drawerRecord.inputs.length > 0 && (
               <Row label="Inputs">
                 <ul className="space-y-1">
-                  {record.inputs.map((inp, i) => (
+                  {drawerRecord.inputs.map((inp, i) => (
                     <li key={i} className="flex justify-between gap-3 font-mono text-[0.75rem]">
                       <span className="text-ink-secondary">{inp.label}</span>
                       <span className="tabular-nums text-ink">{inp.value}</span>
@@ -153,23 +195,23 @@ export default function SourceDrawer({
                 </ul>
               </Row>
             )}
-            {record.sourceUrl && (
+            {drawerRecord.sourceUrl && (
               <Row label="Source">
                 <a
-                  href={record.sourceUrl}
+                  href={drawerRecord.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-link underline decoration-line-strong underline-offset-2 transition-colors hover:text-link-hover hover:decoration-link"
                 >
-                  {record.sourceLabel ?? "Open filing on SEC EDGAR"}
+                  {drawerRecord.sourceLabel ?? "Open filing on SEC EDGAR"}
                 </a>
               </Row>
             )}
           </dl>
 
-          {record.note && (
+          {drawerRecord.note && (
             <p className="mt-4 border-t border-line pt-3 text-[0.75rem] leading-snug text-ink-muted">
-              {record.note}
+              {drawerRecord.note}
             </p>
           )}
         </div>

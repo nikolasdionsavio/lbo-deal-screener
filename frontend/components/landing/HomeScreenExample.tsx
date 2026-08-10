@@ -45,7 +45,7 @@ export default function HomeScreenExample() {
           <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-muted">
             New
           </p>
-          <h2 className="mt-2 font-display text-[1.75rem] font-normal leading-[1.15] tracking-[-0.01em] text-ink">
+          <h2 className="type-title mt-2 font-display text-[1.75rem] font-normal text-ink">
             Find companies, not just research one
           </h2>
           <p className="mt-4 max-w-[52ch] text-[1.0625rem] leading-[1.55] text-ink-secondary">

@@ -183,6 +183,38 @@
     text-wrap: balance;
   }
 
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Optical sizing and size-specific tracking.
+     Tracking is never one value for the whole page: it tightens as type grows
+     and opens as it shrinks, because the same letter-spacing that steadies a
+     10px label makes a 60px headline look loose. Leading moves inversely, tight
+     on display sizes and open on body copy. Headings get this automatically so
+     a new page cannot forget it. */
+  html {
+    font-optical-sizing: auto;
+  }
+
+  /* These defaults suit the sizes headings actually render at in the
+     workspace (roughly 20-28px). Tracking cannot key off font-size in CSS, and
+     the same h1 is 22px here and 60px on the landing page, so the display
+     sizes take an explicit step from the .type-* scale below rather than
+     inheriting a value tuned for something three times smaller. */
+  h1 {
+    letter-spacing: -0.011em;
+    line-height: 1.12;
+  }
+  h2 {
+    letter-spacing: -0.008em;
+    line-height: 1.18;
+  }
+  h3 {
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+  }
+
   ::placeholder {
     @apply text-ink-muted;
   }
@@ -195,6 +227,29 @@
      in one place: a step up in size AND weight, paid for with tighter
      line-height and tracking so the row height does not grow. Bolder and
      easier to read, same footprint. */
+
+  /* --- Optical type scale ---------------------------------------------
+     One tracking value cannot serve 60px and 13px. Tracking tightens as the
+     type grows, because the spacing that steadies a small label reads as slack
+     at display size; leading tightens with it. Apply the step that matches the
+     rendered size rather than the tag. */
+  .type-display {
+    letter-spacing: -0.024em;
+    line-height: 1.03;
+  }
+  .type-title {
+    letter-spacing: -0.016em;
+    line-height: 1.1;
+  }
+  .type-heading {
+    letter-spacing: -0.009em;
+    line-height: 1.2;
+  }
+  /* Body sits at zero: prose needs neither tightening nor opening. */
+  .type-body {
+    letter-spacing: 0;
+    line-height: 1.55;
+  }
 
   /* Column heads and field labels. */
   .label-mono {
@@ -215,19 +270,33 @@
   /* Button state vocabulary (DESIGN.md Components, Aesthetic v2 pill
      geometry). Sizing stays at call sites; these classes carry shape,
      color, hover, focus, active and disabled. */
+  /* Press response is instant, release is eased.
+     A control that eases INTO its pressed state feels like it is deciding
+     whether to accept the click. Transitioning only compositor-friendly
+     properties (transform, colour) keeps it off the layout path. */
   .btn {
-    @apply inline-flex items-center justify-center rounded font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-[0.45];
+    @apply inline-flex items-center justify-center rounded font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-[0.45];
+    transition:
+      background-color 150ms ease-out,
+      border-color 150ms ease-out,
+      color 150ms ease-out,
+      transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn:active {
+    /* Fires on pointer-down: the highlight lands with the finger, not after it. */
+    transition-duration: 0ms;
+    transform: scale(0.97);
   }
   /* Primary = brand-green fill, white text. A deliberate action color, not a
      pill. Hover deepens the green; active settles. */
   .btn-primary {
-    @apply bg-brand text-white hover:bg-brand-hover active:translate-y-px;
+    @apply bg-brand text-white hover:bg-brand-hover;
   }
   .btn-secondary {
-    @apply border border-line-strong bg-surface-raised text-ink hover:bg-surface-sunken active:translate-y-px;
+    @apply border border-line-strong bg-surface-raised text-ink hover:bg-surface-sunken;
   }
   .btn-destructive {
-    @apply border border-negative text-negative-text hover:bg-negative hover:text-white active:translate-y-px;
+    @apply border border-negative text-negative-text hover:bg-negative hover:text-white;
   }
 
   /* Inputs read as model fields, not SaaS form controls: quiet raised surface,
@@ -339,14 +408,36 @@
   }
 }
 
-/* Source-record drawer: slides in from the right, 200ms (DESIGN.md motion). */
+/* Source-record drawer: slides in from the right, 200ms (DESIGN.md motion).
+   It leaves the way it arrived. A panel that slides in and then vanishes on
+   close breaks the expectation that things return to where they came from,
+   and it reads as a bug rather than a dismissal. The exit easing is the
+   mirror of the entrance, so the reversal feels like the same motion undone. */
 .drawer-right {
   animation: drawer-right-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.drawer-right[data-closing="true"] {
+  animation: drawer-right-out 160ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+.drawer-scrim[data-closing="true"] {
+  animation: fade-out 160ms cubic-bezier(0.7, 0, 0.84, 0) both;
 }
 
 @keyframes drawer-right-in {
   from {
     transform: translateX(100%);
+  }
+}
+
+@keyframes drawer-right-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
   }
 }
 
@@ -366,11 +457,47 @@
     transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Reduced motion removes MOVEMENT, not all feedback.
+   Flattening every duration to zero also kills the opacity fades, and a panel
+   that teleports in is harder to follow than one that fades. So: transforms
+   and travel go, short cross-fades stay. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    /* Any transition still running is reduced to a fade-length, not removed. */
+    transition-duration: 140ms !important;
+  }
+
+  /* Travel is what causes trouble, so it is the thing that goes. */
+  .drawer-right,
+  .drawer-scrim,
+  .reveal-init,
+  .reveal-init.reveal-in {
+    transform: none !important;
+  }
+  .drawer-right {
+    animation: fade-in 140ms ease-out both !important;
+  }
+  .btn:active {
+    transform: none !important;
+  }
+}
+
+/* Translucency is not used anywhere in this interface, so the honest response
+   to a contrast request is firmer rules and darker secondary ink rather than
+   de-frosting a material that was never there. */
+@media (prefers-contrast: more) {
+  :root {
+    --line: var(--line-strong);
+    --ink-secondary: var(--ink);
+    --ink-muted: var(--ink-secondary);
+  }
+  .btn-secondary,
+  .input {
+    border-width: 2px;
   }
 }
