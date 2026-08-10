@@ -24,10 +24,16 @@
 
   --ink: #19201e;
   --ink-secondary: #59635f;
-  --ink-muted: #7a827f;
+  /* Was #7a827f at 3.52:1, below the 4.5:1 AA floor for the small labels it
+     carries. Darkened along its own hue to 4.66:1. */
+  --ink-muted: #676e6c;
 
-  --line: #d7d6cf; /* rule */
-  --line-strong: #aeb4b0; /* rule-strong */
+  /* Rules carry the structure of every table and panel here, so they have to
+     be seen. The originals sat at 1.30:1 and 1.88:1, which read as a faint
+     smudge and made the whole interface look thin. Raised to 2.0:1 for row
+     rules and 3.5:1 for structural boundaries, hue unchanged. */
+  --line: #afad9f; /* rule */
+  --line-strong: #79837c; /* rule-strong */
 
   --brand: #215b52;
   --brand-hover: #194a43;
@@ -49,8 +55,8 @@
   --negative-text: #a34738;
   --negative-soft: #f5e5e1;
 
-  /* Editable assumptions only. */
-  --assumption: #8d6926;
+  /* Editable assumptions only. Nudged to clear 4.5:1 (was 4.48:1). */
+  --assumption: #8b6725;
   --assumption-soft: #f4ebd6;
   --warn: #8d6926;
   --warn-text: #7a5b21;
@@ -68,6 +74,28 @@
   --sens-positive-rgb: 61, 109, 81;
   --sens-negative-rgb: 163, 71, 56;
   --sens-alpha-step: 0.1;
+
+  /* --- Screening data roles ---------------------------------------------
+     Colour here is information, not decoration: a leverage multiple and a
+     margin are read differently, and for leverage the BAND is the meaning.
+     Bands follow credit convention (conservative / moderate / aggressive),
+     and every value also carries its number, so colour is never the only
+     signal. Each clears 4.5:1 on both paper surfaces. */
+  --metric-profit: #215b52;
+  --metric-profit-soft: #e2ece8;
+  --lev-low: #215b52; /* under 3.0x */
+  --lev-mid: #8b6725; /* 3.0x to 5.0x */
+  --lev-high: #a34738; /* above 5.0x */
+  --lev-low-soft: #e2ece8;
+  --lev-mid-soft: #f4ebd6;
+  --lev-high-soft: #f5e5e1;
+
+  /* Filter-group markers. Small chips in the rail only, never behind data. */
+  --group-size: #3f5f7a;
+  --group-profit: #215b52;
+  --group-balance: #8b6725;
+  --group-classify: #6b5a7d;
+  --group-quality: #7a5348;
 }
 
 .dark {
@@ -84,8 +112,9 @@
   --ink-secondary: #b0b5ae;
   --ink-muted: #878d86;
 
-  --line: #2e322b;
-  --line-strong: #434840;
+  /* Same correction as light: rules were 1.37:1 and 1.91:1 against the board. */
+  --line: #464c41;
+  --line-strong: #697164;
 
   --brand: #4f9184;
   --brand-hover: #5da296;
@@ -121,6 +150,22 @@
   --sens-positive-rgb: 124, 179, 146;
   --sens-negative-rgb: 221, 145, 127;
   --sens-alpha-step: 0.12;
+
+  /* Same data roles, lifted for the dark board. */
+  --metric-profit: #7cb392;
+  --metric-profit-soft: #1b271f;
+  --lev-low: #7cb392;
+  --lev-mid: #c4a468;
+  --lev-high: #dd917f;
+  --lev-low-soft: #1b271f;
+  --lev-mid-soft: #272115;
+  --lev-high-soft: #2b1e1a;
+
+  --group-size: #8fb0cc;
+  --group-profit: #7cb392;
+  --group-balance: #c4a468;
+  --group-classify: #a999bd;
+  --group-quality: #c2988c;
 }
 
 @layer base {
@@ -144,6 +189,29 @@
 }
 
 @layer components {
+  /* --- Workspace type scale -------------------------------------------
+     The workspace looked thin because its smallest text sat at 10-11px in
+     regular weight on low-contrast ink. These classes carry the correction
+     in one place: a step up in size AND weight, paid for with tighter
+     line-height and tracking so the row height does not grow. Bolder and
+     easier to read, same footprint. */
+
+  /* Column heads and field labels. */
+  .label-mono {
+    @apply font-mono text-[0.6875rem] font-semibold uppercase leading-[1.15] tracking-[0.05em] text-ink-muted;
+  }
+  /* Data cells: tabular figures need weight to hold their own against rules. */
+  .figure {
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink;
+  }
+  .figure-muted {
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink-secondary;
+  }
+  /* Annotations under a field. Was 10px regular; now 11px with real contrast. */
+  .note-sm {
+    @apply text-[0.6875rem] font-normal leading-[1.35] text-ink-secondary;
+  }
+
   /* Button state vocabulary (DESIGN.md Components, Aesthetic v2 pill
      geometry). Sizing stays at call sites; these classes carry shape,
      color, hover, focus, active and disabled. */

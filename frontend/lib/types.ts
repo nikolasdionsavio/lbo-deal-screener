@@ -770,6 +770,19 @@ export interface ScreenRow {
   quality_note: string | null;
   revenue_tag: string | null;
   filing_url: string | null;
+
+  gross_profit?: number | null;
+  gross_margin?: number | null;
+  net_income?: number | null;
+  net_margin?: number | null;
+  operating_margin?: number | null;
+  cash?: number | null;
+  total_debt?: number | null;
+  assets?: number | null;
+  equity?: number | null;
+  net_debt?: number | null;
+  /** Net debt / EBITDA. Null unless EBITDA is known and positive. */
+  leverage?: number | null;
 }
 
 export interface ScreenCoverageSummary {
@@ -791,6 +804,13 @@ export interface ScreenResponse {
   note: string;
 }
 
+export interface ScreenFacets {
+  exchanges: string[];
+  periods: string[];
+  sectors: ScreenSector[];
+  coverage_levels: string[];
+}
+
 export interface ScreenSector {
   sic: string | null;
   name: string;
@@ -798,16 +818,7 @@ export interface ScreenSector {
 }
 
 export interface ScreenQuery {
-  revenue_min?: number | null;
-  revenue_max?: number | null;
-  ebitda_min?: number | null;
-  ebitda_positive?: boolean;
-  margin_min?: number | null;
-  sector?: string | null;
-  q?: string | null;
-  exclude_flagged?: boolean;
-  sort?: string;
-  direction?: "asc" | "desc";
-  limit?: number;
-  offset?: number;
+  // Range filters are generated from the filter spec as `${field}_min` /
+  // `${field}_max`, so the shape is open rather than enumerated here.
+  [key: string]: string | number | boolean | null | undefined;
 }

@@ -266,6 +266,22 @@ class ScreenIndexRow(Base):
     # income). Flagged rather than removed, and never silently ranked first.
     quality_flag: Mapped[str | None] = mapped_column(String(32), index=True)
 
+    # Profitability, same annual period as revenue.
+    gross_profit: Mapped[float | None] = mapped_column(Float)
+    gross_margin: Mapped[float | None] = mapped_column(Float, index=True)
+    net_income: Mapped[float | None] = mapped_column(Float)
+    net_margin: Mapped[float | None] = mapped_column(Float, index=True)
+    operating_margin: Mapped[float | None] = mapped_column(Float, index=True)
+
+    # Balance sheet, at the instant nearest the period end.
+    cash: Mapped[float | None] = mapped_column(Float)
+    total_debt: Mapped[float | None] = mapped_column(Float)
+    assets: Mapped[float | None] = mapped_column(Float, index=True)
+    equity: Mapped[float | None] = mapped_column(Float)
+    net_debt: Mapped[float | None] = mapped_column(Float)
+    # Net debt / EBITDA, only where EBITDA is known and positive.
+    leverage: Mapped[float | None] = mapped_column(Float, index=True)
+
     refreshed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )

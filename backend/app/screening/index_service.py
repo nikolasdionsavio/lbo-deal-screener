@@ -32,8 +32,35 @@ SORTABLE = {
     "revenue": ScreenIndexRow.revenue,
     "ebitda": ScreenIndexRow.ebitda,
     "ebitda_margin": ScreenIndexRow.ebitda_margin,
+    "operating_income": ScreenIndexRow.operating_income,
+    "operating_margin": ScreenIndexRow.operating_margin,
+    "gross_margin": ScreenIndexRow.gross_margin,
+    "net_income": ScreenIndexRow.net_income,
+    "net_margin": ScreenIndexRow.net_margin,
+    "assets": ScreenIndexRow.assets,
+    "cash": ScreenIndexRow.cash,
+    "net_debt": ScreenIndexRow.net_debt,
+    "leverage": ScreenIndexRow.leverage,
     "entity_name": ScreenIndexRow.entity_name,
     "ticker": ScreenIndexRow.ticker,
+    "sector": ScreenIndexRow.sic_description,
+}
+
+# Numeric filters exposed as min/max pairs. Declared once so the query builder,
+# the route signature and the tests cannot drift apart.
+RANGE_FILTERS: dict[str, Any] = {
+    "revenue": ScreenIndexRow.revenue,
+    "ebitda": ScreenIndexRow.ebitda,
+    "ebitda_margin": ScreenIndexRow.ebitda_margin,
+    "operating_income": ScreenIndexRow.operating_income,
+    "operating_margin": ScreenIndexRow.operating_margin,
+    "gross_margin": ScreenIndexRow.gross_margin,
+    "net_income": ScreenIndexRow.net_income,
+    "net_margin": ScreenIndexRow.net_margin,
+    "assets": ScreenIndexRow.assets,
+    "cash": ScreenIndexRow.cash,
+    "net_debt": ScreenIndexRow.net_debt,
+    "leverage": ScreenIndexRow.leverage,
 }
 
 
@@ -100,6 +127,17 @@ def _upsert(
     record.ebitda_margin = row.ebitda_margin
     record.coverage = str(row.coverage)
     record.quality_flag = str(row.quality_flag) if row.quality_flag else None
+    record.gross_profit = row.gross_profit
+    record.gross_margin = row.gross_margin
+    record.net_income = row.net_income
+    record.net_margin = row.net_margin
+    record.operating_margin = row.operating_margin
+    record.cash = row.cash
+    record.total_debt = row.total_debt
+    record.assets = row.assets
+    record.equity = row.equity
+    record.net_debt = row.net_debt
+    record.leverage = row.leverage
     record.refreshed_at = utcnow()
 
 
@@ -146,41 +184,71 @@ def enrich_missing_sectors(
 def query_screen(
     db: Session,
     *,
-    revenue_min: float | None = None,
-    revenue_max: float | None = None,
-    ebitda_min: float | None = None,
+    ranges: dict[str, tuple[float | None, float | None]] | None = None,
     ebitda_positive: bool = False,
-    margin_min: float | None = None,
+    profitable: bool = False,
     sector: str | None = None,
+    exchange: str | None = None,
+    period: str | None = None,
+    coverage: str | None = None,
     q: str | None = None,
     exclude_flagged: bool = False,
     sort: str = "revenue",
     direction: Literal["asc", "desc"] = "desc",
     limit: int = 50,
     offset: int = 0,
+    # Retained for callers that predate the generic ranges dict.
+    revenue_min: float | None = None,
+    revenue_max: float | None = None,
+    ebitda_min: float | None = None,
+    margin_min: float | None = None,
 ) -> tuple[list[ScreenIndexRow], int]:
     """Apply the screen filters. Returns (page of rows, total matching count).
 
-    Any EBITDA or margin filter implicitly drops rows where EBITDA is unknown,
-    because SQL comparisons against NULL are never true. That is intended: a
-    company that does not disclose D&A must not appear in a positive-EBITDA
-    screen on the strength of a guess.
+    Any filter on a derived figure implicitly drops rows where that figure is
+    unknown, because SQL comparisons against NULL are never true. That is
+    intended throughout: a company that does not disclose D&A must not appear
+    in a positive-EBITDA screen on the strength of a guess, and one with no
+    cash figure must not appear in a leverage screen.
     """
     stmt = select(ScreenIndexRow)
-    if revenue_min is not None:
-        stmt = stmt.where(ScreenIndexRow.revenue >= revenue_min)
-    if revenue_max is not None:
-        stmt = stmt.where(ScreenIndexRow.revenue <= revenue_max)
+
+    bounds: dict[str, tuple[float | None, float | None]] = dict(ranges or {})
+    # Fold the legacy scalar arguments into the same mechanism.
+    for key, low, high in (
+        ("revenue", revenue_min, revenue_max),
+        ("ebitda", ebitda_min, None),
+        ("ebitda_margin", margin_min, None),
+    ):
+        if low is None and high is None:
+            continue
+        existing_low, existing_high = bounds.get(key, (None, None))
+        bounds[key] = (low if low is not None else existing_low,
+                       high if high is not None else existing_high)
+
+    for field, (low, high) in bounds.items():
+        column = RANGE_FILTERS.get(field)
+        if column is None:
+            continue
+        if low is not None:
+            stmt = stmt.where(column >= low)
+        if high is not None:
+            stmt = stmt.where(column <= high)
+
     if ebitda_positive:
         stmt = stmt.where(ScreenIndexRow.ebitda > 0)
-    if ebitda_min is not None:
-        stmt = stmt.where(ScreenIndexRow.ebitda >= ebitda_min)
-    if margin_min is not None:
-        stmt = stmt.where(ScreenIndexRow.ebitda_margin >= margin_min)
+    if profitable:
+        stmt = stmt.where(ScreenIndexRow.net_income > 0)
     if exclude_flagged:
         stmt = stmt.where(ScreenIndexRow.quality_flag.is_(None))
     if sector:
         stmt = stmt.where(ScreenIndexRow.sic_description.ilike(f"%{sector.strip()}%"))
+    if exchange:
+        stmt = stmt.where(ScreenIndexRow.exchange.ilike(exchange.strip()))
+    if period:
+        stmt = stmt.where(ScreenIndexRow.period == period.strip())
+    if coverage:
+        stmt = stmt.where(ScreenIndexRow.coverage == coverage.strip())
     if q:
         needle = f"%{q.strip()}%"
         stmt = stmt.where(

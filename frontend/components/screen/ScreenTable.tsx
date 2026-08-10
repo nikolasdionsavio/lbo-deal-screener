@@ -1,8 +1,11 @@
 "use client";
 
-// Screen results at workspace density: rules rather than cards, mono tabular
-// figures, and every figure traceable. Clicking a number opens the source
-// record showing which XBRL tag it came from and, for EBITDA, the arithmetic.
+// Screen results at workspace density. Rules rather than cards, mono tabular
+// figures, every figure traceable to its filing.
+//
+// Colour is used once, on leverage, because leverage is read by band: under 3x,
+// 3-5x and above 5x mean different things to anyone sizing a deal. The number
+// is always shown alongside, so colour is never the only signal.
 
 import Link from "next/link";
 import { useState } from "react";
@@ -11,8 +14,8 @@ import { fmtDate, fmtPercent } from "@/lib/format";
 import type { ScreenRow } from "@/lib/types";
 
 /** Compact money for a dense table: $12.7m, $1.4bn. */
-function money(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "—";
+function money(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
   if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}bn`;
@@ -21,110 +24,42 @@ function money(value: number | null): string {
   return `${sign}$${abs.toFixed(0)}`;
 }
 
-const SORTABLE: { key: string; label: string; numeric: boolean }[] = [
-  { key: "entity_name", label: "Company", numeric: false },
-  { key: "revenue", label: "Revenue", numeric: true },
-  { key: "ebitda", label: "EBITDA", numeric: true },
-  { key: "ebitda_margin", label: "Margin", numeric: true },
-];
-
-function periodLabel(row: ScreenRow): string {
-  const year = row.period.replace("CY", "");
-  return row.period_end ? `${year} · to ${fmtDate(row.period_end)}` : year;
+function multiple(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `${value.toFixed(1)}x`;
 }
 
-/** The provenance record behind one figure. */
-function buildRecord(row: ScreenRow, field: "revenue" | "ebitda"): SourceRecord {
-  const filing = {
-    filing: "Annual report (10-K / 20-F), XBRL company facts",
-    sourceUrl: row.filing_url ?? undefined,
-    sourceLabel: row.filing_url ? "Open the filing on SEC EDGAR" : undefined,
-    period: periodLabel(row),
-    unit: "USD, reported in full",
-    statement: "Income statement",
-  };
-
-  if (field === "revenue") {
-    return {
-      ...filing,
-      metric: "Revenue",
-      displayValue: money(row.revenue),
-      classification: "filed",
-      note:
-        row.revenue_tag === "Revenues"
-          ? "Taken from the total revenue tag."
-          : "Taken from the revenue-from-contracts tag, which this filer uses " +
-            "as its revenue line. It excludes any non-contract revenue.",
-    };
-  }
-
-  if (row.ebitda === null) {
-    return {
-      ...filing,
-      metric: "EBITDA",
-      displayValue: "Not disclosed",
-      classification: "missing",
-      note:
-        row.coverage === "ebit_only"
-          ? "EBITDA cannot be calculated: this filer does not tag depreciation " +
-            "and amortisation separately. Operating income is " +
-            `${money(row.operating_income)}, but adding an assumed D&A figure ` +
-            "would be a guess, so nothing is shown."
-          : "This filer disclosed revenue but not operating income for the period.",
-    };
-  }
-
-  return {
-    ...filing,
-    metric: "EBITDA",
-    displayValue: money(row.ebitda),
-    classification: "calculated",
-    formula: "Operating income + depreciation and amortisation",
-    inputs: [
-      { label: "Operating income", value: money(row.operating_income) },
-      { label: "D&A", value: money(row.depreciation_amortization) },
-    ],
-    note:
-      row.quality_flag === "ebitda_exceeds_revenue"
-        ? "EBITDA exceeds revenue here, which normally means a one-off gain " +
-          "sits inside reported operating income. Treat it as a filing " +
-          "artifact rather than an operating margin, and check the filing."
-        : undefined,
-  };
+/** Credit-convention bands. Net cash reads as conservative, not as an error. */
+function leverageTone(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "text-ink-muted";
+  if (value < 3) return "text-lev-low";
+  if (value <= 5) return "text-lev-mid";
+  return "text-lev-high";
 }
 
-function FigureButton({
-  row,
-  field,
-  onOpen,
-}: {
-  row: ScreenRow;
-  field: "revenue" | "ebitda";
-  onOpen: (record: SourceRecord) => void;
-}) {
-  const value = field === "revenue" ? row.revenue : row.ebitda;
-  const undisclosed = value === null;
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(buildRecord(row, field))}
-      title="Show where this figure came from"
-      className={`w-full whitespace-nowrap text-right font-mono text-[0.8125rem] tabular-nums underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
-        undisclosed ? "text-ink-muted" : "text-ink"
-      }`}
-    >
-      {undisclosed ? "not disclosed" : money(value)}
-    </button>
-  );
+/** Passed to every cell so a figure can open its own provenance record. */
+export interface CellContext {
+  openSource: (record: SourceRecord) => void;
+}
+
+export interface Column {
+  key: string;
+  label: string;
+  /** Sortable columns map to an API sort key. */
+  sortKey?: string;
+  align: "left" | "right";
+  render: (row: ScreenRow, ctx: CellContext) => React.ReactNode;
 }
 
 export default function ScreenTable({
   rows,
+  columns,
   sort,
   direction,
   onSort,
 }: {
   rows: ScreenRow[];
+  columns: Column[];
   sort: string;
   direction: "asc" | "desc";
   onSort: (key: string) => void;
@@ -133,9 +68,9 @@ export default function ScreenTable({
 
   if (rows.length === 0) {
     return (
-      <p className="border-t border-line py-10 text-center text-[0.875rem] text-ink-secondary">
-        No companies match these criteria. Widen the revenue band, or clear the
-        EBITDA filter to include filers that do not disclose D&amp;A.
+      <p className="border-y border-line-strong py-10 text-center text-[0.9375rem] text-ink-secondary">
+        No companies match these criteria. Widen a range, or clear an EBITDA
+        filter to include filers that do not disclose D&amp;A.
       </p>
     );
   }
@@ -143,104 +78,71 @@ export default function ScreenTable({
   return (
     <>
       <div className="overflow-x-auto">
-        {/* Sized to fit beside the filter rail at desktop width; narrower
-            viewports scroll the table rather than crushing the figures. */}
-        <table className="w-full min-w-[40rem] border-collapse text-left">
+        <table className="w-full min-w-[48rem] border-collapse text-left">
           <thead>
-            <tr className="border-y border-line-strong">
-              {SORTABLE.map((col) => {
-                const active = sort === col.key;
+            <tr className="border-y-2 border-line-strong">
+              {columns.map((col, index) => {
+                const active = col.sortKey && sort === col.sortKey;
                 return (
                   <th
                     key={col.key}
                     scope="col"
-                    className={`py-2 font-mono text-[11px] font-normal uppercase tracking-[0.04em] ${
-                      col.numeric ? "text-right" : "text-left"
+                    className={`whitespace-nowrap py-2 ${
+                      col.align === "right"
+                        ? "pl-4 text-right"
+                        : index === 0
+                          ? "pr-3 text-left"
+                          : "pl-5 pr-3 text-left"
                     }`}
+                    aria-sort={
+                      active
+                        ? direction === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : undefined
+                    }
                   >
-                    <button
-                      type="button"
-                      onClick={() => onSort(col.key)}
-                      aria-sort={
-                        active
-                          ? direction === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : "none"
-                      }
-                      // Font is restated here: the global button reset would
-                      // otherwise drop the mono/uppercase set on the cell.
-                      className={`whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.04em] transition-colors hover:text-ink ${
-                        active ? "text-ink" : "text-ink-muted"
-                      }`}
-                    >
-                      {col.label}
-                      {active && (
-                        <span aria-hidden="true">
+                    {col.sortKey ? (
+                      <button
+                        type="button"
+                        onClick={() => onSort(col.sortKey as string)}
+                        className={`label-mono transition-colors hover:!text-ink ${
+                          active ? "!text-ink" : ""
+                        }`}
+                      >
+                        {col.label}
+                        <span aria-hidden className={active ? "" : "opacity-0"}>
                           {direction === "asc" ? " ↑" : " ↓"}
                         </span>
-                      )}
-                    </button>
+                      </button>
+                    ) : (
+                      <span className="label-mono">{col.label}</span>
+                    )}
                   </th>
                 );
               })}
-              <th
-                scope="col"
-                className="py-2 pl-5 text-left font-mono text-[11px] font-normal uppercase tracking-[0.04em] text-ink-muted"
-              >
-                Sector
-              </th>
-              <th
-                scope="col"
-                className="w-[4.5rem] whitespace-nowrap py-2 pl-3 text-right font-mono text-[11px] font-normal uppercase tracking-[0.04em] text-ink-muted"
-              >
-                Period
-              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.cik} className="border-b border-line align-baseline">
-                <td className="py-2 pr-4">
-                  <div className="flex items-baseline gap-2">
-                    {row.ticker ? (
-                      <Link
-                        href={`/company/${encodeURIComponent(row.ticker)}/dashboard`}
-                        className="font-mono text-[0.8125rem] text-link underline-offset-2 hover:underline"
-                      >
-                        {row.ticker}
-                      </Link>
-                    ) : (
-                      <span className="font-mono text-[0.8125rem] text-ink-muted">
-                        —
-                      </span>
-                    )}
-                    <span className="text-[0.8125rem] text-ink">{row.name}</span>
-                    {row.quality_flag && (
-                      <span
-                        title={row.quality_note ?? undefined}
-                        className="border border-assumption px-1 font-mono text-[10px] leading-4 text-assumption"
-                      >
-                        one-off gain
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-2 pl-2">
-                  <FigureButton row={row} field="revenue" onOpen={setRecord} />
-                </td>
-                <td className="py-2 pl-2">
-                  <FigureButton row={row} field="ebitda" onOpen={setRecord} />
-                </td>
-                <td className="whitespace-nowrap py-2 pl-3 text-right font-mono text-[0.8125rem] tabular-nums text-ink-secondary">
-                  {row.ebitda_margin === null ? "—" : fmtPercent(row.ebitda_margin)}
-                </td>
-                <td className="max-w-[13rem] truncate py-2 pl-5 text-[0.8125rem] text-ink-secondary">
-                  {row.sector ?? "—"}
-                </td>
-                <td className="whitespace-nowrap py-2 pl-3 text-right font-mono text-[11px] text-ink-muted">
-                  {row.period.replace("CY", "FY")}
-                </td>
+              <tr
+                key={row.cik}
+                className="border-b border-line align-baseline transition-colors hover:bg-surface"
+              >
+                {columns.map((col, index) => (
+                  <td
+                    key={col.key}
+                    className={`py-2 ${
+                      col.align === "right"
+                        ? "whitespace-nowrap pl-4 text-right"
+                        : index === 0
+                          ? "pr-3"
+                          : "pl-5 pr-3"
+                    }`}
+                  >
+                    {col.render(row, { openSource: setRecord })}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -250,3 +152,5 @@ export default function ScreenTable({
     </>
   );
 }
+
+export { money, multiple, leverageTone };

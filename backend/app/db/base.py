@@ -56,6 +56,19 @@ def get_db() -> Iterator[Session]:
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("companies", "description", "TEXT"),
     ("users", "oauth_provider", "VARCHAR(20)"),
+    # Screening index: profitability and balance-sheet dimensions added after
+    # the table's first release, so existing deployments need them added.
+    ("screen_index", "gross_profit", "FLOAT"),
+    ("screen_index", "gross_margin", "FLOAT"),
+    ("screen_index", "net_income", "FLOAT"),
+    ("screen_index", "net_margin", "FLOAT"),
+    ("screen_index", "operating_margin", "FLOAT"),
+    ("screen_index", "cash", "FLOAT"),
+    ("screen_index", "total_debt", "FLOAT"),
+    ("screen_index", "assets", "FLOAT"),
+    ("screen_index", "equity", "FLOAT"),
+    ("screen_index", "net_debt", "FLOAT"),
+    ("screen_index", "leverage", "FLOAT"),
 ]
 
 

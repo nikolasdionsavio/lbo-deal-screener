@@ -66,6 +66,28 @@ const config: Config = {
           text: "var(--warn-text)",
           soft: "var(--warn-soft)",
         },
+        // Screening data roles. Colour is information here: leverage is read
+        // by band, and every value still shows its number so colour is never
+        // the only carrier of meaning.
+        lev: {
+          low: "var(--lev-low)",
+          mid: "var(--lev-mid)",
+          high: "var(--lev-high)",
+          "low-soft": "var(--lev-low-soft)",
+          "mid-soft": "var(--lev-mid-soft)",
+          "high-soft": "var(--lev-high-soft)",
+        },
+        metric: {
+          profit: "var(--metric-profit)",
+          "profit-soft": "var(--metric-profit-soft)",
+        },
+        group: {
+          size: "var(--group-size)",
+          profit: "var(--group-profit)",
+          balance: "var(--group-balance)",
+          classify: "var(--group-classify)",
+          quality: "var(--group-quality)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],

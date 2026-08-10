@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.9.0";
+export const APP_VERSION = "1.10.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,20 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.10.0",
+    date: "10 August 2026",
+    title: "Leverage, margins and a filter rail",
+    changes: [
+      "The screen now carries the balance sheet: net debt, cash, total assets, and net debt / EBITDA. Leverage is the ratio most screens are actually built around, and it is colour-banded by credit convention so conservative, moderate and aggressive read at a glance.",
+      "Profitability filters for gross, operating, EBITDA and net margin, each with a minimum and a maximum rather than a floor only.",
+      "Filters are grouped and collapsible, so a simple screen stays simple and a specific one is available without a wall of inputs. Closed groups show how many constraints they hold, and a row of chips above the results says exactly what is filtering, each removable on its own.",
+      "Four named starting points: add-on targets, lower mid-market, conservatively levered, and net cash.",
+      "Every screen is now a link. Filters live in the address bar, so a shortlist can be sent to someone else and it opens exactly as you left it.",
+      "Balance-sheet figures are matched to each company's own year end rather than to 31 December, so filers like Apple and NVIDIA are read against the right quarter instead of being dropped or mismatched.",
+      "Rules and small labels were too faint to read: table rules sat at 1.3:1 contrast and the smallest labels failed the WCAG AA floor. Both were corrected, and labels and figures gained weight, without making any row taller.",
+    ],
+  },
   {
     version: "1.9.0",
     date: "9 August 2026",

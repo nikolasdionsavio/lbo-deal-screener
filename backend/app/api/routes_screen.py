@@ -61,6 +61,21 @@ class ScreenRowOut(BaseModel):
     revenue_tag: str | None
     filing_url: str | None
 
+    # Profitability
+    gross_profit: float | None = None
+    gross_margin: float | None = None
+    net_income: float | None = None
+    net_margin: float | None = None
+    operating_margin: float | None = None
+
+    # Balance sheet
+    cash: float | None = None
+    total_debt: float | None = None
+    assets: float | None = None
+    equity: float | None = None
+    net_debt: float | None = None
+    leverage: float | None = None
+
 
 class CoverageOut(BaseModel):
     total: int
@@ -119,17 +134,52 @@ def _to_out(record: ScreenIndexRow) -> ScreenRowOut:
         quality_note=_FLAG_NOTE.get(record.quality_flag or ""),
         revenue_tag=record.revenue_tag,
         filing_url=_filing_url(record.cik, record.accession),
+        gross_profit=record.gross_profit,
+        gross_margin=record.gross_margin,
+        net_income=record.net_income,
+        net_margin=record.net_margin,
+        operating_margin=record.operating_margin,
+        cash=record.cash,
+        total_debt=record.total_debt,
+        assets=record.assets,
+        equity=record.equity,
+        net_debt=record.net_debt,
+        leverage=record.leverage,
     )
 
 
 @router.get("", response_model=ScreenResponse)
 def screen(
-    revenue_min: float | None = Query(None, description="Minimum revenue, in currency units"),
-    revenue_max: float | None = Query(None, description="Maximum revenue, in currency units"),
+    # Size. Currency amounts are in full units, not millions.
+    revenue_min: float | None = Query(None, description="Minimum revenue"),
+    revenue_max: float | None = Query(None, description="Maximum revenue"),
     ebitda_min: float | None = Query(None),
+    ebitda_max: float | None = Query(None),
+    assets_min: float | None = Query(None),
+    assets_max: float | None = Query(None),
+    # Profitability. Margins are fractions, so 0.15 is 15 percent.
+    margin_min: float | None = Query(None, description="Minimum EBITDA margin"),
+    margin_max: float | None = Query(None),
+    operating_margin_min: float | None = Query(None),
+    operating_margin_max: float | None = Query(None),
+    gross_margin_min: float | None = Query(None),
+    gross_margin_max: float | None = Query(None),
+    net_margin_min: float | None = Query(None),
+    net_margin_max: float | None = Query(None),
     ebitda_positive: bool = Query(False, description="Keep only positive EBITDA"),
-    margin_min: float | None = Query(None, description="Minimum EBITDA margin, as a fraction"),
+    profitable: bool = Query(False, description="Keep only positive net income"),
+    # Balance sheet.
+    cash_min: float | None = Query(None),
+    cash_max: float | None = Query(None),
+    net_debt_min: float | None = Query(None),
+    net_debt_max: float | None = Query(None),
+    leverage_min: float | None = Query(None, description="Min net debt / EBITDA"),
+    leverage_max: float | None = Query(None, description="Max net debt / EBITDA"),
+    # Classification.
     sector: str | None = Query(None, description="SIC description substring"),
+    exchange: str | None = Query(None),
+    period: str | None = Query(None, description="e.g. CY2025"),
+    coverage: str | None = Query(None, description="full | ebit_only | revenue_only"),
     q: str | None = Query(None, description="Company name or ticker"),
     exclude_flagged: bool = Query(
         False, description="Drop rows whose EBITDA exceeds revenue (one-off gains)"
@@ -140,14 +190,27 @@ def screen(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> ScreenResponse:
+    ranges: dict[str, tuple[float | None, float | None]] = {
+        "revenue": (revenue_min, revenue_max),
+        "ebitda": (ebitda_min, ebitda_max),
+        "assets": (assets_min, assets_max),
+        "ebitda_margin": (margin_min, margin_max),
+        "operating_margin": (operating_margin_min, operating_margin_max),
+        "gross_margin": (gross_margin_min, gross_margin_max),
+        "net_margin": (net_margin_min, net_margin_max),
+        "cash": (cash_min, cash_max),
+        "net_debt": (net_debt_min, net_debt_max),
+        "leverage": (leverage_min, leverage_max),
+    }
     rows, total = query_screen(
         db,
-        revenue_min=revenue_min,
-        revenue_max=revenue_max,
-        ebitda_min=ebitda_min,
+        ranges=ranges,
         ebitda_positive=ebitda_positive,
-        margin_min=margin_min,
+        profitable=profitable,
         sector=sector,
+        exchange=exchange,
+        period=period,
+        coverage=coverage,
         q=q,
         exclude_flagged=exclude_flagged,
         sort=sort,
@@ -156,7 +219,17 @@ def screen(
         offset=offset,
     )
     summary = coverage_summary(db)
-    filtered_on_ebitda = ebitda_positive or ebitda_min is not None or margin_min is not None
+    derived_filters = (
+        ebitda_positive
+        or profitable
+        or any(
+            bound is not None
+            for field in ("ebitda", "ebitda_margin", "operating_margin",
+                          "gross_margin", "net_margin", "cash", "net_debt", "leverage")
+            for bound in ranges[field]
+        )
+    )
+    filtered_on_ebitda = derived_filters
     note = (
         "Filtering on EBITDA excludes companies that do not disclose depreciation "
         "and amortisation separately, because their EBITDA cannot be calculated "
@@ -173,6 +246,43 @@ def screen(
         coverage=CoverageOut(**summary),
         source="SEC EDGAR (XBRL company facts)",
         note=note,
+    )
+
+
+class FacetsOut(BaseModel):
+    """Values that actually exist in the index, so the filter UI never offers
+    an option that would return nothing."""
+
+    exchanges: list[str]
+    periods: list[str]
+    sectors: list[SectorOut]
+    coverage_levels: list[str]
+
+
+@router.get("/facets", response_model=FacetsOut)
+def facets(db: Session = Depends(get_db)) -> FacetsOut:
+    exchanges = [
+        row[0]
+        for row in db.execute(
+            select(ScreenIndexRow.exchange)
+            .where(ScreenIndexRow.exchange.is_not(None))
+            .group_by(ScreenIndexRow.exchange)
+            .order_by(func.count().desc())
+        ).all()
+    ]
+    periods = [
+        row[0]
+        for row in db.execute(
+            select(ScreenIndexRow.period)
+            .group_by(ScreenIndexRow.period)
+            .order_by(ScreenIndexRow.period.desc())
+        ).all()
+    ]
+    return FacetsOut(
+        exchanges=exchanges,
+        periods=periods,
+        sectors=sectors(db),
+        coverage_levels=["full", "ebit_only", "revenue_only"],
     )
 
 

@@ -6,6 +6,7 @@
 // which would otherwise drift as new filings land.
 
 import Link from "next/link";
+import { leverageTone } from "@/components/screen/ScreenTable";
 import { getScreen } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 
@@ -49,8 +50,9 @@ export default function HomeScreenExample() {
           </h2>
           <p className="mt-4 max-w-[52ch] text-[1.0625rem] leading-[1.55] text-ink-secondary">
             The deal screen filters every US-listed filer on figures taken from
-            their own SEC filings. Set a revenue band, require positive EBITDA,
-            narrow by sector, then open any company straight into the workspace.
+            their own SEC filings. Set a revenue band, a margin floor, a
+            leverage range, narrow by sector, then open any company straight
+            into the workspace. Every screen is a link you can send.
           </p>
           <p className="mt-4 max-w-[52ch] text-[0.9375rem] leading-[1.55] text-ink-secondary">
             EBITDA is calculated as operating income plus depreciation and
@@ -98,6 +100,9 @@ export default function HomeScreenExample() {
                     <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
                       Margin
                     </th>
+                    <th className="py-1.5 pl-3 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                      Leverage
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -123,6 +128,15 @@ export default function HomeScreenExample() {
                         {r.ebitda_margin === null
                           ? "—"
                           : `${(r.ebitda_margin * 100).toFixed(1)}%`}
+                      </td>
+                      <td
+                        className={`whitespace-nowrap py-2 pl-3 text-right font-mono text-[0.8125rem] font-medium tabular-nums ${leverageTone(
+                          r.leverage,
+                        )}`}
+                      >
+                        {r.leverage === null || r.leverage === undefined
+                          ? "—"
+                          : `${r.leverage.toFixed(1)}x`}
                       </td>
                     </tr>
                   ))}

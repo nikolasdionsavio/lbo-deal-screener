@@ -10,6 +10,7 @@ widest.
 
 from typing import Any, Callable
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.models import ScreenIndexRow
@@ -590,3 +591,184 @@ def test_missing_sic_is_reported_as_absent_not_empty_string(
     row = client.get("/api/screen", params={"q": "No SIC"}).json()["rows"][0]
     assert row["sic"] is None
     assert row["sector"] is None
+
+
+# ------------------------------------------- balance sheet and profitability --
+
+
+def test_balance_sheet_matched_to_nearest_instant_not_calendar_year_end() -> None:
+    """Apple's year ends in September, so its balance sheet sits in the Q3
+    instant frame. Taking Q4 blindly would attach the wrong quarter, or drop
+    every non-calendar filer."""
+    rows = merge_frames(
+        period="CY2025",
+        revenues=_frame([(320193, "Apple Inc.", 416_000_000.0)], end="2025-09-27"),
+        revenue_from_contracts=[],
+        operating_income=_frame([(320193, "Apple Inc.", 133_000_000.0)]),
+        depreciation_amortization=_frame([(320193, "Apple Inc.", 11_700_000.0)]),
+        instants={
+            "cash": {320193: [("2025-09-27", 30_000_000.0),
+                              ("2025-12-31", 99_999_999.0)]},
+            "debt": {320193: [("2025-09-27", 100_000_000.0)]},
+        },
+    )
+    row = rows[0]
+    assert row.cash == 30_000_000.0, "must pick the September instant, not December"
+    assert row.net_debt == 70_000_000.0
+
+
+def test_leverage_only_computed_against_positive_ebitda() -> None:
+    """Net debt over a negative EBITDA is not a leverage multiple, it is noise."""
+    loss_maker = merge_frames(
+        period="CY2025",
+        revenues=_frame([(20, "Loss Co", 10_000_000.0)]),
+        revenue_from_contracts=[],
+        operating_income=_frame([(20, "Loss Co", -3_000_000.0)]),
+        depreciation_amortization=_frame([(20, "Loss Co", 500_000.0)]),
+        instants={"cash": {20: [("2025-12-31", 1_000_000.0)]},
+                  "debt": {20: [("2025-12-31", 5_000_000.0)]}},
+    )[0]
+    assert loss_maker.ebitda == -2_500_000.0
+    assert loss_maker.net_debt == 4_000_000.0
+    assert loss_maker.leverage is None, "no multiple against negative EBITDA"
+
+
+def test_net_debt_unknown_when_cash_absent() -> None:
+    """Debt without cash cannot net. Reporting the gross figure as net debt
+    would overstate leverage for cash-rich filers."""
+    row = merge_frames(
+        period="CY2025",
+        revenues=_frame([(21, "No Cash Tag", 10_000_000.0)]),
+        revenue_from_contracts=[],
+        operating_income=_frame([(21, "No Cash Tag", 2_000_000.0)]),
+        depreciation_amortization=_frame([(21, "No Cash Tag", 500_000.0)]),
+        instants={"debt": {21: [("2025-12-31", 5_000_000.0)]}},
+    )[0]
+    assert row.total_debt == 5_000_000.0
+    assert row.net_debt is None
+    assert row.leverage is None
+
+
+def test_cash_without_debt_is_net_cash() -> None:
+    """A filer with cash and no debt tag is unlevered on the data available."""
+    row = merge_frames(
+        period="CY2025",
+        revenues=_frame([(22, "Debt Free", 10_000_000.0)]),
+        revenue_from_contracts=[],
+        operating_income=_frame([(22, "Debt Free", 2_000_000.0)]),
+        depreciation_amortization=_frame([(22, "Debt Free", 500_000.0)]),
+        instants={"cash": {22: [("2025-12-31", 4_000_000.0)]}},
+    )[0]
+    assert row.net_debt == -4_000_000.0, "negative net debt is net cash"
+    assert row.leverage == pytest.approx(-1.6)
+
+
+def test_margins_derived_from_revenue() -> None:
+    row = merge_frames(
+        period="CY2025",
+        revenues=_frame([(23, "Margins", 200.0)]),
+        revenue_from_contracts=[],
+        operating_income=_frame([(23, "Margins", 40.0)]),
+        depreciation_amortization=_frame([(23, "Margins", 10.0)]),
+        gross_profit=_frame([(23, "Margins", 120.0)]),
+        net_income=_frame([(23, "Margins", 30.0)]),
+    )[0]
+    assert row.gross_margin == 0.6
+    assert row.operating_margin == 0.2
+    assert row.net_margin == 0.15
+    assert row.ebitda_margin == 0.25
+
+
+# --------------------------------------------------- expanded filter surface --
+
+
+def _seed_wide(session_factory) -> None:
+    db = session_factory()
+    db.add_all([
+        ScreenIndexRow(
+            cik=401, ticker="LEVR", entity_name="Levered Industrials",
+            sic_description="Machinery", exchange="NYSE", period="CY2025",
+            revenue=50_000_000.0, ebitda=10_000_000.0, ebitda_margin=0.20,
+            operating_margin=0.15, gross_margin=0.40, net_margin=0.05,
+            net_income=2_500_000.0, cash=2_000_000.0, total_debt=62_000_000.0,
+            net_debt=60_000_000.0, leverage=6.0, assets=120_000_000.0,
+            coverage="full",
+        ),
+        ScreenIndexRow(
+            cik=402, ticker="CLEAN", entity_name="Clean Balance Co",
+            sic_description="Software", exchange="Nasdaq", period="CY2025",
+            revenue=40_000_000.0, ebitda=12_000_000.0, ebitda_margin=0.30,
+            operating_margin=0.25, gross_margin=0.80, net_margin=0.20,
+            net_income=8_000_000.0, cash=25_000_000.0, total_debt=0.0,
+            net_debt=-25_000_000.0, leverage=-2.08, assets=60_000_000.0,
+            coverage="full",
+        ),
+        ScreenIndexRow(
+            cik=403, ticker="LOSS", entity_name="Lossmaker Ltd",
+            sic_description="Biotech", exchange="Nasdaq", period="CY2024",
+            revenue=30_000_000.0, ebitda=-5_000_000.0, ebitda_margin=-0.167,
+            operating_margin=-0.20, gross_margin=0.55, net_margin=-0.30,
+            net_income=-9_000_000.0, cash=10_000_000.0, total_debt=1_000_000.0,
+            net_debt=-9_000_000.0, leverage=None, assets=40_000_000.0,
+            coverage="full",
+        ),
+    ])
+    db.commit(); db.close()
+
+
+def test_leverage_band_filter(client: TestClient) -> None:
+    """The headline LBO screen: moderately levered, cash-generative targets."""
+    _seed_wide(client.session_factory)
+    db = client.session_factory()
+    rows, total = query_screen(db, ranges={"leverage": (3.0, 7.0)})
+    db.close()
+    assert [r.ticker for r in rows] == ["LEVR"]
+    assert total == 1
+
+
+def test_gross_margin_and_profitable_filters_combine(client: TestClient) -> None:
+    _seed_wide(client.session_factory)
+    db = client.session_factory()
+    rows, _ = query_screen(db, ranges={"gross_margin": (0.6, None)}, profitable=True)
+    db.close()
+    assert [r.ticker for r in rows] == ["CLEAN"]
+
+
+def test_net_cash_companies_found_by_negative_net_debt(client: TestClient) -> None:
+    _seed_wide(client.session_factory)
+    db = client.session_factory()
+    rows, _ = query_screen(db, ranges={"net_debt": (None, 0)}, sort="net_debt",
+                           direction="asc")
+    db.close()
+    assert [r.ticker for r in rows] == ["CLEAN", "LOSS"]
+
+
+def test_exchange_and_period_filters(client: TestClient) -> None:
+    _seed_wide(client.session_factory)
+    db = client.session_factory()
+    nasdaq, _ = query_screen(db, exchange="Nasdaq")
+    cy2025, _ = query_screen(db, period="CY2025")
+    db.close()
+    assert {r.ticker for r in nasdaq} == {"CLEAN", "LOSS"}
+    assert {r.ticker for r in cy2025} == {"LEVR", "CLEAN"}
+
+
+def test_expanded_filters_through_the_api(client: TestClient) -> None:
+    _seed_wide(client.session_factory)
+    body = client.get("/api/screen", params={
+        "leverage_min": 3, "leverage_max": 7, "net_margin_min": 0.01,
+        "sort": "leverage", "direction": "desc",
+    }).json()
+    assert [r["ticker"] for r in body["rows"]] == ["LEVR"]
+    row = body["rows"][0]
+    assert row["leverage"] == 6.0
+    assert row["net_debt"] == 60_000_000.0
+    assert row["gross_margin"] == 0.40
+
+
+def test_facets_endpoint_lists_only_present_values(client: TestClient) -> None:
+    _seed_wide(client.session_factory)
+    body = client.get("/api/screen/facets").json()
+    assert set(body["exchanges"]) == {"NYSE", "Nasdaq"}
+    assert body["periods"] == ["CY2025", "CY2024"]
+    assert body["coverage_levels"] == ["full", "ebit_only", "revenue_only"]

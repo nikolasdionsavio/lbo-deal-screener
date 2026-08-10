@@ -17,6 +17,7 @@ import type {
   SavedDeal,
   SaveDealRequest,
   ScoreResponse,
+  ScreenFacets,
   ScreenQuery,
   ScreenResponse,
   ScreenSector,
@@ -321,4 +322,8 @@ export function getScreen(query: ScreenQuery = {}): Promise<ScreenResponse> {
 
 export function getScreenSectors(): Promise<ScreenSector[]> {
   return request<ScreenSector[]>("/api/screen/sectors");
+}
+
+export function getScreenFacets(): Promise<ScreenFacets> {
+  return request<ScreenFacets>("/api/screen/facets");
 }

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from typing import Any, Iterable
 
@@ -70,6 +71,20 @@ class QualityFlag(StrEnum):
 OPERATING_INCOME_TAG = "OperatingIncomeLoss"
 DEPRECIATION_TAG = "DepreciationDepletionAndAmortization"
 
+# Income-statement tags, requested with a DURATION frame ("CY2025").
+GROSS_PROFIT_TAG = "GrossProfit"
+NET_INCOME_TAG = "NetIncomeLoss"
+
+# Balance-sheet tags, requested with an INSTANT frame ("CY2025Q4I"). Asking for
+# these on a duration frame is a 404, which is why they are kept apart.
+CASH_TAG = "CashAndCashEquivalentsAtCarryingValue"
+ASSETS_TAG = "Assets"
+EQUITY_TAG = "StockholdersEquity"
+# Total long-term debt, preferring the all-in tag over the non-current split.
+DEBT_TAGS = ("LongTermDebt", "LongTermDebtNoncurrent")
+
+INSTANT_QUARTERS = ("Q1I", "Q2I", "Q3I", "Q4I")
+
 
 @dataclass(frozen=True)
 class ScreenRow:
@@ -89,6 +104,24 @@ class ScreenRow:
     coverage: Coverage
     quality_flag: QualityFlag | None = None
 
+    # Profitability, from the same annual period as revenue.
+    gross_profit: float | None = None
+    gross_margin: float | None = None
+    net_income: float | None = None
+    net_margin: float | None = None
+    operating_margin: float | None = None
+
+    # Balance sheet, taken at the instant nearest this period's end.
+    cash: float | None = None
+    total_debt: float | None = None
+    assets: float | None = None
+    equity: float | None = None
+    net_debt: float | None = None
+    # Net debt / EBITDA. The headline LBO screening ratio, so it is only
+    # computed where EBITDA is both known and positive; against zero or
+    # negative EBITDA the ratio is meaningless rather than merely large.
+    leverage: float | None = None
+
 
 def _by_cik(frame: Iterable[dict[str, Any]] | None) -> dict[int, dict[str, Any]]:
     """Index a frames payload by CIK, ignoring rows without a usable value."""
@@ -102,6 +135,35 @@ def _by_cik(frame: Iterable[dict[str, Any]] | None) -> dict[int, dict[str, Any]]
     return out
 
 
+def _nearest_instant(
+    instants: dict[int, list[tuple[str, float]]], cik: int, period_end: str | None
+) -> float | None:
+    """Balance-sheet value at the instant closest to this filer's year end.
+
+    Filers with non-calendar years sit in a different quarterly instant frame:
+    Apple's September balance sheet is in CY2025Q3I, not Q4I. Picking the
+    nearest instant to the company's own period end keeps those filers, and
+    keeps the balance sheet aligned to the income statement it is read against.
+    """
+    entries = instants.get(cik)
+    if not entries:
+        return None
+    if not period_end:
+        return max(entries, key=lambda e: e[0])[1]
+    return min(entries, key=lambda e: abs(_days_between(e[0], period_end)))[1]
+
+
+def _days_between(a: str, b: str) -> int:
+    try:
+        return abs((date.fromisoformat(a) - date.fromisoformat(b)).days)
+    except ValueError:
+        return 10_000
+
+
+def _ratio(numerator: float | None, denominator: float) -> float | None:
+    return numerator / denominator if (numerator is not None and denominator) else None
+
+
 def merge_frames(
     *,
     period: str,
@@ -109,6 +171,9 @@ def merge_frames(
     revenue_from_contracts: Iterable[dict[str, Any]] | None,
     operating_income: Iterable[dict[str, Any]] | None,
     depreciation_amortization: Iterable[dict[str, Any]] | None,
+    gross_profit: Iterable[dict[str, Any]] | None = None,
+    net_income: Iterable[dict[str, Any]] | None = None,
+    instants: dict[str, dict[int, list[tuple[str, float]]]] | None = None,
 ) -> list[ScreenRow]:
     """Join the four frames into one row per filer that reported revenue.
 
@@ -119,6 +184,9 @@ def merge_frames(
     contract_rev = _by_cik(revenue_from_contracts)
     oi_by_cik = _by_cik(operating_income)
     dda_by_cik = _by_cik(depreciation_amortization)
+    gp_by_cik = _by_cik(gross_profit)
+    ni_by_cik = _by_cik(net_income)
+    inst = instants or {}
 
     rows: list[ScreenRow] = []
     for cik in set(total_rev) | set(contract_rev):
@@ -155,12 +223,33 @@ def merge_frames(
             else None
         )
 
+        period_end = rev_record.get("end")
+        gp = float(gp_by_cik[cik]["val"]) if cik in gp_by_cik else None
+        ni = float(ni_by_cik[cik]["val"]) if cik in ni_by_cik else None
+
+        cash = _nearest_instant(inst.get("cash", {}), cik, period_end)
+        debt = _nearest_instant(inst.get("debt", {}), cik, period_end)
+        assets = _nearest_instant(inst.get("assets", {}), cik, period_end)
+        equity = _nearest_instant(inst.get("equity", {}), cik, period_end)
+
+        # Net debt needs both sides. A filer reporting cash but no debt is
+        # genuinely unlevered on the tags we have, so treat absent debt as zero
+        # only when cash is present; absent cash leaves net debt unknown.
+        net_debt = None
+        if cash is not None:
+            net_debt = (debt or 0.0) - cash
+        leverage = (
+            net_debt / ebitda
+            if (net_debt is not None and ebitda is not None and ebitda > 0)
+            else None
+        )
+
         rows.append(
             ScreenRow(
                 cik=cik,
                 entity_name=str(rev_record.get("entityName") or "").strip(),
                 period=period,
-                period_end=rev_record.get("end"),
+                period_end=period_end,
                 accession=rev_record.get("accn"),
                 revenue=revenue,
                 revenue_tag=rev_tag,
@@ -170,6 +259,17 @@ def merge_frames(
                 ebitda_margin=margin,
                 coverage=coverage,
                 quality_flag=flag,
+                gross_profit=gp,
+                gross_margin=_ratio(gp, revenue),
+                net_income=ni,
+                net_margin=_ratio(ni, revenue),
+                operating_margin=_ratio(oi, revenue),
+                cash=cash,
+                total_debt=debt,
+                assets=assets,
+                equity=equity,
+                net_debt=net_debt,
+                leverage=leverage,
             )
         )
     return rows
@@ -234,8 +334,38 @@ class SecFramesClient:
         data = payload.get("data")
         return data if isinstance(data, list) else []
 
+    def fetch_instant_frames(
+        self, tags: tuple[str, ...], period: str
+    ) -> dict[int, list[tuple[str, float]]]:
+        """A balance-sheet concept across all four quarter-end instants of a year.
+
+        All four are needed because a filer's year end lands in whichever
+        quarter its own calendar dictates. Tags are tried in order and the
+        first that reports for a given instant wins, which is how the
+        all-in debt tag takes precedence over the non-current split.
+        """
+        year = period.replace("CY", "")
+        out: dict[int, list[tuple[str, float]]] = {}
+        for quarter in INSTANT_QUARTERS:
+            seen_this_quarter: set[int] = set()
+            for tag in tags:
+                for record in self.fetch_frame(tag, f"CY{year}{quarter}"):
+                    cik, value, end = (
+                        record.get("cik"),
+                        record.get("val"),
+                        record.get("end"),
+                    )
+                    if cik is None or not isinstance(value, (int, float)) or not end:
+                        continue
+                    cik = int(cik)
+                    if cik in seen_this_quarter:
+                        continue  # an earlier tag already answered for this instant
+                    seen_this_quarter.add(cik)
+                    out.setdefault(cik, []).append((str(end), float(value)))
+        return out
+
     def fetch_period_rows(self, period: str) -> list[ScreenRow]:
-        """All four frames for one period, merged into screen rows."""
+        """Every frame for one period, merged into screen rows."""
         return merge_frames(
             period=period,
             revenues=self.fetch_frame(RevenueTag.REVENUES.value, period),
@@ -244,6 +374,14 @@ class SecFramesClient:
             ),
             operating_income=self.fetch_frame(OPERATING_INCOME_TAG, period),
             depreciation_amortization=self.fetch_frame(DEPRECIATION_TAG, period),
+            gross_profit=self.fetch_frame(GROSS_PROFIT_TAG, period),
+            net_income=self.fetch_frame(NET_INCOME_TAG, period),
+            instants={
+                "cash": self.fetch_instant_frames((CASH_TAG,), period),
+                "debt": self.fetch_instant_frames(DEBT_TAGS, period),
+                "assets": self.fetch_instant_frames((ASSETS_TAG,), period),
+                "equity": self.fetch_instant_frames((EQUITY_TAG,), period),
+            },
         )
 
     def fetch_submission(self, cik: int) -> dict[str, Any] | None:
