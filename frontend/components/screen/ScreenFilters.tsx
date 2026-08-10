@@ -1,18 +1,23 @@
 "use client";
 
-// Filter rail. Progressive disclosure: the size group and the toggles are open
-// by default because almost every screen starts there; profitability, balance
-// sheet and classification are one click away and show how many constraints
-// they hold while closed, so nothing is ever silently filtering.
+// Filter rail, rendered entirely from filterSpec so every group behaves the
+// same way: collapsible, badged with the number of constraints it holds, and
+// carrying its own marker colour.
+//
+// Order is the order a screen gets built. Search first, because looking one
+// company up is the most direct thing anyone does. Then presets, then size,
+// profitability, leverage, classification, and data quality last. Inside a
+// group, toggles come before typed ranges, since a checkbox filters more per
+// unit of effort than a number does.
 
 import { useState } from "react";
 import {
   GROUPS,
-  TOGGLES,
   UNIT_SUFFIX,
   activeInGroup,
   type GroupSpec,
   type ScreenFilterState,
+  type SelectSpec,
 } from "@/components/screen/filterSpec";
 import type { ScreenFacets } from "@/lib/types";
 
@@ -71,14 +76,19 @@ const selectClass =
 function Group({
   group,
   state,
+  facets,
   onChange,
 }: {
   group: GroupSpec;
   state: ScreenFilterState;
+  facets: ScreenFacets | null;
   onChange: (next: ScreenFilterState) => void;
 }) {
   const active = activeInGroup(group, state);
   const [open, setOpen] = useState(Boolean(group.defaultOpen));
+  // Opening is sticky, but a group holding an active constraint can never be
+  // collapsed shut: hiding a filter that is changing the table is how a screen
+  // starts lying to you.
   const expanded = open || active > 0;
 
   const setRange = (key: string, side: "min" | "max", value: string) => {
@@ -87,6 +97,21 @@ function Group({
       ...state,
       ranges: { ...state.ranges, [key]: { ...current, [side]: value } },
     });
+  };
+
+  const optionsFor = (select: SelectSpec) => {
+    if (select.source === "static") return select.options ?? [];
+    if (select.source === "sectors")
+      return (facets?.sectors ?? []).map((s) => ({
+        value: s.name,
+        label: `${s.name} (${s.count})`,
+      }));
+    if (select.source === "exchanges")
+      return (facets?.exchanges ?? []).map((x) => ({ value: x, label: x }));
+    return (facets?.periods ?? []).map((p) => ({
+      value: p,
+      label: p.replace("CY", "FY"),
+    }));
   };
 
   return (
@@ -113,7 +138,51 @@ function Group({
 
       {expanded && (
         <div className="mt-2.5 space-y-3">
-          {group.fields.map((field) => {
+          {/* Toggles first: one click, no typing, so they carry the most
+              filtering per unit of effort. */}
+          {(group.toggles ?? []).map((toggle) => (
+            <label key={toggle.key} className="flex cursor-pointer items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-[0.2rem] h-3.5 w-3.5 accent-[var(--accent)]"
+                checked={state[toggle.key]}
+                onChange={(e) =>
+                  onChange({ ...state, [toggle.key]: e.target.checked })
+                }
+              />
+              <span>
+                <span className="text-[0.8125rem] font-medium text-ink">
+                  {toggle.label}
+                </span>
+                <span className="note-sm mt-0.5 block">{toggle.note}</span>
+              </span>
+            </label>
+          ))}
+
+          {(group.selects ?? []).map((select) => (
+            <label key={select.key} className="block">
+              <span className="text-[0.8125rem] font-medium text-ink">
+                {select.label}
+              </span>
+              <select
+                className={`${selectClass} mt-1`}
+                value={state[select.key]}
+                onChange={(e) =>
+                  onChange({ ...state, [select.key]: e.target.value })
+                }
+              >
+                <option value="">{select.anyLabel}</option>
+                {optionsFor(select).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              {select.note && <p className="note-sm mt-1">{select.note}</p>}
+            </label>
+          ))}
+
+          {(group.fields ?? []).map((field) => {
             const value = state.ranges[field.key] ?? { min: "", max: "" };
             const suffix = UNIT_SUFFIX[field.unit];
             return (
@@ -172,7 +241,21 @@ export default function ScreenFilters({
 
   return (
     <div className="space-y-4">
-      <div>
+      {/* Search sits above everything: looking a company up by name is the most
+          direct thing anyone does here, and it used to be the fourth control
+          inside a group near the bottom of the rail. */}
+      <label className="block">
+        <span className="label-mono">Find a company</span>
+        <input
+          className={`${inputClass} mt-1.5 !font-sans`}
+          placeholder="Name or ticker"
+          aria-label="Search by company name or ticker"
+          value={value.q}
+          onChange={(e) => set("q", e.target.value)}
+        />
+      </label>
+
+      <div className="border-t border-line pt-3">
         <span className="label-mono">Start from</span>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {PRESETS.map((preset) => (
@@ -190,104 +273,14 @@ export default function ScreenFilters({
       </div>
 
       {GROUPS.map((group) => (
-        <Group key={group.key} group={group} state={value} onChange={onChange} />
+        <Group
+          key={group.key}
+          group={group}
+          state={value}
+          facets={facets}
+          onChange={onChange}
+        />
       ))}
-
-      <section className="border-t border-line pt-3">
-        <span className="label-mono flex items-center gap-2">
-          <span aria-hidden className="text-group-classify text-[0.6875rem] leading-none">
-            ●
-          </span>
-          Classification
-        </span>
-        <div className="mt-2 space-y-2.5">
-          <label className="block">
-            <span className="text-[0.8125rem] font-medium text-ink">Sector</span>
-            <select
-              className={`${selectClass} mt-1`}
-              value={value.sector}
-              onChange={(e) => set("sector", e.target.value)}
-            >
-              <option value="">All sectors</option>
-              {(facets?.sectors ?? []).map((s) => (
-                <option key={`${s.sic}-${s.name}`} value={s.name}>
-                  {s.name} ({s.count})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-[0.8125rem] font-medium text-ink">Exchange</span>
-            <select
-              className={`${selectClass} mt-1`}
-              value={value.exchange}
-              onChange={(e) => set("exchange", e.target.value)}
-            >
-              <option value="">Any exchange</option>
-              {(facets?.exchanges ?? []).map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-[0.8125rem] font-medium text-ink">
-              Reporting period
-            </span>
-            <select
-              className={`${selectClass} mt-1`}
-              value={value.period}
-              onChange={(e) => set("period", e.target.value)}
-            >
-              <option value="">Any period</option>
-              {(facets?.periods ?? []).map((p) => (
-                <option key={p} value={p}>
-                  {p.replace("CY", "FY")}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-[0.8125rem] font-medium text-ink">
-              Company or ticker
-            </span>
-            <input
-              className={`${inputClass} mt-1 !font-sans`}
-              placeholder="Search"
-              value={value.q}
-              onChange={(e) => set("q", e.target.value)}
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="border-t border-line pt-3">
-        <span className="label-mono flex items-center gap-2">
-          <span aria-hidden className="text-group-quality text-[0.6875rem] leading-none">
-            ●
-          </span>
-          Data quality
-        </span>
-        <div className="mt-2 space-y-2.5">
-          {TOGGLES.map((toggle) => (
-            <label key={toggle.key} className="flex cursor-pointer items-start gap-2">
-              <input
-                type="checkbox"
-                className="mt-[0.2rem] h-3.5 w-3.5 accent-[var(--accent)]"
-                checked={value[toggle.key]}
-                onChange={(e) => set(toggle.key, e.target.checked)}
-              />
-              <span>
-                <span className="text-[0.8125rem] font-medium text-ink">
-                  {toggle.label}
-                </span>
-                <span className="note-sm mt-0.5 block">{toggle.note}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </section>
 
       <button
         type="button"

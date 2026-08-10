@@ -25,6 +25,25 @@ export interface FieldSpec {
   note?: string;
 }
 
+/** Toggles, which are not ranges. */
+export interface ToggleSpec {
+  key: "ebitdaPositive" | "profitable" | "excludeFlagged";
+  label: string;
+  note: string;
+}
+
+/** Dropdowns, whose options come from the index rather than being invented. */
+export interface SelectSpec {
+  key: "sector" | "exchange" | "period" | "coverage";
+  label: string;
+  /** Label for the "no constraint" option. */
+  anyLabel: string;
+  /** Which facet list fills this, or a fixed list for closed vocabularies. */
+  source: "sectors" | "exchanges" | "periods" | "static";
+  options?: { value: string; label: string }[];
+  note?: string;
+}
+
 export interface GroupSpec {
   key: string;
   label: string;
@@ -32,7 +51,10 @@ export interface GroupSpec {
   marker: string;
   /** Open by default. Only the core group is. */
   defaultOpen?: boolean;
-  fields: FieldSpec[];
+  /** A group may hold any mix of the three control kinds. */
+  fields?: FieldSpec[];
+  toggles?: ToggleSpec[];
+  selects?: SelectSpec[];
 }
 
 export const UNIT_SUFFIX: Record<Unit, string> = {
@@ -48,6 +70,11 @@ export const UNIT_SCALE: Record<Unit, number> = {
   ratio: 1,
 };
 
+// Group order follows how a screen is actually built: how big, how profitable,
+// how levered, what kind of company, and finally how complete the data is.
+// Within a group, controls run in the order a P&L or balance sheet is read,
+// and the cheapest controls (one-click toggles) come before the ones that need
+// a number typed into them.
 export const GROUPS: GroupSpec[] = [
   {
     key: "size",
@@ -64,7 +91,28 @@ export const GROUPS: GroupSpec[] = [
     key: "profitability",
     label: "Profitability",
     marker: "text-group-profit",
+    // These two used to sit under "Data quality", where nobody looking to
+    // screen for profitable companies would think to look for them.
+    toggles: [
+      {
+        key: "ebitdaPositive",
+        label: "Positive EBITDA only",
+        note: "Excludes filers that do not disclose D&A, whose EBITDA cannot be calculated.",
+      },
+      {
+        key: "profitable",
+        label: "Profitable only",
+        note: "Positive net income for the period.",
+      },
+    ],
+    // Top of the P&L downwards, so the list reads like an income statement.
     fields: [
+      {
+        key: "gross_margin",
+        label: "Gross margin",
+        unit: "percent",
+        note: "Only filers that tag gross profit separately.",
+      },
       {
         key: "margin",
         label: "EBITDA margin",
@@ -72,12 +120,6 @@ export const GROUPS: GroupSpec[] = [
         note: "Operating income plus D&A, over revenue.",
       },
       { key: "operating_margin", label: "Operating margin", unit: "percent" },
-      {
-        key: "gross_margin",
-        label: "Gross margin",
-        unit: "percent",
-        note: "Only filers that tag gross profit separately.",
-      },
       { key: "net_margin", label: "Net margin", unit: "percent" },
     ],
   },
@@ -102,32 +144,62 @@ export const GROUPS: GroupSpec[] = [
       { key: "cash", label: "Cash", unit: "money" },
     ],
   },
+  {
+    key: "classification",
+    label: "Classification",
+    marker: "text-group-classify",
+    selects: [
+      {
+        key: "sector",
+        label: "Sector",
+        anyLabel: "All sectors",
+        source: "sectors",
+      },
+      {
+        key: "exchange",
+        label: "Exchange",
+        anyLabel: "Any exchange",
+        source: "exchanges",
+      },
+      {
+        key: "period",
+        label: "Reporting period",
+        anyLabel: "Any period",
+        source: "periods",
+      },
+    ],
+  },
+  {
+    key: "quality",
+    label: "Data quality",
+    marker: "text-group-quality",
+    toggles: [
+      {
+        key: "excludeFlagged",
+        label: "Hide filing artifacts",
+        note: "Rows where EBITDA exceeds revenue, which normally means a one-off gain sits inside operating income.",
+      },
+    ],
+    selects: [
+      {
+        key: "coverage",
+        label: "Disclosure level",
+        anyLabel: "Any level",
+        source: "static",
+        note: "How much of the income statement the filer tagged.",
+        options: [
+          { value: "full", label: "Revenue and EBITDA" },
+          { value: "ebit_only", label: "Revenue and EBIT, no D&A" },
+          { value: "revenue_only", label: "Revenue only" },
+        ],
+      },
+    ],
+  },
 ];
 
-/** Toggles, which are not ranges. */
-export interface ToggleSpec {
-  key: "ebitdaPositive" | "profitable" | "excludeFlagged";
-  label: string;
-  note: string;
-}
-
-export const TOGGLES: ToggleSpec[] = [
-  {
-    key: "ebitdaPositive",
-    label: "Positive EBITDA only",
-    note: "Excludes filers that do not disclose D&A, whose EBITDA cannot be calculated.",
-  },
-  {
-    key: "profitable",
-    label: "Profitable only",
-    note: "Positive net income for the period.",
-  },
-  {
-    key: "excludeFlagged",
-    label: "Hide filing artifacts",
-    note: "Rows where EBITDA exceeds revenue, which normally means a one-off gain sits inside operating income.",
-  },
-];
+/** Every toggle, wherever it lives, for state round-tripping. */
+export const TOGGLES: ToggleSpec[] = GROUPS.flatMap((g) => g.toggles ?? []);
+export const SELECTS: SelectSpec[] = GROUPS.flatMap((g) => g.selects ?? []);
 
 export type RangeValue = { min: string; max: string };
 
@@ -155,7 +227,7 @@ export const EMPTY_FILTERS: ScreenFilterState = {
   q: "",
 };
 
-export const ALL_FIELDS: FieldSpec[] = GROUPS.flatMap((g) => g.fields);
+export const ALL_FIELDS: FieldSpec[] = GROUPS.flatMap((g) => g.fields ?? []);
 
 export function fieldSpec(key: string): FieldSpec | undefined {
   return ALL_FIELDS.find((f) => f.key === key);
@@ -167,16 +239,29 @@ function num(raw: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Count of active constraints in a group, for the collapsed group badge. */
+/** Count of active constraints in a group, for the collapsed group badge.
+ *
+ * Counts every control kind. A group whose only active constraint is a toggle
+ * or a dropdown must still show a badge, otherwise it can filter the table
+ * while looking untouched.
+ *
+ * A toggle counts whenever it is ON, including `excludeFlagged`, which is on by
+ * default. It is genuinely removing rows from the table, and the rail's whole
+ * point is that nothing filters invisibly. Counting only deviations from the
+ * default would hide the one filter that is active before you touch anything.
+ */
 export function activeInGroup(
   group: GroupSpec,
   state: ScreenFilterState,
 ): number {
-  return group.fields.reduce((total, field) => {
+  const ranges = (group.fields ?? []).reduce((total, field) => {
     const value = state.ranges[field.key];
     if (!value) return total;
     return total + (num(value.min) !== null ? 1 : 0) + (num(value.max) !== null ? 1 : 0);
   }, 0);
+  const toggles = (group.toggles ?? []).filter((t) => state[t.key]).length;
+  const selects = (group.selects ?? []).filter((s) => state[s.key] !== "").length;
+  return ranges + toggles + selects;
 }
 
 /** Build the API query from filter state. */
@@ -266,7 +351,7 @@ export interface AppliedChip {
 export function appliedChips(state: ScreenFilterState): AppliedChip[] {
   const chips: AppliedChip[] = [];
   for (const group of GROUPS) {
-    for (const field of group.fields) {
+    for (const field of group.fields ?? []) {
       const value = state.ranges[field.key];
       if (!value) continue;
       const suffix = UNIT_SUFFIX[field.unit];
@@ -292,30 +377,34 @@ export function appliedChips(state: ScreenFilterState): AppliedChip[] {
         });
       }
     }
-  }
-  for (const toggle of TOGGLES) {
-    if (state[toggle.key]) {
+    // Toggles and dropdowns take their own group's marker, so a chip's colour
+    // always points back to the group it came from.
+    for (const toggle of group.toggles ?? []) {
+      if (state[toggle.key]) {
+        chips.push({
+          id: `toggle:${toggle.key}`,
+          label: toggle.label,
+          marker: group.marker,
+        });
+      }
+    }
+    for (const select of group.selects ?? []) {
+      const value = state[select.key];
+      if (!value) continue;
+      const option = (select.options ?? []).find((o) => o.value === value);
       chips.push({
-        id: `toggle:${toggle.key}`,
-        label: toggle.label,
-        marker: "text-group-quality",
+        id: `text:${select.key}`,
+        label: `${select.label}: ${option?.label ?? value.replace("CY", "FY")}`,
+        marker: group.marker,
       });
     }
   }
-  for (const [key, label, value] of [
-    ["sector", "Sector", state.sector],
-    ["exchange", "Exchange", state.exchange],
-    ["period", "Period", state.period],
-    ["coverage", "Data", state.coverage],
-    ["q", "Search", state.q.trim()],
-  ] as const) {
-    if (value) {
-      chips.push({
-        id: `text:${key}`,
-        label: `${label}: ${value}`,
-        marker: "text-group-classify",
-      });
-    }
+  if (state.q.trim()) {
+    chips.push({
+      id: "text:q",
+      label: `Search: ${state.q.trim()}`,
+      marker: "text-ink-secondary",
+    });
   }
   return chips;
 }
@@ -332,6 +421,9 @@ export function withoutChip(
     return { ...state, ranges };
   }
   if (kind === "toggle") {
+    // Off, not back to the default. A chip is shown because the toggle is
+    // constraining the table, so dismissing it has to lift that constraint,
+    // even for a filter that starts on.
     return { ...state, [key]: false } as ScreenFilterState;
   }
   return { ...state, [key]: "" } as ScreenFilterState;

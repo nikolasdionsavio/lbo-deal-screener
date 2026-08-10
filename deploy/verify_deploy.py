@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -28,16 +29,28 @@ DEFAULT_ROUTES = ["/", "/screen", "/about", "/company/AAPL/dashboard"]
 ASSET_PATTERN = re.compile(r'(?:href|src)="(/_next/static/[^"]+\.(?:css|js))"')
 
 
-def fetch(url: str) -> tuple[int, bytes]:
+def fetch(url: str, attempts: int = 3) -> tuple[int, bytes]:
+    """GET a URL. Retries network-level failures, never HTTP statuses.
+
+    A freshly published deploy can refuse a connection for a moment, and
+    checking dozens of assets in a row occasionally trips a transient reset.
+    Those produced a spurious GATE FAILED, which is dangerous in its own way:
+    a gate that cries wolf invites overriding it. An HTTP status is a real
+    answer from the server and is never retried.
+    """
     request = urllib.request.Request(url, headers={"User-Agent": "deploy-verify"})
-    try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-            return response.status, response.read()
-    except urllib.error.HTTPError as exc:
-        return exc.code, b""
-    except Exception as exc:  # network-level failure
-        print(f"    ERROR reaching {url}: {exc.__class__.__name__}")
-        return 0, b""
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+                return response.status, response.read()
+        except urllib.error.HTTPError as exc:
+            return exc.code, b""
+        except Exception as exc:  # connection reset, DNS, timeout
+            if attempt == attempts:
+                print(f"    ERROR reaching {url}: {exc.__class__.__name__}")
+                return 0, b""
+            time.sleep(attempt * 1.5)
+    return 0, b""
 
 
 def main() -> int:
