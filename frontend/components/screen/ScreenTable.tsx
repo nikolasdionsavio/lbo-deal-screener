@@ -106,7 +106,7 @@ export default function ScreenTable({
                       <button
                         type="button"
                         onClick={() => onSort(col.sortKey as string)}
-                        className={`label-mono transition-colors hover:!text-ink ${
+                        className={`label-mono press-tint hover:!text-ink ${
                           active ? "!text-ink" : ""
                         }`}
                       >

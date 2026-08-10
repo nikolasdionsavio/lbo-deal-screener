@@ -27,7 +27,7 @@ export default function AppliedFilters({
           type="button"
           onClick={() => onRemove(chip.id)}
           title={`Remove: ${chip.label}`}
-          className="group inline-flex items-center gap-1.5 border border-line-strong bg-surface px-2 py-[0.1875rem] text-[0.75rem] font-medium text-ink transition-colors hover:border-negative hover:text-negative-text"
+          className="group inline-flex items-center gap-1.5 border border-line-strong bg-surface px-2 py-[0.1875rem] text-[0.75rem] font-medium text-ink pressable hover:border-negative hover:text-negative-text"
         >
           <span aria-hidden className={`text-[0.5625rem] leading-none ${chip.marker}`}>
             ●

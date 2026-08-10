@@ -203,7 +203,8 @@
      sizes take an explicit step from the .type-* scale below rather than
      inheriting a value tuned for something three times smaller. */
   h1 {
-    letter-spacing: -0.011em;
+    /* Workspace h1 renders at 24-28px; the landing hero takes .type-display. */
+    letter-spacing: -0.015em;
     line-height: 1.12;
   }
   h2 {
@@ -255,12 +256,16 @@
   .label-mono {
     @apply font-mono text-[0.6875rem] font-semibold uppercase leading-[1.15] tracking-[0.05em] text-ink-muted;
   }
-  /* Data cells: tabular figures need weight to hold their own against rules. */
+  /* Data cells: tabular figures need weight to hold their own against rules.
+     A touch of negative tracking closes up long numbers like $716.92bn so the
+     digits group into one object the eye can compare down a column. Safe with
+     tabular-nums: letter-spacing adds the same advance to every glyph, so the
+     columns stay aligned. */
   .figure {
-    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink;
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tracking-[-0.012em] tabular-nums text-ink;
   }
   .figure-muted {
-    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink-secondary;
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tracking-[-0.012em] tabular-nums text-ink-secondary;
   }
   /* Annotations under a field. Was 10px regular; now 11px with real contrast. */
   .note-sm {
@@ -286,6 +291,31 @@
     /* Fires on pointer-down: the highlight lands with the finger, not after it. */
     transition-duration: 0ms;
     transform: scale(0.97);
+  }
+
+  /* Press response for controls that are not .btn.
+     Most interactive elements here had a hover state and nothing on press, so
+     a click produced no acknowledgement until the data came back. Both of
+     these land on pointer-down and ease only on release. */
+
+  /* Button-shaped things: chips, presets, group headers, pagination. */
+  .pressable {
+    transition: transform 160ms var(--ease-spring), color 150ms ease-out,
+      background-color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .pressable:active {
+    transition-duration: 0ms;
+    transform: scale(0.97);
+  }
+
+  /* Controls living inside a data grid, where scaling would jog the columns
+     and make figures harder to compare. They acknowledge with ink instead. */
+  .press-tint {
+    transition: color 150ms ease-out;
+  }
+  .press-tint:active {
+    transition-duration: 0ms;
+    color: var(--accent);
   }
   /* Primary = brand-green fill, white text. A deliberate action color, not a
      pill. Hover deepens the green; active settles. */
@@ -408,19 +438,38 @@
   }
 }
 
+/* A damped spring, sampled into a linear() easing.
+   Generated from x(t) = 1 − e^(−zwn·t)(cos(wd·t) + (zwn/wd)sin(wd·t)) at
+   damping 0.8 / response 0.3, the values Apple ships for sheets. It settles in
+   412ms with 1.5% overshoot: enough for the panel to feel like it has mass,
+   far too little to read as bounce. A cubic-bezier cannot express the
+   overshoot at all, and this needs no animation library to do it. */
+:root {
+  --ease-spring: linear(
+    0, 0.0208, 0.0739, 0.1478, 0.2337, 0.3245, 0.4153, 0.5025, 0.5838, 0.6577,
+    0.7235, 0.7808, 0.8301, 0.8716, 0.906, 0.9341, 0.9566, 0.9742, 0.9876,
+    0.9977, 1.0049, 1.0098, 1.0128, 1.0145, 1.0151, 1.015, 1.0143, 1.0132,
+    1.012, 1.0106, 1.0092, 1.0079, 1.0066, 1.0055, 1.0044, 1.0035, 1.0028,
+    1.0021, 1.0015, 1.0011, 1.0007
+  );
+  /* Leaving is not the mirror of arriving: an exit should clear the way
+     quickly and never overshoot back toward the content it is uncovering. */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
 /* Source-record drawer: slides in from the right, 200ms (DESIGN.md motion).
    It leaves the way it arrived. A panel that slides in and then vanishes on
    close breaks the expectation that things return to where they came from,
    and it reads as a bug rather than a dismissal. The exit easing is the
    mirror of the entrance, so the reversal feels like the same motion undone. */
 .drawer-right {
-  animation: drawer-right-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: drawer-right-in 412ms var(--ease-spring) both;
 }
 .drawer-right[data-closing="true"] {
-  animation: drawer-right-out 160ms cubic-bezier(0.7, 0, 0.84, 0) both;
+  animation: drawer-right-out 160ms var(--ease-exit) both;
 }
 .drawer-scrim[data-closing="true"] {
-  animation: fade-out 160ms cubic-bezier(0.7, 0, 0.84, 0) both;
+  animation: fade-out 160ms var(--ease-exit) both;
 }
 
 @keyframes drawer-right-in {

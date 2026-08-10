@@ -120,7 +120,7 @@ function Group({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 text-left"
+        className="pressable flex w-full items-center gap-2 text-left"
       >
         <span aria-hidden className={`text-[0.6875rem] leading-none ${group.marker}`}>
           ●
@@ -264,7 +264,7 @@ export default function ScreenFilters({
               type="button"
               title={preset.note}
               onClick={() => onChange(preset.apply(value))}
-              className="border border-line-strong px-2 py-1 text-[0.75rem] font-medium text-ink-secondary transition-colors hover:border-accent hover:text-accent"
+              className="pressable border border-line-strong px-2 py-1 text-[0.75rem] font-medium text-ink-secondary hover:border-accent hover:text-accent"
             >
               {preset.label}
             </button>

@@ -92,7 +92,7 @@ export function FigureRow({
         {labelBlock}
         <div className={`flex items-baseline gap-1 group-hover:text-brand-text ${valueClass}`}>
           {value}
-          <ChevronRight className="h-3 w-3 shrink-0 -translate-x-0.5 text-ink-muted opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:text-brand-text group-hover:opacity-100" />
+          <ChevronRight className="h-3 w-3 shrink-0 -translate-x-0.5 text-ink-muted opacity-0 transition-[transform,opacity,color] duration-150 group-hover:translate-x-0 group-hover:text-brand-text group-hover:opacity-100" />
         </div>
       </Link>
     );

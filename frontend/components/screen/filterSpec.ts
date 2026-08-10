@@ -347,6 +347,18 @@ export interface AppliedChip {
   marker: string;
 }
 
+/** Format a typed bound the way the unit is actually written.
+ *
+ * Money leads with its symbol and trails its scale, so the suffix cannot just
+ * be appended: "3$m" is what that produces, and it read as a typo in the chip
+ * row. Percent and multiple do trail.
+ */
+function formatBound(value: number, unit: Unit): string {
+  if (unit === "money") return `$${value}m`;
+  if (unit === "percent") return `${value}%`;
+  return `${value}x`;
+}
+
 /** Everything currently constraining the screen, for the chip row. */
 export function appliedChips(state: ScreenFilterState): AppliedChip[] {
   const chips: AppliedChip[] = [];
@@ -354,25 +366,24 @@ export function appliedChips(state: ScreenFilterState): AppliedChip[] {
     for (const field of group.fields ?? []) {
       const value = state.ranges[field.key];
       if (!value) continue;
-      const suffix = UNIT_SUFFIX[field.unit];
       const min = num(value.min);
       const max = num(value.max);
       if (min !== null && max !== null) {
         chips.push({
           id: `range:${field.key}`,
-          label: `${field.label} ${min}${suffix} to ${max}${suffix}`,
+          label: `${field.label} ${formatBound(min, field.unit)} to ${formatBound(max, field.unit)}`,
           marker: group.marker,
         });
       } else if (min !== null) {
         chips.push({
           id: `range:${field.key}`,
-          label: `${field.label} from ${min}${suffix}`,
+          label: `${field.label} from ${formatBound(min, field.unit)}`,
           marker: group.marker,
         });
       } else if (max !== null) {
         chips.push({
           id: `range:${field.key}`,
-          label: `${field.label} up to ${max}${suffix}`,
+          label: `${field.label} up to ${formatBound(max, field.unit)}`,
           marker: group.marker,
         });
       }
