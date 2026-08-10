@@ -1038,7 +1038,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
               href="/register"
               title="Register"
               aria-label="Register"
-              className="flex h-9 w-9 items-center justify-center rounded bg-brand text-white transition-colors duration-150 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex h-9 w-9 items-center justify-center rounded bg-brand text-white transition-colors duration-150 hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-accent"
             >
               <svg {...iconAttrs()}>
                 <circle cx="6" cy="5.5" r="2.5" />
@@ -1052,13 +1052,13 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
           <div className="mt-3 space-y-2 px-1">
             <Link
               href="/register"
-              className="flex w-full items-center justify-center rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex w-full items-center justify-center rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-hover focus-visible:ring-2 focus-visible:ring-accent"
             >
               Register
             </Link>
             <Link
               href="/login"
-              className="flex w-full items-center justify-center rounded border border-line-strong px-4 py-2 text-sm font-medium text-brand-text transition-colors duration-150 hover:border-brand hover:bg-brand-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex w-full items-center justify-center rounded border border-line-strong px-4 py-2 text-sm font-medium text-brand-text transition-colors duration-150 hover:border-brand hover:bg-brand-soft focus-visible:ring-2 focus-visible:ring-accent"
             >
               Log in
             </Link>

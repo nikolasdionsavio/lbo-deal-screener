@@ -244,6 +244,23 @@
   ::placeholder {
     @apply text-ink-muted;
   }
+
+  /* One focus indicator for the whole interface.
+     Only .btn and .input defined a focus style, so every other control (sort
+     headers, figures, chips, nav links, group toggles) fell through to the
+     browser default: 1.5px, no offset, a colour we do not control, and low
+     contrast against warm paper. Keyboard users got a different, weaker
+     affordance on almost everything. This is 2px at 2px offset in the accent,
+     which reads on both canvases. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* The hit-target overlay must never intercept the ring. */
+  .hit-target:focus-visible {
+    outline-offset: 1px;
+  }
 }
 
 @layer components {
@@ -305,7 +322,7 @@
      whether to accept the click. Transitioning only compositor-friendly
      properties (transform, colour) keeps it off the layout path. */
   .btn {
-    @apply inline-flex items-center justify-center rounded font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-[0.45];
+    @apply inline-flex items-center justify-center rounded font-medium disabled:pointer-events-none disabled:opacity-[0.45];
     transition:
       background-color 150ms ease-out,
       border-color 150ms ease-out,
@@ -333,6 +350,33 @@
     transform: scale(0.97);
   }
 
+  /* Pointer target, decoupled from visual size.
+     A 13px sort header and a 14px checkbox are hard to hit and fail WCAG 2.2
+     target size. Growing them to 44px would wreck the density this workspace
+     exists for, so the INK stays where it is and an invisible overlay carries
+     the target: at least 24px (2.5.8 AA) with a mouse, and the full 44px on
+     touch, where there is no cursor to aim with. Layout does not move either
+     way. */
+  .hit-target {
+    position: relative;
+  }
+  .hit-target::after {
+    content: "";
+    position: absolute;
+    left: -6px;
+    right: -6px;
+    top: 50%;
+    height: max(100%, 24px);
+    transform: translateY(-50%);
+  }
+  @media (pointer: coarse) {
+    .hit-target::after {
+      left: -10px;
+      right: -10px;
+      height: max(100%, 44px);
+    }
+  }
+
   /* Controls living inside a data grid, where scaling would jog the columns
      and make figures harder to compare. They acknowledge with ink instead. */
   .press-tint {
@@ -357,7 +401,7 @@
   /* Inputs read as model fields, not SaaS form controls: quiet raised surface,
      thin rule, a 5px radius, brand focus ring. */
   .input {
-    @apply w-full rounded-md border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft;
+    @apply w-full rounded-md border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink transition-colors duration-150 focus:border-brand focus:ring-2 focus:ring-brand-soft;
   }
 
   /* Skeleton: surface-sunken with a 1.2s linear shimmer (DESIGN.md). The

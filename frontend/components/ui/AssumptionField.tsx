@@ -65,7 +65,7 @@ export default function AssumptionField({
       <span className="mb-1 block text-[11px] font-medium text-ink-secondary">
         {label}
       </span>
-      <span className="flex items-center rounded-[3px] border border-line-strong bg-assumption-soft transition-colors duration-150 focus-within:border-assumption focus-within:ring-1 focus-within:ring-assumption">
+      <span className="flex items-center rounded-[3px] border border-line-strong bg-assumption-soft transition-colors duration-150 focus-within:border-assumption focus-within:ring-2 focus-within:ring-assumption">
         <input
           type="number"
           inputMode="decimal"

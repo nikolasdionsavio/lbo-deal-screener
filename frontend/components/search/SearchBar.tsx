@@ -47,7 +47,7 @@ export default function SearchBar({
 
   return (
     <div ref={search.containerRef} className={`relative ${className}`}>
-      <div className="flex h-[60px] items-center gap-3 rounded-[4px] border border-line-strong bg-surface-raised px-4 transition-colors duration-150 focus-within:border-ink-secondary focus-within:ring-1 focus-within:ring-inset focus-within:ring-accent">
+      <div className="flex h-[60px] items-center gap-3 rounded-[4px] border border-line-strong bg-surface-raised px-4 transition-colors duration-150 focus-within:border-ink-secondary focus-within:ring-2 focus-within:ring-inset focus-within:ring-accent">
         <span className="shrink-0 text-ink-muted">
           <SearchGlyph />
         </span>
@@ -76,7 +76,7 @@ export default function SearchBar({
           <button
             type="button"
             onClick={search.submitTop}
-            className="shrink-0 rounded-[3px] px-1.5 py-1 font-mono text-[11px] text-ink-muted transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="shrink-0 rounded-[3px] px-1.5 py-1 font-mono text-[11px] text-ink-muted transition-colors hover:text-brand-text"
           >
             return &crarr;
           </button>

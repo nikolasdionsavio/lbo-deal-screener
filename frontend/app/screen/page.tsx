@@ -55,7 +55,7 @@ function Figure({
       type="button"
       onClick={() => ctx.openSource(buildRecord(row, metric))}
       title="Show where this figure came from"
-      className={`figure press-tint w-full text-right underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+      className={`figure press-tint hit-target w-full text-right underline-offset-2 hover:underline ${
         tone ?? (undisclosed ? "!text-ink-muted !font-normal" : "")
       }`}
     >

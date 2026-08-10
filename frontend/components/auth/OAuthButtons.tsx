@@ -68,7 +68,7 @@ export default function OAuthButtons({ next }: { next?: string | null }) {
           <a
             key={id}
             href={oauthLoginUrl(id, next ?? undefined)}
-            className="flex w-full items-center justify-center gap-2.5 rounded border border-line-strong bg-surface-raised px-3 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex w-full items-center justify-center gap-2.5 rounded border border-line-strong bg-surface-raised px-3 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:bg-surface-sunken focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Icon />
             {label}

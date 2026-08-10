@@ -86,7 +86,7 @@ function StatementTabs({
             aria-controls="statement-panel"
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.key)}
-            className={`rounded-[6px] px-3 py-1.5 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            className={`rounded-[6px] px-3 py-1.5 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent ${
               selected
                 ? "bg-surface font-medium text-ink"
                 : "text-ink-muted hover:text-ink"

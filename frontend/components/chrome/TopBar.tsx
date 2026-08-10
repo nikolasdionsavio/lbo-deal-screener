@@ -26,12 +26,12 @@ const REGISTER_CTA =
   "inline-flex items-center justify-center rounded bg-brand px-4 py-1.5 " +
   "text-sm font-semibold text-white transition-colors duration-150 " +
   "hover:bg-brand-hover active:translate-y-px " +
-  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  "focus-visible:ring-2 focus-visible:ring-accent";
 
 const LOGIN_CTA =
   "hidden items-center justify-center rounded border border-line-strong " +
   "px-3.5 py-1.5 text-sm font-medium text-brand-text transition-colors duration-150 " +
-  "hover:border-brand hover:bg-brand-soft focus:outline-none " +
+  "hover:border-brand hover:bg-brand-soft " +
   "focus-visible:ring-2 focus-visible:ring-accent sm:inline-flex";
 
 function SearchIcon() {
@@ -124,7 +124,7 @@ export default function TopBar() {
             aria-expanded={search.showDropdown}
             aria-controls="topbar-search-results"
             aria-autocomplete="list"
-            className="h-9 w-full rounded-md border border-line-strong bg-surface-raised pl-8 pr-3 text-sm text-ink transition-colors duration-150 placeholder:text-ink-muted hover:border-brand focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-soft md:pr-8"
+            className="h-9 w-full rounded-md border border-line-strong bg-surface-raised pl-8 pr-3 text-sm text-ink transition-colors duration-150 placeholder:text-ink-muted hover:border-brand focus:border-brand focus:ring-2 focus:ring-brand-soft md:pr-8"
             placeholder="Search companies"
             value={search.query}
             onChange={(event) => search.onQueryChange(event.target.value)}

@@ -355,7 +355,7 @@ export default function StatementTable({
                           title={`${line.label} — ${
                             derived ? "calculated" : "filed"
                           }. Open source record.`}
-                          className="h-8 w-full px-3 text-right transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent"
+                          className="h-8 w-full px-3 text-right transition-colors hover:text-brand-text focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent"
                         >
                           <span className={mark}>{display}</span>
                         </button>

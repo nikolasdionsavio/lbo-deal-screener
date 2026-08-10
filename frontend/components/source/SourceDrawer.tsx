@@ -146,7 +146,7 @@ export default function SourceDrawer({
             type="button"
             onClick={requestClose}
             aria-label="Close"
-            className="rounded-[3px] p-1 text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-[3px] p-1 text-ink-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="m4 4 8 8M12 4l-8 8" />

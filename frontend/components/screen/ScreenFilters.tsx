@@ -67,11 +67,11 @@ const PRESETS: { label: string; note: string; apply: (s: ScreenFilterState) => S
 const inputClass =
   "w-full border border-line-strong bg-surface px-2 py-1.5 font-mono text-[0.8125rem] font-medium tabular-nums text-ink " +
   "placeholder:font-normal placeholder:text-ink-muted " +
-  "focus:border-accent focus:outline-none focus-visible:ring-1 focus-visible:ring-accent";
+  "focus:border-accent";
 
 const selectClass =
   "w-full border border-line-strong bg-surface px-2 py-1.5 text-[0.8125rem] font-medium text-ink " +
-  "focus:border-accent focus:outline-none focus-visible:ring-1 focus-visible:ring-accent";
+  "focus:border-accent";
 
 function Group({
   group,
@@ -141,7 +141,7 @@ function Group({
           {/* Toggles first: one click, no typing, so they carry the most
               filtering per unit of effort. */}
           {(group.toggles ?? []).map((toggle) => (
-            <label key={toggle.key} className="flex cursor-pointer items-start gap-2">
+            <label key={toggle.key} className="hit-target flex cursor-pointer items-start gap-2">
               <input
                 type="checkbox"
                 className="mt-[0.2rem] h-3.5 w-3.5 accent-[var(--accent)]"

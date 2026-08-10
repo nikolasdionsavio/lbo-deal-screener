@@ -134,7 +134,7 @@ function kpiColumns(
             type="button"
             onClick={() => onInspect(kpiRecord(kpi, currency))}
             title={`${kpi.label} — calculated. Open source record.`}
-            className="font-mono font-medium text-ink underline decoration-line-strong decoration-dotted underline-offset-[3px] transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="font-mono font-medium text-ink underline decoration-line-strong decoration-dotted underline-offset-[3px] transition-colors hover:text-brand-text"
           >
             {fmtTraced(kpi, currency)}
           </button>
