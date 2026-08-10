@@ -68,7 +68,7 @@ export default function SearchBar({
         />
         {search.loading ? (
           <span
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border border-line-strong border-t-brand"
+            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-circle border border-line-strong border-t-brand"
             role="status"
             aria-label="Searching"
           />

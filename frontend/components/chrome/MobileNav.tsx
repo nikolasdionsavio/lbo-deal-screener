@@ -88,7 +88,7 @@ export default function MobileNav() {
             aria-modal="true"
             aria-label="Navigation"
             tabIndex={-1}
-            className="drawer-panel absolute inset-y-0 left-0 w-[280px] max-w-[85vw] border-r border-line bg-bg shadow-card-hover outline-none"
+            className="drawer-panel absolute inset-y-0 left-0 w-[280px] max-w-[85vw] border-r border-line bg-bg shadow-pop outline-none"
             // Any link tap closes the drawer, covering same-route links that
             // do not change the pathname.
             onClick={(event) => {

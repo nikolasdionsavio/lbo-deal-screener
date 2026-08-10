@@ -45,7 +45,7 @@ function StoryCard({ item }: { item: NewsItem }) {
   const { relative, absolute } = formatPublished(item.published_at);
   return (
     <li>
-      <article className="rounded-lg border border-line bg-surface p-4 shadow-card transition duration-150 hover:-translate-y-px hover:border-line-strong hover:shadow-card-hover sm:p-5">
+      <article className="rounded-lg border border-line bg-surface p-4 transition duration-150 hover:-translate-y-px hover:border-line-strong  sm:p-5">
         <a
           href={item.url}
           target="_blank"

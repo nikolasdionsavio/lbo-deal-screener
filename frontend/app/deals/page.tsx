@@ -19,7 +19,7 @@ import { useApi } from "@/lib/hooks";
 function LoginPrompt() {
   return (
     <div className="flex flex-1 items-center justify-center py-24">
-      <Card className="w-full max-w-sm text-center">
+      <Card variant="panel" className="w-full max-w-sm text-center">
         <h1 className="font-display text-lg font-semibold text-ink">
           Saved deals
         </h1>

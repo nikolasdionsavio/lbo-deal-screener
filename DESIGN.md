@@ -120,6 +120,11 @@ Controls 3px · search field 4px · drawers/menus 6px · chart/image frames 6px.
 Nothing larger as a general pattern. **No pill buttons.** Tailwind radii are capped at 6px
 so untouched components inherit the discipline.
 
+`rounded-full` is capped at 6px too. It was the one key left uncapped, so it fell through
+to Tailwind's 9999px and twenty-four pills accumulated behind the rule that bans them.
+Genuinely circular shapes (status dots, avatars) use **`rounded-circle`**, which is an
+explicit opt-in rather than an unnoticed default.
+
 ## Surfaces and shadows
 
 Most information sits **directly on the page**. Use thin rules, alignment, small surface
@@ -127,6 +132,13 @@ shifts, section labels and controlled spacing instead of containers. Shadows onl
 things that sit above the page (menu, tooltip, drawer, modal) via `--shadow-pop`.
 `--shadow-card` is `none`. Count the rounded containers; delete any that do not need a
 separate interaction boundary.
+
+`Card` enforces this rather than leaving it to memory. Its default `section` variant is a
+top rule plus spacing, so a block of figures sits on the page; `variant="panel"` restores
+the bordered surface and is reserved for content that really is its own interaction
+surface, such as a sign-in form. The component previously drew a bordered, filled, rounded
+box at all 52 call sites, which is most of why the app sat near 2:1 rules to boxes rather
+than the 10:1 below.
 
 ## Rules, not boxes (the governing device)
 

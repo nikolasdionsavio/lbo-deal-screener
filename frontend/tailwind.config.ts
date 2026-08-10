@@ -108,6 +108,12 @@ const config: Config = {
       // menus / chart frames. Nothing larger reads as a research surface, not a
       // SaaS card. Everything above md is capped at 6px so untouched components
       // pick up the discipline; rounded-full stays for the few true pills.
+      // DESIGN.md caps radius at 6px and bans pill buttons. Every key was
+      // capped except `full`, which fell through to Tailwind's 9999px, so 24
+      // pills had grown across the app. Capping it here retires all of them at
+      // once; genuinely circular things (status dots, avatars) opt in through
+      // `rounded-circle`, which makes the intent visible at the call site
+      // instead of looking like another stray pill.
       borderRadius: {
         DEFAULT: "3px",
         sm: "3px",
@@ -116,6 +122,8 @@ const config: Config = {
         xl: "6px",
         "2xl": "6px",
         "3xl": "6px",
+        full: "6px",
+        circle: "9999px",
       },
       boxShadow: {
         card: "var(--shadow-card)",

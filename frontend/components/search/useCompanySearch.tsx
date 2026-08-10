@@ -237,7 +237,7 @@ export function SearchResultsDropdown({
         width: pos.width,
         maxHeight: pos.maxHeight,
       }}
-      className="pop-in z-50 overflow-y-auto rounded-lg border border-line-strong bg-surface py-1 shadow-card-hover"
+      className="pop-in z-50 overflow-y-auto rounded-lg border border-line-strong bg-surface py-1 shadow-pop"
     >
       {searchError !== null && (
         <li className="px-4 py-2.5 text-sm text-negative-text">

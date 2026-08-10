@@ -70,14 +70,14 @@ function TargetRange({
         />
         {/* mean target */}
         <div
-          className="absolute -top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-surface bg-brand"
+          className="absolute -top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-circle border-2 border-surface bg-brand"
           style={{ left: pos(mean) }}
           title={`Mean target ${fmtPerShare(mean, currency)}`}
         />
         {/* current price */}
         {current !== null && (
           <div
-            className="absolute -top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-surface bg-ink"
+            className="absolute -top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-circle border-2 border-surface bg-ink"
             style={{ left: pos(current) }}
             title={`Current ${fmtPerShare(current, currency)}`}
           />
@@ -89,12 +89,12 @@ function TargetRange({
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand" />
+          <span className="inline-block h-2.5 w-2.5 rounded-circle bg-brand" />
           Mean target {fmtPerShare(mean, currency)}
         </span>
         {current !== null && (
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-ink" />
+            <span className="inline-block h-2.5 w-2.5 rounded-circle bg-ink" />
             Current {fmtPerShare(current, currency)}
           </span>
         )}

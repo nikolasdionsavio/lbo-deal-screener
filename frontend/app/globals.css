@@ -257,15 +257,15 @@
     @apply font-mono text-[0.6875rem] font-semibold uppercase leading-[1.15] tracking-[0.05em] text-ink-muted;
   }
   /* Data cells: tabular figures need weight to hold their own against rules.
-     A touch of negative tracking closes up long numbers like $716.92bn so the
-     digits group into one object the eye can compare down a column. Safe with
-     tabular-nums: letter-spacing adds the same advance to every glyph, so the
-     columns stay aligned. */
+     Tracking stays normal here. DESIGN.md leaves letter-spacing alone except on
+     large display numerals, and a 13px table figure is not that; the negative
+     tracking tried earlier was imported from another system's rules rather than
+     this one's. */
   .figure {
-    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tracking-[-0.012em] tabular-nums text-ink;
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink;
   }
   .figure-muted {
-    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tracking-[-0.012em] tabular-nums text-ink-secondary;
+    @apply font-mono text-[0.8125rem] font-medium leading-[1.25] tabular-nums text-ink-secondary;
   }
   /* Annotations under a field. Was 10px regular; now 11px with real contrast. */
   .note-sm {

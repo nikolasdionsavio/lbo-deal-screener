@@ -48,7 +48,7 @@ export default function WhatsNewPage() {
                 <li key={j} className="flex gap-2.5 text-sm text-ink-secondary">
                   <span
                     aria-hidden
-                    className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
+                    className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-circle bg-brand"
                   />
                   <span>{change}</span>
                 </li>

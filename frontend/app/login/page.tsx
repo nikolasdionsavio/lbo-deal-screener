@@ -69,7 +69,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 py-8 sm:px-8">
       <div className="flex flex-1 items-center justify-center">
-        <Card className="w-full max-w-sm">
+        <Card variant="panel" className="w-full max-w-sm">
           <h1 className="font-display text-lg font-semibold text-ink">Log in</h1>
           <p className="mt-1 text-sm text-ink-muted">
             Required only for saving deals. Analysis pages are public.
