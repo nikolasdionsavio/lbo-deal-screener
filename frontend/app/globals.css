@@ -90,12 +90,27 @@
   --lev-mid-soft: #f4ebd6;
   --lev-high-soft: #f5e5e1;
 
-  /* Filter-group markers. Small chips in the rail only, never behind data. */
+  /* Five domain colours (DESIGN.md "Domain colours"). Each marks a kind of
+     question, not a rank: scale, profitability, leverage, classification,
+     disclosure. All clear AA as text on both canvases. */
   --group-size: #3f5f7a;
   --group-profit: #215b52;
   --group-balance: #8b6725;
   --group-classify: #6b5a7d;
   --group-quality: #7a5348;
+  /* Backgrounds and badges: the hue mixed into paper at 12%. */
+  --group-size-soft: #dde0df;
+  --group-profit-soft: #dae0da;
+  --group-balance-soft: #e7e1d5;
+  --group-classify-soft: #e3e0e0;
+  --group-quality-soft: #e4dfd9;
+  /* Column rules and markers: the same hue at 30%, so a ruled table still
+     reads as ruling rather than as five coloured bands. */
+  --group-size-rule: #bdc6ca;
+  --group-profit-rule: #b4c5be;
+  --group-balance-rule: #d4c8b1;
+  --group-classify-rule: #cac4cb;
+  --group-quality-rule: #cfc2bc;
 }
 
 .dark {
@@ -166,6 +181,16 @@
   --group-balance: #c4a468;
   --group-classify: #a999bd;
   --group-quality: #c2988c;
+  --group-size-soft: #252d33;
+  --group-profit-soft: #232e2b;
+  --group-balance-soft: #2d2c25;
+  --group-classify-soft: #292a31;
+  --group-quality-soft: #2c2a2a;
+  --group-size-rule: #3e4c57;
+  --group-profit-rule: #374d43;
+  --group-balance-rule: #504835;
+  --group-classify-rule: #474451;
+  --group-quality-rule: #4f4441;
 }
 
 @layer base {

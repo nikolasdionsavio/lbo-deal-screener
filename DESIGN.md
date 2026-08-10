@@ -60,11 +60,38 @@ modifiers on them); soft tints are their own variables.
 
 **Colour rules.** Green = navigation, selection, active actions. Blue = source links.
 Ochre = editable assumptions. Red = errors / material warnings / negative values where
-colour adds meaning. **Do not colour every category.** Remove decorative colour.
+colour adds meaning.
 
-**Banned:** purple, violet, bright cyan, neon green, black terminal backgrounds, cream +
-terracotta, gradients, colour blobs, frosted glass, glowing borders, coloured shadows,
-grain overlays, fake paper textures.
+## Domain colours
+
+The interface carries **five solid colours, one per data domain**, so that a figure's
+colour tells you what kind of question it answers before you read the label. This is the
+one place the palette is deliberately plural, and it is earned: these are the axes an
+analyst actually sorts by.
+
+| Role | Light | Dark | Domain |
+|---|---|---|---|
+| `--group-size` | `#3F5F7A` | `#8FB0CC` | scale: revenue, EBITDA, total assets |
+| `--group-profit` | `#215B52` | `#7CB392` | profitability: gross, EBITDA, operating, net margin |
+| `--group-balance` | `#8B6725` | `#C4A468` | leverage and balance sheet: net debt, cash, net debt / EBITDA |
+| `--group-classify` | `#6B5A7D` | `#A999BD` | classification: sector, exchange, reporting period |
+| `--group-quality` | `#7A5348` | `#C2988C` | disclosure and provenance: coverage, filing artifacts |
+
+Each has a `-soft` tint (backgrounds, badges) and a `-rule` tint (column rules and
+markers). All five clear WCAG AA as text on both canvases, 4.6:1 to 7.9:1 measured, so
+they may carry labels and not only dots.
+
+**The discipline is unchanged: colour encodes a domain, never decoration.** A hue is not
+chosen because a section needed livening up. Do not invent a sixth. Within a domain,
+value still comes from ink and weight; the hue marks the axis, it does not rank the
+number. Red/green for direction (positive, negative, leverage bands) is separate and
+still applies.
+
+**Banned:** bright cyan, neon green, black terminal backgrounds, cream + terracotta,
+gradients, colour blobs, frosted glass, glowing borders, coloured shadows, grain
+overlays, fake paper textures. (Violet as a free-floating accent remains banned; the
+muted `--group-classify` slate-purple above is permitted **only** as the classification
+domain.)
 
 ## Typography roles
 

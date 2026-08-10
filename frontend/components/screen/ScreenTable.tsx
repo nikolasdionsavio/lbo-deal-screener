@@ -3,9 +3,15 @@
 // Screen results at workspace density. Rules rather than cards, mono tabular
 // figures, every figure traceable to its filing.
 //
-// Colour is used once, on leverage, because leverage is read by band: under 3x,
-// 3-5x and above 5x mean different things to anyone sizing a deal. The number
-// is always shown alongside, so colour is never the only signal.
+// Colour does two separate jobs here, and they must not be confused.
+//
+// Column headers take their DOMAIN colour (DESIGN.md "Domain colours"), so the
+// table says what kind of question each column answers: scale, profitability,
+// leverage, classification. That colour marks the axis, never the value.
+//
+// Leverage figures additionally take a BAND colour, because under 3x, 3-5x and
+// above 5x mean different things to anyone sizing a deal. The number is always
+// shown alongside, so colour is never the only signal.
 
 import Link from "next/link";
 import { useState } from "react";
@@ -42,12 +48,28 @@ export interface CellContext {
   openSource: (record: SourceRecord) => void;
 }
 
+/** The five data domains from DESIGN.md. A column's domain says what kind of
+ *  question it answers, and the header takes that colour so the table carries
+ *  its own legend. */
+export type Domain = "size" | "profit" | "balance" | "classify" | "quality";
+
+export const DOMAIN_TEXT: Record<Domain, string> = {
+  size: "!text-group-size",
+  profit: "!text-group-profit",
+  balance: "!text-group-balance",
+  classify: "!text-group-classify",
+  quality: "!text-group-quality",
+};
+
 export interface Column {
   key: string;
   label: string;
   /** Sortable columns map to an API sort key. */
   sortKey?: string;
   align: "left" | "right";
+  /** Colours the header. Omitted for identity columns like the company name,
+   *  which are not a measure of anything. */
+  domain?: Domain;
   render: (row: ScreenRow, ctx: CellContext) => React.ReactNode;
 }
 
@@ -107,7 +129,11 @@ export default function ScreenTable({
                         type="button"
                         onClick={() => onSort(col.sortKey as string)}
                         className={`label-mono press-tint hover:!text-ink ${
-                          active ? "!text-ink" : ""
+                          active
+                            ? "!text-ink"
+                            : col.domain
+                              ? DOMAIN_TEXT[col.domain]
+                              : ""
                         }`}
                       >
                         {col.label}
@@ -116,7 +142,13 @@ export default function ScreenTable({
                         </span>
                       </button>
                     ) : (
-                      <span className="label-mono">{col.label}</span>
+                      <span
+                        className={`label-mono ${
+                          col.domain ? DOMAIN_TEXT[col.domain] : ""
+                        }`}
+                      >
+                        {col.label}
+                      </span>
                     )}
                   </th>
                 );

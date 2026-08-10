@@ -104,6 +104,7 @@ const COLUMNS: Column[] = [
     label: "Revenue",
     sortKey: "revenue",
     align: "right",
+    domain: "size",
     render: (row, ctx) => (
       <Figure row={row} metric="revenue" ctx={ctx} text={money(row.revenue)} />
     ),
@@ -113,6 +114,7 @@ const COLUMNS: Column[] = [
     label: "EBITDA",
     sortKey: "ebitda",
     align: "right",
+    domain: "size",
     render: (row, ctx) => (
       <Figure
         row={row}
@@ -127,6 +129,7 @@ const COLUMNS: Column[] = [
     label: "Margin",
     sortKey: "ebitda_margin",
     align: "right",
+    domain: "profit",
     render: (row) => (
       <span className="figure-muted">
         {row.ebitda_margin === null ? "—" : fmtPct(row.ebitda_margin)}
@@ -140,6 +143,7 @@ const COLUMNS: Column[] = [
     label: "Leverage",
     sortKey: "leverage",
     align: "right",
+    domain: "balance",
     render: (row, ctx) => (
       <Figure
         row={row}
@@ -161,6 +165,7 @@ const COLUMNS: Column[] = [
     label: "Sector",
     sortKey: "sector",
     align: "left",
+    domain: "classify",
     render: (row) => (
       <span
         title={row.sector ?? undefined}
@@ -174,6 +179,7 @@ const COLUMNS: Column[] = [
     key: "period",
     label: "Period",
     align: "right",
+    domain: "classify",
     render: (row) => (
       <span className="font-mono text-[0.6875rem] font-medium text-ink-muted">
         {row.period.replace("CY", "FY")}

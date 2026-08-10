@@ -360,6 +360,16 @@ function ChevronRightIcon({ className }: IconProps) {
 // Grouped by research stage, not a flat equal menu (DESIGN.md): the analysis
 // path first, then the market view, then the export. KPIs -> Operations and
 // Deal Score -> Screening score match the redesigned pages.
+/** Nav groups carry the domain colour of the work they hold, so the rail reads
+ *  as three kinds of task rather than one long list. Analysis is the modelling
+ *  work, Market view is what the market is saying, Export is what leaves the
+ *  building. */
+const NAV_GROUP_MARK: Record<string, string> = {
+  Analysis: "bg-group-profit",
+  "Market view": "bg-group-size",
+  Export: "bg-group-classify",
+};
+
 const COMPANY_PAGES: {
   slug: string;
   label: string;
@@ -893,8 +903,14 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
                 return (
                   <li key={page.slug} className={showGroup ? "pt-2 first:pt-0" : ""}>
                     {showGroup && (
-                      <div className="px-2.5 pb-1 pt-1 font-mono text-[10px] uppercase tracking-[0.04em] text-ink-muted">
-                        {page.group}
+                      <div className="flex items-center gap-1.5 px-2.5 pb-1 pt-1">
+                        <span
+                          aria-hidden
+                          className={`h-2 w-[2px] shrink-0 ${NAV_GROUP_MARK[page.group] ?? "bg-line-strong"}`}
+                        />
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-ink-secondary">
+                          {page.group}
+                        </span>
                       </div>
                     )}
                     <Link
