@@ -49,9 +49,11 @@
   --action-hover: #194a43;
   --action-ink: #ffffff;
 
-  /* No glint on paper: a printed sheet does not catch light. */
-  --glint-top: transparent;
-  --glint-bottom: transparent;
+  /* Paper catches light too, just far less. A bright top edge and a faint
+     settled bottom give a panel the same material cue the war table gets from
+     its gilt edge, without pretending paper is metal. */
+  --glint-top: rgba(255, 255, 255, 0.8);
+  --glint-bottom: rgba(25, 32, 30, 0.07);
 
   /* Source / document links are blue. Nothing else is. */
   --link: #315f82;
@@ -671,7 +673,13 @@
   font-variant-numeric: tabular-nums;
 }
 :root .figure-gilt {
+  /* Gilt is a dark-surface affordance: #F8B700 measures 1.59:1 on paper, and
+     the obvious substitute, a bronze, lands on top of --assumption, which
+     already means "editable model input". A read-only figure must never look
+     editable here. So paper does what a ledger does and emphasises with weight
+     and full-strength ink instead of a second gold. */
   color: var(--ink);
+  font-weight: 600;
 }
 .dark .figure-gilt {
   color: var(--brand-text);
