@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.10.0";
+export const APP_VERSION = "1.10.1";
 
 export interface Release {
   version: string;
@@ -14,6 +14,19 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.10.1",
+    date: "11 August 2026",
+    title: "Controls that look like controls",
+    changes: [
+      "An audit of the screen found that 165 of its 223 interactive elements had no resting appearance at all: they revealed themselves only when the pointer was already on them. Sort headers looked like column labels, clickable figures looked like plain numbers, and filter group headers gave no sign they opened. One element now remains without a resting cue, and that one is the wordmark, which is a link home by convention.",
+      "Every sortable column shows its sort control at rest, and the arrow indicates the direction the column is currently sorted in rather than appearing only once you touch it.",
+      "Figures that carry a source record are marked with a dotted underline, the long-standing convention for \"there is more behind this\". Clicking one still opens the filing it came from.",
+      "Filter groups carry a bordered plus or minus, so it is clear which sections open and which are already open.",
+      "The sidebar collapse control and the theme switch are drawn as buttons instead of as bare icons.",
+      "Where the results table is wider than the space beside the filter rail, the cut edge now fades and clears as you scroll, so a half-visible column reads as more to come rather than as a broken layout.",
+    ],
+  },
   {
     version: "1.10.0",
     date: "10 August 2026",

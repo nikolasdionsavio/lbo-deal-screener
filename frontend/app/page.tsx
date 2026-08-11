@@ -81,10 +81,10 @@ export default function LandingPage() {
               Company research you can check
             </h1>
             <p className="mt-6 max-w-[54ch] text-[1.1875rem] leading-[1.55] text-ink-secondary">
-              Screen every US-listed filer on revenue and EBITDA, then work
-              through one company&rsquo;s filings, operating results, valuation,
-              peer set, and a simplified LBO case. Calculated figures show the
-              source or assumption behind them.
+              Screen every US-listed filer on revenue, margin and leverage,
+              then work through one company&rsquo;s filings, operating results,
+              valuation, peer set, and a simplified LBO case. Calculated figures
+              show the source or assumption behind them.
             </p>
             <p className="mt-6">
               <Link
@@ -131,11 +131,12 @@ export default function LandingPage() {
                 href="/screen"
                 className="text-[0.95rem] text-link underline decoration-line-strong underline-offset-[3px] transition-colors hover:text-link-hover hover:decoration-link"
               >
-                Or screen every US-listed filer by revenue and EBITDA
+                Or screen every US-listed filer by revenue, margin and leverage
               </Link>
               <span className="mt-1 block text-[0.8125rem] leading-snug text-ink-muted">
-                Figures taken from each company&rsquo;s own SEC filings. Filter
-                by revenue band, EBITDA and sector to build a shortlist.
+                Figures taken from each company&rsquo;s own SEC filings. Set a
+                revenue band, a margin floor, a net debt / EBITDA range and a
+                sector, then send the shortlist as a link.
               </span>
             </p>
           </div>

@@ -120,7 +120,7 @@ function Group({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={expanded}
-        className="pressable flex w-full items-center gap-2 text-left"
+        className="pressable disclosure -mx-1.5 flex w-full items-center gap-2 rounded px-1.5 py-1 text-left"
       >
         <span aria-hidden className={`text-[0.6875rem] leading-none ${group.marker}`}>
           ●
@@ -131,7 +131,7 @@ function Group({
             {active}
           </span>
         )}
-        <span aria-hidden className="text-[0.75rem] text-ink-muted">
+        <span aria-hidden className="disclosure-sign font-mono text-[0.75rem]">
           {expanded ? "−" : "+"}
         </span>
       </button>

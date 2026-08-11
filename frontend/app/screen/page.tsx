@@ -55,7 +55,7 @@ function Figure({
       type="button"
       onClick={() => ctx.openSource(buildRecord(row, metric))}
       title="Show where this figure came from"
-      className={`figure press-tint hit-target w-full text-right underline-offset-2 hover:underline ${
+      className={`figure press-tint hit-target inspectable w-full text-right ${
         tone ?? (undisclosed ? "!text-ink-muted !font-normal" : "")
       }`}
     >
@@ -84,7 +84,7 @@ const COLUMNS: Column[] = [
         )}
         <span
           title={row.name}
-          className="max-w-[13rem] truncate text-[0.8125rem] font-medium text-ink"
+          className="max-w-[11rem] truncate text-[0.8125rem] font-medium text-ink"
         >
           {row.name}
         </span>
@@ -169,7 +169,7 @@ const COLUMNS: Column[] = [
     render: (row) => (
       <span
         title={row.sector ?? undefined}
-        className="block max-w-[9rem] truncate text-[0.8125rem] text-ink-secondary"
+        className="block max-w-[8rem] truncate text-[0.8125rem] text-ink-secondary"
       >
         {row.sector ?? "—"}
       </span>

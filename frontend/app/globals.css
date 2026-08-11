@@ -684,3 +684,109 @@
 .dark .figure-gilt {
   color: var(--brand-text);
 }
+
+/* --- Making controls look like controls ---------------------------------
+   An audit found 165 of 223 interactive elements with no resting affordance:
+   no border, no fill, no underline, no link colour. They were discoverable
+   only by hovering, which is no help on a first visit and none at all on
+   touch. These three carry most of that weight. */
+
+/* A figure you can open. The dotted rule is the annotation convention: it says
+   "there is a note behind this" without turning fifty rows into fifty links.
+   It firms up and takes the accent on hover and focus. */
+.inspectable {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.inspectable:hover,
+.inspectable:focus-visible {
+  text-decoration-style: solid;
+  text-decoration-color: var(--accent);
+}
+
+/* A column you can sort. The indicator used to be invisible until a column was
+   already active, so nothing said the others could be sorted at all. Now every
+   sortable head shows a dim caret that lifts on hover and goes full strength
+   when it is the one in force. */
+.sortable-glyph {
+  /* Fixed narrow box: the hint was costing 14px in every sortable head, 84px
+     across the table, on a surface that is already short of width. */
+  display: inline-block;
+  width: 0.62em;
+  margin-left: 0.15em;
+  text-align: center;
+  opacity: 0.35;
+  transition: opacity 150ms ease-out;
+}
+button:hover > .sortable-glyph {
+  opacity: 0.75;
+}
+.sortable-glyph[data-active="true"] {
+  opacity: 1;
+}
+
+/* A group you can open. A bare row of text with a small +/- did not read as a
+   control, so the whole row gets a hover wash and the sign gets a boxed,
+   full-contrast target. */
+.disclosure:hover {
+  background: var(--surface);
+}
+.disclosure-sign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--ink-secondary);
+  line-height: 1;
+}
+.disclosure:hover .disclosure-sign {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Scroll edge. A wide table is allowed to scroll (DESIGN.md), but a column
+   sliced off at the frame reads as a bug unless the frame says so. The fade
+   sits on a wrapper, not on the scrolling box, because a pseudo-element
+   inside an overflow container scrolls away with the content it is meant to
+   be marking. It paints only while there is more to see in that direction. */
+.scroll-frame {
+  position: relative;
+}
+
+.scroll-frame::before,
+.scroll-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Narrow, and solid only at the cut itself: a fade wide enough to swallow a
+     digit trades one unreadable column for another. */
+  width: 2rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.scroll-frame::after {
+  right: 0;
+  background: linear-gradient(to left, var(--bg), rgba(0, 0, 0, 0));
+}
+
+.scroll-frame::before {
+  left: 0;
+  background: linear-gradient(to right, var(--bg), rgba(0, 0, 0, 0));
+}
+
+.scroll-frame[data-more-right="true"]::after,
+.scroll-frame[data-more-left="true"]::before {
+  opacity: 1;
+}
+
+.scroll-x {
+  overflow-x: auto;
+}

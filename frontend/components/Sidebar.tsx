@@ -502,7 +502,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
       onClick={toggle}
       aria-label={label}
       title={collapsed ? label : undefined}
-      className={`flex items-center rounded-full text-xs text-ink-muted transition-colors duration-150 hover:bg-brand-soft hover:text-ink ${
+      className={`pressable flex items-center rounded-full border border-line text-xs text-ink-muted transition-colors duration-150 hover:border-accent hover:bg-brand-soft hover:text-ink ${
         collapsed
           ? "mx-auto h-8 w-8 justify-center"
           : "w-full gap-2.5 px-3 py-1.5"
@@ -829,7 +829,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
       onClick={toggleCollapsed}
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-ink-muted transition-colors duration-150 hover:bg-brand-soft hover:text-ink"
+      className="pressable flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line text-ink-muted transition-colors duration-150 hover:border-accent hover:bg-brand-soft hover:text-ink"
     >
       {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
     </button>
@@ -1068,7 +1068,7 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
           <Link
             href="/whats-new"
             title="What's new"
-            className="mt-3 block px-3 text-[11px] text-ink-muted transition-colors duration-150 hover:text-ink"
+            className="inspectable mt-3 block px-3 text-[11px] text-ink-muted transition-colors duration-150 hover:text-ink"
           >
             v{APP_VERSION} · What&apos;s new
           </Link>

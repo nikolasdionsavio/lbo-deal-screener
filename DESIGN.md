@@ -284,6 +284,31 @@ action needs one. Secondary: transparent, 1px rule border, ink text. Text action
 green, underline on hover, clear focus. No pill buttons. Never two large CTAs side by side
 in the homepage opening.
 
+### Resting affordance
+
+A control must be identifiable as a control **before** the pointer reaches it. Hover is a
+confirmation, never the first disclosure: it does not exist on touch, it is invisible to
+anyone scanning the page, and a surface whose controls only appear on contact reads as a
+static document.
+
+Every interactive element carries at least one of these at rest:
+
+| Cue | Use for |
+| --- | --- |
+| Filled or bordered box | Primary and secondary actions, icon-only buttons, the theme switch |
+| Link colour (`--link`) | Navigation in prose and in tables (tickers) |
+| `.inspectable` dotted underline | A figure or a meta line that opens something. The financial-terminal convention for "there is more behind this" |
+| A visible glyph (`.sortable-glyph`, `.disclosure-sign`) | Sort headers and collapsible group headers, which otherwise read as labels |
+
+Two deliberate exceptions: the wordmark, which is a link home by convention and looks
+wrong underlined, and disabled controls, where the absence of a cue is the message.
+
+An icon on a bare background is a glyph, not a button. Give it a border.
+
+Audit it, do not assume it. Query `button, a[href], [role=button]`, and for each check
+resting background, border, underline, and link colour. The first run of this on the deal
+screen returned 165 bare elements out of 223.
+
 ## Icons
 
 Only where a standard symbol aids recognition: search, open source, download, save, close,

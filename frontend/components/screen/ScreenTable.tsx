@@ -14,14 +14,17 @@
 // shown alongside, so colour is never the only signal.
 
 import Link from "next/link";
-import { useState } from "react";
-import SourceDrawer, { type SourceRecord } from "@/components/source/SourceDrawer";
+import { useEffect, useRef, useState } from "react";
+import SourceDrawer, {
+  type SourceRecord,
+} from "@/components/source/SourceDrawer";
 import { fmtDate, fmtPercent } from "@/lib/format";
 import type { ScreenRow } from "@/lib/types";
 
 /** Compact money for a dense table: $12.7m, $1.4bn. */
 function money(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "—";
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
   if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}bn`;
@@ -31,7 +34,8 @@ function money(value: number | null | undefined): string {
 }
 
 function multiple(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "—";
   return `${value.toFixed(1)}x`;
 }
 
@@ -87,6 +91,30 @@ export default function ScreenTable({
   onSort: (key: string) => void;
 }) {
   const [record, setRecord] = useState<SourceRecord | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+
+  // Seven columns of financials do not fit beside the filter rail on a narrow
+  // desktop, so the table scrolls. Mark which way there is more to see, so a
+  // half-visible Sector column reads as "keep going" rather than as a bug.
+  useEffect(() => {
+    const box = scroller.current;
+    const edge = frame.current;
+    if (!box || !edge) return;
+    const update = () => {
+      const remaining = box.scrollWidth - box.clientWidth - box.scrollLeft;
+      edge.dataset.moreRight = remaining > 1 ? "true" : "false";
+      edge.dataset.moreLeft = box.scrollLeft > 1 ? "true" : "false";
+    };
+    update();
+    box.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(box);
+    return () => {
+      box.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [rows, columns]);
 
   if (rows.length === 0) {
     return (
@@ -99,86 +127,96 @@ export default function ScreenTable({
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[48rem] border-collapse text-left">
-          <thead>
-            <tr className="border-y-2 border-line-strong">
-              {columns.map((col, index) => {
-                const active = col.sortKey && sort === col.sortKey;
-                return (
-                  <th
-                    key={col.key}
-                    scope="col"
-                    className={`whitespace-nowrap py-2 ${
-                      col.align === "right"
-                        ? "pl-4 text-right"
-                        : index === 0
-                          ? "pr-3 text-left"
-                          : "pl-5 pr-3 text-left"
-                    }`}
-                    aria-sort={
-                      active
-                        ? direction === "asc"
-                          ? "ascending"
-                          : "descending"
-                        : undefined
-                    }
-                  >
-                    {col.sortKey ? (
-                      <button
-                        type="button"
-                        onClick={() => onSort(col.sortKey as string)}
-                        className={`label-mono press-tint hit-target hover:!text-ink ${
-                          active
-                            ? "!text-ink"
-                            : col.domain
-                              ? DOMAIN_TEXT[col.domain]
-                              : ""
-                        }`}
-                      >
-                        {col.label}
-                        <span aria-hidden className={active ? "" : "opacity-0"}>
-                          {direction === "asc" ? " ↑" : " ↓"}
+      <div ref={frame} className="scroll-frame">
+        <div ref={scroller} className="scroll-x">
+          <table className="w-full min-w-[48rem] border-collapse text-left">
+            <thead>
+              <tr className="border-y-2 border-line-strong">
+                {columns.map((col, index) => {
+                  const active = col.sortKey && sort === col.sortKey;
+                  return (
+                    <th
+                      key={col.key}
+                      scope="col"
+                      className={`whitespace-nowrap py-2 ${
+                        col.align === "right"
+                          ? "pl-4 text-right"
+                          : index === 0
+                            ? "pr-3 text-left"
+                            : "pl-5 pr-3 text-left"
+                      }`}
+                      aria-sort={
+                        active
+                          ? direction === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
+                    >
+                      {col.sortKey ? (
+                        <button
+                          type="button"
+                          onClick={() => onSort(col.sortKey as string)}
+                          className={`label-mono press-tint hit-target hover:!text-ink ${
+                            active
+                              ? "!text-ink"
+                              : col.domain
+                                ? DOMAIN_TEXT[col.domain]
+                                : ""
+                          }`}
+                        >
+                          {col.label}
+                          <span
+                            aria-hidden
+                            className="sortable-glyph"
+                            data-active={active ? "true" : "false"}
+                          >
+                            {active
+                              ? direction === "asc"
+                                ? " ↑"
+                                : " ↓"
+                              : " ↕"}
+                          </span>
+                        </button>
+                      ) : (
+                        <span
+                          className={`label-mono ${
+                            col.domain ? DOMAIN_TEXT[col.domain] : ""
+                          }`}
+                        >
+                          {col.label}
                         </span>
-                      </button>
-                    ) : (
-                      <span
-                        className={`label-mono ${
-                          col.domain ? DOMAIN_TEXT[col.domain] : ""
-                        }`}
-                      >
-                        {col.label}
-                      </span>
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr
-                key={row.cik}
-                className="border-b border-line align-baseline transition-colors hover:bg-surface"
-              >
-                {columns.map((col, index) => (
-                  <td
-                    key={col.key}
-                    className={`py-2 ${
-                      col.align === "right"
-                        ? "whitespace-nowrap pl-4 text-right"
-                        : index === 0
-                          ? "pr-3"
-                          : "pl-5 pr-3"
-                    }`}
-                  >
-                    {col.render(row, { openSource: setRecord })}
-                  </td>
-                ))}
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.cik}
+                  className="border-b border-line align-baseline transition-colors hover:bg-surface"
+                >
+                  {columns.map((col, index) => (
+                    <td
+                      key={col.key}
+                      className={`py-2 ${
+                        col.align === "right"
+                          ? "whitespace-nowrap pl-4 text-right"
+                          : index === 0
+                            ? "pr-3"
+                            : "pl-5 pr-3"
+                      }`}
+                    >
+                      {col.render(row, { openSource: setRecord })}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <SourceDrawer record={record} onClose={() => setRecord(null)} />
     </>
