@@ -265,7 +265,7 @@ function StripFigure({
   return (
     <div className="py-3">
       <div className="text-[11px] leading-tight text-ink-muted">{label}</div>
-      <div className="mt-1 font-mono text-[0.9375rem] tabular-nums text-ink">
+      <div className="figure-gilt mt-1 font-mono text-[0.9375rem] font-medium">
         {value}
       </div>
     </div>

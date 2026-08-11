@@ -31,7 +31,21 @@ Same colours, type families, rules and link treatment across both. The public pa
 
 ## Colour tokens
 
-Light is the default. The palette is mostly neutral: the warm canvas carries the
+**Dark is the default.** The house style is the war table: a deep navy-black canvas
+(`#060A10`), gilt figures, and blue for anything you press. Light remains the paper
+workbook below and is a deliberate, remembered choice.
+
+**The war table (dark).** Adapted from the Aetherforge palette. Gold `#F8B700` carries
+headings and headline figures at 11.11:1; body is `#94A3B8` at 7.74:1; action is
+`#024FCB` with near-white ink at 7.04:1. Gilt and action are kept apart on purpose, so a
+number you read never looks like a control you press. Two things were deliberately NOT
+taken: the blackletter display face, and the source palette's rules and muted text, which
+sit at 1.14-1.89:1 and 4.17:1. Those were lifted along their own hue to 2.0:1, 3.5:1 and
+4.6:1, the same floors the light theme already meets. The only ornament kept is the
+glint, an inset lit top edge and shadowed bottom, so a panel reads as plate catching
+light. No shields, no scrollwork, no glass.
+
+Light is the paper theme. The palette is mostly neutral: the warm canvas carries the
 character, colour carries meaning. Tokens hold full colours (never use Tailwind opacity
 modifiers on them); soft tints are their own variables.
 

@@ -81,6 +81,11 @@ const config: Config = {
           profit: "var(--metric-profit)",
           "profit-soft": "var(--metric-profit-soft)",
         },
+        action: {
+          DEFAULT: "var(--action)",
+          hover: "var(--action-hover)",
+          ink: "var(--action-ink)",
+        },
         group: {
           size: "var(--group-size)",
           profit: "var(--group-profit)",

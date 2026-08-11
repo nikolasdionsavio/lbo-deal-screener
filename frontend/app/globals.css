@@ -43,6 +43,16 @@
   --accent: #215b52;
   --accent-soft: #e2ece8;
 
+  /* Action = the colour of a thing you press. Green on paper, blue on the war
+     table, so a control is never mistaken for a figure. */
+  --action: #215b52;
+  --action-hover: #194a43;
+  --action-ink: #ffffff;
+
+  /* No glint on paper: a printed sheet does not catch light. */
+  --glint-top: transparent;
+  --glint-bottom: transparent;
+
   /* Source / document links are blue. Nothing else is. */
   --link: #315f82;
   --link-hover: #244a67;
@@ -116,82 +126,99 @@
 .dark {
   color-scheme: dark;
 
-  /* Light is the default. Dark keeps the same workbook logic (paper becomes a
-     warm-neutral dark board, same green / blue / ochre / red meanings). */
-  --bg: #161814;
-  --surface: #1c1f1a;
-  --surface-raised: #22261f;
-  --surface-sunken: #131511;
+  /* AETHERFORGE: a war table, not a paper workbook.
+     Deep navy-black canvas, gilt figures, blue for action. Hues are taken from
+     the Aetherforge palette; the rules and muted text are NOT, because theirs
+     sit at 1.14-1.89:1 and 4.17:1, which is the same faintness this interface
+     was already corrected for. Lifted along their own hue to 2.0:1, 3.5:1 and
+     4.6:1. The blackletter display face is deliberately not adopted. */
+  --bg: #060a10;
+  --surface: #0a1220;
+  --surface-raised: #0e1520;
+  --surface-sunken: #04070c;
 
-  --ink: #e9e9e2;
-  --ink-secondary: #b0b5ae;
-  --ink-muted: #878d86;
+  --ink: #e2e8f0;
+  --ink-secondary: #94a3b8;
+  --ink-muted: #6a7b94;
 
-  /* Same correction as light: rules were 1.37:1 and 1.91:1 against the board. */
-  --line: #464c41;
-  --line-strong: #697164;
+  --line: #234081;
+  --line-strong: #44689c;
 
-  --brand: #4f9184;
-  --brand-hover: #5da296;
-  --brand-text: #8cc4b8;
-  --brand-soft: #1d2a26;
+  /* Gilt is the identity: headings and headline figures only, never body. */
+  --brand: #f8b700;
+  --brand-hover: #ffc927;
+  --brand-text: #f8b700;
+  --brand-soft: #2a1a08;
 
-  --accent: #4f9184;
-  --accent-soft: #1d2a26;
+  --accent: #f8b700;
+  --accent-soft: #2a1a08;
 
-  --link: #7aa8cc;
-  --link-hover: #93bcdb;
+  /* Action stays blue, as it does on the war table, so a thing you can press
+     never looks like a number you can read. */
+  --action: #024fcb;
+  --action-hover: #0a5fe0;
+  --action-ink: #eaf2ff;
 
-  --positive-text: #7cb392;
-  --positive-soft: #1b271f;
+  --link: #3a88e8;
+  --link-hover: #6aa8f2;
 
-  --negative: #c4705f;
-  --negative-hover: #b05f4f;
-  --negative-text: #dd917f;
-  --negative-soft: #2b1e1a;
+  --positive-text: #00cc88;
+  --positive-soft: #071f1a;
 
-  --assumption: #c4a468;
-  --assumption-soft: #272115;
-  --warn: #c4a468;
-  --warn-text: #d9bd84;
-  --warn-soft: #272115;
+  --negative: #e03050;
+  --negative-hover: #f43f5e;
+  --negative-text: #f43f5e;
+  --negative-soft: #2a0a14;
 
-  --filed: #b0b5ae;
+  --assumption: #fbbf24;
+  --assumption-soft: #2a1a08;
+  --warn: #f0a030;
+  --warn-text: #fbbf24;
+  --warn-soft: #2a1a08;
+
+  --filed: #94a3b8;
+
+  /* The glint: a lit top edge and a shadowed bottom, so a panel reads as a
+     forged plate catching light. This is the one piece of Aetherforge's
+     ornament worth keeping; the shields and scrollwork are not. */
+  --glint-top: rgba(184, 216, 248, 0.10);
+  --glint-bottom: rgba(0, 0, 0, 0.5);
 
   --shadow-card: none;
-  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.6);
   --shadow-card-hover: none;
 
-  --sens-positive-rgb: 124, 179, 146;
-  --sens-negative-rgb: 221, 145, 127;
+  --sens-positive-rgb: 0, 204, 136;
+  --sens-negative-rgb: 244, 63, 94;
   --sens-alpha-step: 0.12;
 
-  /* Same data roles, lifted for the dark board. */
-  --metric-profit: #7cb392;
-  --metric-profit-soft: #1b271f;
-  --lev-low: #7cb392;
-  --lev-mid: #c4a468;
-  --lev-high: #dd917f;
-  --lev-low-soft: #1b271f;
-  --lev-mid-soft: #272115;
-  --lev-high-soft: #2b1e1a;
+  --metric-profit: #00cc88;
+  --metric-profit-soft: #071f1a;
+  --lev-low: #00cc88;
+  --lev-mid: #fbbf24;
+  --lev-high: #f43f5e;
+  --lev-low-soft: #071f1a;
+  --lev-mid-soft: #2a1a08;
+  --lev-high-soft: #2a0a14;
 
+  /* Domain colours, verified 7.5-8.7:1 on the new canvas. */
   --group-size: #8fb0cc;
   --group-profit: #7cb392;
   --group-balance: #c4a468;
   --group-classify: #a999bd;
   --group-quality: #c2988c;
-  --group-size-soft: #252d33;
-  --group-profit-soft: #232e2b;
-  --group-balance-soft: #2d2c25;
-  --group-classify-soft: #292a31;
-  --group-quality-soft: #2c2a2a;
-  --group-size-rule: #3e4c57;
-  --group-profit-rule: #374d43;
-  --group-balance-rule: #504835;
-  --group-classify-rule: #474451;
-  --group-quality-rule: #4f4441;
+  --group-size-soft: #101a26;
+  --group-profit-soft: #0d1a17;
+  --group-balance-soft: #1a1710;
+  --group-classify-soft: #15131c;
+  --group-quality-soft: #191312;
+  --group-size-rule: #33475a;
+  --group-profit-rule: #2c4739;
+  --group-balance-rule: #4a3f28;
+  --group-classify-rule: #3d3547;
+  --group-quality-rule: #453430;
 }
+
 
 @layer base {
   body {
@@ -389,7 +416,12 @@
   /* Primary = brand-green fill, white text. A deliberate action color, not a
      pill. Hover deepens the green; active settles. */
   .btn-primary {
-    @apply bg-brand text-white hover:bg-brand-hover;
+    background: var(--action);
+    color: var(--action-ink);
+    border: 1px solid color-mix(in srgb, var(--action) 70%, white 12%);
+  }
+  .btn-primary:hover {
+    background: var(--action-hover);
   }
   .btn-secondary {
     @apply border border-line-strong bg-surface-raised text-ink hover:bg-surface-sunken;
@@ -618,4 +650,29 @@
   .input {
     border-width: 2px;
   }
+}
+
+/* Glint: the one ornament worth taking from the war table. A panel is lit from
+   above, so its top edge catches and its bottom sits in shadow. Inset shadows
+   only, so nothing is painted outside the element and no layer is added. */
+.glint {
+  box-shadow:
+    inset 0 1px 0 0 var(--glint-top),
+    inset 0 -1px 0 0 var(--glint-bottom);
+}
+
+/* Gilt figures: the war table's signature is that the NUMBERS are gold while
+   the labels stay quiet. Reserved for headline metrics (the KPI strip, a page's
+   defining figure). Table bodies keep neutral ink, because fifty gold rows is a
+   texture, not an emphasis. On paper this is just ink, since gilt on white is
+   illegible. */
+.figure-gilt {
+  color: var(--brand-text);
+  font-variant-numeric: tabular-nums;
+}
+:root .figure-gilt {
+  color: var(--ink);
+}
+.dark .figure-gilt {
+  color: var(--brand-text);
 }

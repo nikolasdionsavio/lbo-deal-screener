@@ -23,9 +23,9 @@ import { useAuth } from "@/lib/auth";
 // navy app chrome so a logged-out visitor notices them. Register is the filled
 // primary (brand green fill); Log in is the lighter outline.
 const REGISTER_CTA =
-  "inline-flex items-center justify-center rounded bg-brand px-4 py-1.5 " +
-  "text-sm font-semibold text-white transition-colors duration-150 " +
-  "hover:bg-brand-hover active:translate-y-px " +
+  "inline-flex items-center justify-center rounded bg-action px-4 py-1.5 " +
+  "text-sm font-semibold text-action-ink transition-colors duration-150 " +
+  "hover:bg-action-hover active:translate-y-px " +
   "focus-visible:ring-2 focus-visible:ring-accent";
 
 const LOGIN_CTA =

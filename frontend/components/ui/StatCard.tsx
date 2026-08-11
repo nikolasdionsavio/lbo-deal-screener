@@ -17,7 +17,7 @@ export default function StatCard({
   return (
     <Card className={className}>
       <div className="text-[13px] font-medium text-ink-secondary">{label}</div>
-      <div className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight text-ink">
+      <div className="figure-gilt mt-1.5 text-xl font-semibold tracking-tight">
         {value}
       </div>
       {sub !== undefined && sub !== null && (
