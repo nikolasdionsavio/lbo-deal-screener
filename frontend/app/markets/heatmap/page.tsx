@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import MarketToolPage from "@/components/markets/MarketToolPage";
 
 export const metadata: Metadata = {
-  title: "Sector Heatmap · Investment Intelligence",
+  title: "Sector Heatmap",
   description:
     "The S&P 500 by sector and market cap, coloured by daily change (TradingView).",
 };

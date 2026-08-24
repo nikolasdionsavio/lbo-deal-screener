@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import MarketToolPage from "@/components/markets/MarketToolPage";
 
 export const metadata: Metadata = {
-  title: "Stock Screener · Investment Intelligence",
+  title: "Stock Screener",
   description:
     "Screen the US market by fundamentals with TradingView's stock screener.",
 };

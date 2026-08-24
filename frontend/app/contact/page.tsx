@@ -6,7 +6,7 @@ import Link from "next/link";
 import Disclaimer from "@/components/ui/Disclaimer";
 
 export const metadata: Metadata = {
-  title: "Contact · Investment Intelligence",
+  title: "Contact",
   description:
     "Report a data issue, question a calculation, or suggest a feature for Investment Intelligence.",
 };

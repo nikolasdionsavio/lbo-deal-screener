@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import MarketToolPage from "@/components/markets/MarketToolPage";
 
 export const metadata: Metadata = {
-  title: "Markets Overview · Investment Intelligence",
+  title: "Markets Overview",
   description: "Global indices, futures, bonds and FX, live from TradingView.",
 };
 

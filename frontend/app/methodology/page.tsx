@@ -8,7 +8,7 @@ import Disclaimer from "@/components/ui/Disclaimer";
 import SectionHeader from "@/components/ui/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "Methodology · Investment Intelligence",
+  title: "Methodology",
   description:
     "How Investment Intelligence sources data and computes KPIs, valuation, the LBO model and the deal score, transparently and traceably.",
 };

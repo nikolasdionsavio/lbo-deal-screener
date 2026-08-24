@@ -6,7 +6,7 @@ import Disclaimer from "@/components/ui/Disclaimer";
 import { RELEASES } from "@/lib/version";
 
 export const metadata: Metadata = {
-  title: "Changelog · Investment Intelligence",
+  title: "Changelog",
   description: "What has changed in Investment Intelligence, most recent first.",
 };
 

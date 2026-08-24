@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FULL_NAME, SITE_NAME, SITE_URL, siteGraph } from "@/lib/seo";
 import { Source_Sans_3, Charis_SIL, Azeret_Mono } from "next/font/google";
 import "./globals.css";
 import Shell from "@/components/chrome/Shell";
@@ -35,10 +36,42 @@ const azeretMono = Azeret_Mono({
   variable: "--font-mono",
 });
 
+// Search identity lives in lib/seo.ts. The title carries the full name
+// because "Nikolas Savio" is what the site says and "Nikolas Dion Savio" is
+// what people search, and those are different strings to a search engine.
 export const metadata: Metadata = {
-  title: "Investment Intelligence",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} by ${FULL_NAME}`,
+    template: `%s · ${SITE_NAME}`,
+  },
   description:
-    "Company research you can check. Search a US-listed company and work through its filings, operating KPIs, valuation, peer set, and a five-year LBO model. Every calculated figure shows the source or assumption behind it.",
+    `Company research you can check, built by ${FULL_NAME}. Screen every US-listed filer, then work through one company's filings, operating KPIs, valuation, peer set, and a five-year LBO model. Every calculated figure shows the source or assumption behind it.`,
+  applicationName: SITE_NAME,
+  authors: [{ name: FULL_NAME, url: "https://nikolasdionsavio.com" }],
+  creator: FULL_NAME,
+  publisher: FULL_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: `${SITE_NAME} by ${FULL_NAME}`,
+    description:
+      `Company research you can check, built by ${FULL_NAME}. Every calculated figure shows the source or assumption behind it.`,
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} by ${FULL_NAME}`,
+    description:
+      `Company research you can check, built by ${FULL_NAME}.`,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" },
+  },
 };
 
 // Applies the persisted (or system) theme class before first paint so the
@@ -61,6 +94,10 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteGraph) }}
+        />
       </head>
       <body className="font-sans">
         <ThemeProvider>

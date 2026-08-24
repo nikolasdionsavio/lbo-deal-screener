@@ -19,7 +19,7 @@ export default function Wordmark({
     <Link
       href="/"
       className={`group inline-block ${className}`}
-      aria-label="Investment Intelligence, by Nikolas Savio"
+      aria-label="Investment Intelligence, by Nikolas Dion Savio"
     >
       <span
         className={`block font-display ${name} tracking-[-0.01em] text-ink transition-colors group-hover:text-brand-text`}
@@ -27,7 +27,7 @@ export default function Wordmark({
         Investment Intelligence
       </span>
       <span className="mt-[3px] block font-mono text-[10px] tracking-[0.02em] text-ink-muted">
-        by Nikolas Savio
+        by Nikolas Dion Savio
       </span>
     </Link>
   );

@@ -3,22 +3,36 @@
 // and text links. No gradient frame, no colored tiles, no status dot.
 
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { about } from "@/lib/about";
 
 export const metadata: Metadata = {
-  title: "About · Investment Intelligence",
+  title: "About Nikolas Dion Savio",
   description:
-    "Nikolas Savio built Investment Intelligence to move from company filings to a first-pass investment view without losing the audit trail.",
+    "Nikolas Dion Savio is a Risk Management and Financial Engineering postgraduate at Imperial College Business School and the author of Investment Intelligence, a company research tool that shows the source or assumption behind every calculated figure.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {
-  const { greeting, photo, name, bio, credentials, links } = about;
+  const { greeting, standfirst, photo, name, bio, credentials, links } = about;
+
+  const profileSchema = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: `${SITE_URL}/about`,
+    name: `About ${about.fullName}`,
+    mainEntity: { "@id": `${SITE_URL}/#nikolas-dion-savio` },
+  };
 
   return (
     <div className="px-4 py-10 sm:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(profileSchema) }}
+      />
       <div className="mx-auto w-full max-w-2xl">
         <div className="flex items-center gap-4">
           <Image
@@ -29,9 +43,17 @@ export default function AboutPage() {
             priority
             className="h-16 w-16 rounded-md object-cover object-top"
           />
-          <h1 className="font-sans text-[1.9rem] font-semibold leading-tight text-ink">
-            {greeting}
-          </h1>
+          <div>
+            <h1 className="font-sans text-[1.9rem] font-semibold leading-tight text-ink">
+              {greeting}
+            </h1>
+            {/* The formal name in visible copy. The greeting is the voice of
+                the page and stays; this is the line that answers a search for
+                the full name. */}
+            <p className="mt-1 text-[0.8125rem] leading-snug text-ink-muted">
+              {standfirst}
+            </p>
+          </div>
         </div>
 
         <div className="mt-6 space-y-4">

@@ -9,7 +9,7 @@ import Disclaimer from "@/components/ui/Disclaimer";
 import SectionHeader from "@/components/ui/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "How to use · Investment Intelligence",
+  title: "How to use",
   description:
     "A step-by-step guide to screening a US-listed company: dashboard, KPIs, financials, valuation, LBO model, peers, deal score, and memo.",
 };

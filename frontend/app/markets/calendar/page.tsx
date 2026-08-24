@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import MarketToolPage from "@/components/markets/MarketToolPage";
 
 export const metadata: Metadata = {
-  title: "Economic Calendar · Investment Intelligence",
+  title: "Economic Calendar",
   description:
     "Upcoming macroeconomic releases across the major economies (TradingView).",
 };

@@ -16,6 +16,11 @@ export interface AboutLink {
 
 export interface About {
   name: string;
+  /** Formal name. The site says "Nikolas Savio"; people search the full one,
+   *  and to a search engine those are two different strings. */
+  fullName: string;
+  /** One line under the greeting. Carries the formal name in visible copy. */
+  standfirst: string;
   greeting: string;
   /** Natural photo in /public, shown small. No gradient frame, not circular. */
   photo: string;
@@ -29,7 +34,10 @@ export interface About {
 
 export const about: About = {
   name: "Nikolas Savio",
+  fullName: "Nikolas Dion Savio",
   greeting: "Hi, I'm Nikolas.",
+  standfirst:
+    "Nikolas Dion Savio · Risk Management and Financial Engineering, Imperial College Business School",
   photo: "/nikolas.jpg",
   bio: [
     "I built Investment Intelligence because I wanted one place to move from company filings to a first-pass investment view without losing the audit trail.",

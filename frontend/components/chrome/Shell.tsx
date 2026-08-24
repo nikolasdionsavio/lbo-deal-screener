@@ -36,7 +36,16 @@ function Footer() {
   return (
     <footer className="border-t border-line px-[18px] py-4 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-x-4 gap-y-1 font-mono text-[10px] text-ink-muted">
-        <span>Investment Intelligence · a personal research tool</span>
+        <span>
+          Investment Intelligence · a personal research tool by{" "}
+          <a
+            href="https://nikolasdionsavio.com"
+            rel="me author"
+            className="inspectable transition-colors hover:text-ink"
+          >
+            Nikolas Dion Savio
+          </a>
+        </span>
         <Link href="/changelog" className="inspectable transition-colors hover:text-ink">
           Last updated {RELEASES[0].date}
         </Link>
