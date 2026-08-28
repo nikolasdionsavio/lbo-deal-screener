@@ -3,9 +3,8 @@
 // is traceable and the models are transparent, not a black box.
 
 import type { Metadata } from "next";
-import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
-import SectionHeader from "@/components/ui/SectionHeader";
+import EditorialPage from "@/components/ui/EditorialPage";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -68,32 +67,31 @@ const SECTIONS: { title: string; body: string[] }[] = [
 
 export default function MethodologyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <SectionHeader
-        variant="page"
-        as="h1"
-        title="Methodology"
-        subtitle="How filings become figures: sources, formulas and the models behind every page."
-      />
-
-      <div className="mt-6 space-y-4">
+    <EditorialPage
+      title="Methodology"
+      intro="How filings become figures: sources, formulas and the models behind every page."
+    >
+      <div className="space-y-10">
         {SECTIONS.map((section) => (
-          <Card key={section.title}>
-            <h2 className="font-display text-base font-semibold text-ink">
+          <section key={section.title}>
+            <h2 className="ed-sub border-t border-line-strong pt-4">
               {section.title}
             </h2>
-            <div className="mt-2 space-y-2">
+            <div className="mt-3 space-y-3">
               {section.body.map((p, i) => (
-                <p key={i} className="text-sm leading-relaxed text-ink-secondary">
+                <p
+                  key={i}
+                  className="max-w-[68ch] text-[0.9375rem] leading-relaxed text-ink-secondary"
+                >
                   {p}
                 </p>
               ))}
             </div>
-          </Card>
+          </section>
         ))}
       </div>
 
       <Disclaimer />
-    </div>
+    </EditorialPage>
   );
 }

@@ -6,7 +6,7 @@
 import type { Metadata } from "next";
 import Card from "@/components/ui/Card";
 import Disclaimer from "@/components/ui/Disclaimer";
-import SectionHeader from "@/components/ui/SectionHeader";
+import EditorialPage from "@/components/ui/EditorialPage";
 
 export const metadata: Metadata = {
   title: "How to use",
@@ -77,57 +77,48 @@ function NoteIcon() {
 
 export default function HowToUsePage() {
   return (
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col px-4 py-8 sm:px-8">
-      <div className="mx-auto w-full max-w-3xl">
-        <SectionHeader
-          variant="page"
-          title="How to use"
-          subtitle="Screen a public company as an LBO candidate, one page at a time. Every figure traces back to its source."
-        />
-
-        <Card>
-          <ol>
-            {STEPS.map((step, index) => (
-              <li key={step.title}>
-                {index > 0 && <div className="divider-dashed" />}
-                <div className="flex items-start gap-4 py-4">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface-sunken text-sm font-medium tabular-nums text-ink-secondary">
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-semibold text-ink">
-                      {step.title}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-                      {step.body}
-                    </p>
-                  </div>
+    <EditorialPage
+      title="How to use"
+      intro="Screen a public company as an LBO candidate, one page at a time. Every figure traces back to its source."
+    >
+      <Card>
+        <ol>
+          {STEPS.map((step, index) => (
+            <li key={step.title}>
+              {index > 0 && <div className="divider-dashed" />}
+              <div className="flex items-start gap-4 py-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface-sunken text-sm font-medium tabular-nums text-ink-secondary">
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <h2 className="ed-sub">{step.title}</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+                    {step.body}
+                  </p>
                 </div>
-              </li>
-            ))}
-          </ol>
-        </Card>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
 
-        <Card className="mt-6">
-          <div className="flex items-start gap-4">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface text-ink-secondary">
-              <NoteIcon />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">Good to know</h2>
-              <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-muted">
-                Data comes from SEC EDGAR and market data providers. Every figure
-                is traceable to a filing or a stated assumption, and missing data
-                is shown as missing rather than invented. This is a research and
-                screening tool, not investment advice.
-              </p>
-            </div>
+      <Card className="mt-6">
+        <div className="flex items-start gap-4">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-line bg-surface text-ink-secondary">
+            <NoteIcon />
+          </span>
+          <div className="min-w-0">
+            <h2 className="ed-sub">Good to know</h2>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-muted">
+              Data comes from SEC EDGAR and market data providers. Every figure
+              is traceable to a filing or a stated assumption, and missing data
+              is shown as missing rather than invented. This is a research and
+              screening tool, not investment advice.
+            </p>
           </div>
-        </Card>
-      </div>
-      <div className="mx-auto w-full max-w-3xl">
-        <Disclaimer />
-      </div>
-    </div>
+        </div>
+      </Card>
+      <Disclaimer />
+    </EditorialPage>
   );
 }

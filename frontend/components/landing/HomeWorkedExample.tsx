@@ -112,7 +112,9 @@ export default function HomeWorkedExample() {
       ? latest.operating_income / latest.revenue
       : null;
   const evEbitda =
-    p?.enterprise_value != null && p?.ebitda ? p.enterprise_value / p.ebitda : null;
+    p?.enterprise_value != null && p?.ebitda
+      ? p.enterprise_value / p.ebitda
+      : null;
   const netDebt = p?.net_debt ?? null;
   const netLabel = netDebt != null && netDebt < 0 ? "Net cash" : "Net debt";
 
@@ -120,15 +122,15 @@ export default function HomeWorkedExample() {
   const last = marginPoints[marginPoints.length - 1];
 
   return (
-    <section className="mt-20 border-t border-line pt-8">
+    <section className="mt-24 border-t border-line pt-10">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h2 className="text-[1.375rem] font-medium text-ink">
-          A quick look at Apple
-        </h2>
+        <h2 className="ed-section">A quick look at Apple</h2>
         <p className="font-mono text-[11px] text-ink-muted">
           {p
             ? `${p.ticker} · ${p.exchange ?? ""}${
-                latest?.period_end ? ` · reporting date ${fmtDate(latest.period_end)}` : ""
+                latest?.period_end
+                  ? ` · reporting date ${fmtDate(latest.period_end)}`
+                  : ""
               }`
             : "loading live figures"}
         </p>

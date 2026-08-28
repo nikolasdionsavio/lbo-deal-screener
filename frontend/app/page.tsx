@@ -1,15 +1,21 @@
 "use client";
 
 // Landing (DESIGN.md: annotated analyst workbook, public density).
-// Asymmetric opening: the authored statement on the left, the working search on
-// the right. Then one annotated research sheet, a note from Nikolas, the real
-// research path, and an honest statement of scope. No SaaS hero, no feature
-// cards, no centred column.
+//
+// Composition. The page alternates between two densities rather than repeating
+// one. Editorial sections sit in the reading column; the screen band runs the
+// full width of the viewport on its own surface, because the product's own
+// density is the argument for it and a band is how you show density without
+// describing it. Section rhythm varies deliberately: the opening is asymmetric,
+// the band is full width, the sequence runs across, the scope runs down.
+//
+// No SaaS hero, no feature cards, no centred column.
 
 import Link from "next/link";
 import SearchBar from "@/components/search/SearchBar";
 import HomeScreenExample from "@/components/landing/HomeScreenExample";
 import HomeWorkedExample from "@/components/landing/HomeWorkedExample";
+import Container from "@/components/ui/Container";
 import Disclaimer from "@/components/ui/Disclaimer";
 
 // Three real starting points. Each note is supported by the data this tool
@@ -63,9 +69,9 @@ const DOES_NOT = [
 
 export default function LandingPage() {
   return (
-    <div className="px-[18px] py-14 sm:px-8 lg:px-12 lg:py-20">
-      <div className="mx-auto w-full max-w-[1240px]">
-        {/* Asymmetric opening. */}
+    <div className="pb-14 pt-14 lg:pb-20 lg:pt-20">
+      {/* Asymmetric opening: authored statement left, working search right. */}
+      <Container>
         <div className="grid grid-cols-12 gap-x-6 gap-y-12">
           <div className="col-span-12 lg:col-span-6 xl:col-span-6">
             <p className="font-mono text-[11px] text-ink-muted">
@@ -77,12 +83,12 @@ export default function LandingPage() {
                 Nikolas Savio
               </Link>
             </p>
-            <h1 className="type-display mt-5 max-w-[11ch] font-display text-[2.625rem] font-normal text-ink sm:text-[3.375rem] lg:text-[3.75rem]">
+            <h1 className="ed-statement mt-5 max-w-[11ch] text-ink">
               Company research you can check
             </h1>
-            <p className="mt-6 max-w-[54ch] text-[1.1875rem] leading-[1.55] text-ink-secondary">
-              Screen every US-listed filer on revenue, margin and leverage,
-              then work through one company&rsquo;s filings, operating results,
+            <p className="ed-intro mt-6 max-w-[54ch]">
+              Screen every US-listed filer on revenue, margin and leverage, then
+              work through one company&rsquo;s filings, operating results,
               valuation, peer set, and a simplified LBO case. Calculated figures
               show the source or assumption behind them.
             </p>
@@ -141,21 +147,24 @@ export default function LandingPage() {
             </p>
           </div>
         </div>
+      </Container>
 
-        {/* One annotated research sheet, drawn live from the API. */}
-        {/* Screening comes before the single-company example: it is the step
-            that finds the company you then research. */}
-        <HomeScreenExample />
+      {/* Screening comes before the single-company example: it is the step that
+          finds the company you then research. It gets the band because it is
+          the densest thing on the site, and density is the claim. */}
+      <HomeScreenExample />
 
+      <Container>
         <HomeWorkedExample />
 
-        {/* Nikolas's note: thin rule, Charter, small authorship label. */}
-        <section className="mt-20 grid grid-cols-12 gap-x-6">
-          <figure className="col-span-12 border-l border-line-strong pl-6 md:col-span-7 lg:col-span-6">
-            <figcaption className="font-mono text-[11px] text-ink-muted">
+        {/* Nikolas's note. Set wide and quiet rather than boxed: the authorship
+            line does the framing that a container would otherwise do. */}
+        <section className="mt-24">
+          <figure className="grid grid-cols-12 gap-x-6">
+            <figcaption className="col-span-12 font-mono text-[11px] text-ink-muted md:col-span-3">
               Nikolas&rsquo;s note
             </figcaption>
-            <blockquote className="mt-3 font-display text-[1.1875rem] leading-[1.6] text-ink-secondary">
+            <blockquote className="col-span-12 font-display text-[1.3125rem] leading-[1.55] text-ink-secondary md:col-span-9 lg:text-[1.4375rem]">
               I built this tool because I wanted a quicker way to move from a
               filing to a first-pass investment view without losing track of
               where each number came from. The output is meant to be questioned,
@@ -164,75 +173,61 @@ export default function LandingPage() {
           </figure>
         </section>
 
-        {/* The research path: a real ordered sequence. */}
-        <section className="mt-20 border-t border-line pt-8">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-6">
-            <h2 className="col-span-12 text-[0.8125rem] font-semibold text-ink md:col-span-3">
-              How the work goes
-            </h2>
-            <ol className="col-span-12 md:col-span-9">
-              {WORKFLOW.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="grid grid-cols-[2rem_1fr] gap-x-3 border-b border-line py-4 last:border-b-0"
-                >
-                  <span className="font-mono text-[11px] text-ink-muted">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div>
-                    <h3 className="text-[0.95rem] font-medium text-ink">
-                      {step.title}
-                    </h3>
-                    <p className="mt-1 max-w-[62ch] text-[0.875rem] leading-snug text-ink-muted">
-                      {step.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+        {/* The research path: a real ordered sequence, so the numbers carry
+            information. Runs across at desktop, which breaks the vertical
+            list rhythm the sections above and below both use. */}
+        <section className="mt-24 border-t border-line pt-10">
+          <h2 className="ed-section">How the work goes</h2>
+          <ol className="mt-8 grid gap-x-6 gap-y-8 md:grid-cols-3">
+            {WORKFLOW.map((step, i) => (
+              <li key={step.title} className="border-t border-line-strong pt-4">
+                <span className="font-mono text-[11px] font-semibold text-brand-text">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="ed-sub mt-2">{step.title}</h3>
+                <p className="mt-2 max-w-[42ch] text-[0.9375rem] leading-relaxed text-ink-secondary">
+                  {step.body}
+                </p>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        {/* Honest scope. */}
-        <section className="mt-16 border-t border-line pt-8">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-8">
-            <h2 className="col-span-12 text-[0.8125rem] font-semibold text-ink md:col-span-3">
-              What this is
-            </h2>
-            <div className="col-span-12 grid gap-x-6 gap-y-8 md:col-span-9 md:grid-cols-2">
-              <div>
-                <p className="font-mono text-[11px] text-ink-muted">It does</p>
-                <ul className="mt-2">
-                  {DOES.map((d) => (
-                    <li
-                      key={d}
-                      className="border-t border-line py-2 text-[0.875rem] text-ink-secondary"
-                    >
-                      {d}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="font-mono text-[11px] text-ink-muted">
-                  It does not
-                </p>
-                <ul className="mt-2">
-                  {DOES_NOT.map((d) => (
-                    <li
-                      key={d}
-                      className="border-t border-line py-2 text-[0.875rem] text-ink-muted"
-                    >
-                      {d}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        {/* Honest scope. Two columns that read as one comparison, not as two
+            unrelated lists. */}
+        <section className="mt-24 border-t border-line pt-10">
+          <h2 className="ed-section">What this is</h2>
+          <div className="mt-8 grid gap-x-10 gap-y-8 md:grid-cols-2">
+            <div>
+              <p className="label-mono">It does</p>
+              <ul className="mt-3">
+                {DOES.map((d) => (
+                  <li
+                    key={d}
+                    className="border-t border-line py-2.5 text-[0.9375rem] leading-snug text-ink-secondary"
+                  >
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="label-mono">It does not</p>
+              <ul className="mt-3">
+                {DOES_NOT.map((d) => (
+                  <li
+                    key={d}
+                    className="border-t border-line py-2.5 text-[0.9375rem] leading-snug text-ink-muted"
+                  >
+                    {d}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
 
-        <p className="mt-10 text-[0.875rem] text-ink-muted">
+        <p className="mt-12 text-[0.9375rem] text-ink-muted">
           Sources and formulas are documented in the{" "}
           <Link
             href="/methodology"
@@ -251,7 +246,7 @@ export default function LandingPage() {
         </p>
 
         <Disclaimer />
-      </div>
+      </Container>
     </div>
   );
 }

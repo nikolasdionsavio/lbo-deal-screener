@@ -137,6 +137,22 @@ Application: company title 26–30 · section 18–21 · body 14 · table 13 · 
 Tabular numerals on all financial data. Max measure ~68ch for long copy. Do not make every
 heading bold: build hierarchy with size, spacing and position.
 
+The public half of that scale is now a set of classes rather than a table to retype:
+`.ed-statement`, `.ed-title`, `.ed-section`, `.ed-sub`, `.ed-intro`, `.ed-body`,
+`.ed-caption`. Each pairs size with the weight, tracking, leading and measure that size
+needs, so a heading cannot be half-applied at a call site.
+
+They exist because the middle of the scale was missing in practice. The homepage set its
+section headings at 13px, **smaller than the 14px body they introduced**, and the other
+public pages ran their own sizes: 14, 16, 18, 30 and 32px for the same job. Hierarchy was
+inverted, not quiet. `.ed-section` is sans, not Charter: the serif stays reserved for
+authored editorial, and a page of serif section heads reads as a magazine, which this
+file rules out.
+
+`SectionHeader` carries an `editorial` variant for public page titles. The public pages
+were using `page`, which is the 22px application title, so /methodology and /how-to-use
+opened smaller than the homepage's section headings.
+
 ## Wordmark
 
 Text only: **Investment Intelligence**, with a smaller authorship line **by Nikolas
@@ -149,6 +165,19 @@ product name carries the identity.
 **Public:** max 1240px · 12 columns · outer margins 48–72 desktop, 28–40 tablet, 18–22
 mobile · gutter 24 · reading column 5–7 columns. Do not centre everything. No narrow
 column floating in a wide screen. No section wrapped in a background box by default.
+
+`Container` is that grid as a component. Pages apply it **per section** rather than once
+around everything, which is what lets a section opt out of the column: the deal-screen
+band on the homepage runs the full width of the viewport while its contents stay on the
+same grid lines as the sections above and below it. Section variety comes from surface
+and width, not from a new decorative treatment per section.
+
+`EditorialPage` is the layout for the public reading pages (methodology, how to use,
+what's new). They were each a centred `max-w-3xl` column, which the paragraph above rules
+out in as many words: at 1440px that left roughly 340px of dead margin either side of a
+page whose argument is that it is dense and considered. The reading measure was the only
+good reason for the narrow column and it is kept; the reclaimed width holds a title
+column that stays with you down a long document.
 
 **Application:** max workspace 1600px · left rail 200–220 · top utility bar 48–52 · main
 padding 24–32 · tables use nearly all available width.
@@ -276,6 +305,14 @@ completion.
 **Banned:** scroll entrance animations, staggered reveals, parallax, floating elements,
 animated backgrounds, cursor effects, pulsing buttons, continuous tickers, spring motion,
 number-count animations. `prefers-reduced-motion` is honoured everywhere.
+
+The landing scroll-reveal component predated that ban and outlived it as dead code,
+imported nowhere. It has been deleted along with its CSS, so the rule and the codebase
+now agree.
+
+Durations are tokens (`--dur-fast` 100ms, `--dur-base` 150ms, `--dur-panel` 200ms,
+`--ease-out`). The values are unchanged; naming them stops a 150ms system drifting into
+120/160/200 with no reason for any of it.
 
 ## Controls
 

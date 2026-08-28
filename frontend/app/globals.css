@@ -15,6 +15,14 @@
    Tokens hold full colours (no opacity modifiers); soft tints are their own
    variables. */
 :root {
+  /* Motion (DESIGN.md Motion rules). Fast state 100ms, standard 150ms,
+     drawer/panel 180-220ms. Named here so a component cannot invent a
+     duration; the values themselves are unchanged. */
+  --dur-fast: 100ms;
+  --dur-base: 150ms;
+  --dur-panel: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
   color-scheme: light;
 
   --bg: #f3f2ed; /* canvas */
@@ -323,6 +331,61 @@
     line-height: 1.55;
   }
 
+  /* --- Editorial scale (public pages) ---------------------------------
+     DESIGN.md gives the public pages their own scale: statement 54-64,
+     page title 38-46, section 25-30, intro 19-21, body 17-18, caption
+     13-14. The homepage was using the two ends and none of the middle:
+     its section headings rendered at 13px, SMALLER than the 14px body
+     they introduced, so the page had one large moment at the top and
+     then went flat for four sections. Hierarchy was inverted, not quiet.
+
+     Each step pairs size with the weight, tracking and leading that size
+     needs, so a heading cannot be half-applied at a call site. */
+  .ed-statement {
+    @apply font-display text-[2.625rem] font-normal sm:text-[3.375rem] lg:text-[3.75rem];
+    letter-spacing: -0.024em;
+    line-height: 1.03;
+    text-wrap: balance;
+  }
+  .ed-title {
+    @apply font-display text-[2rem] font-normal sm:text-[2.375rem] lg:text-[2.75rem];
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  /* The step that was missing. Sans, not Charter: DESIGN.md reserves the
+     serif for authored editorial (the statement, Nikolas's notes), and a
+     page of serif section heads would read as a magazine, which the same
+     file rules out. */
+  .ed-section {
+    @apply text-[1.5rem] font-semibold text-ink lg:text-[1.75rem];
+    letter-spacing: -0.014em;
+    line-height: 1.18;
+    text-wrap: balance;
+  }
+  .ed-sub {
+    @apply text-[1.0625rem] font-semibold text-ink lg:text-[1.125rem];
+    letter-spacing: -0.006em;
+    line-height: 1.3;
+  }
+  .ed-intro {
+    @apply text-[1.1875rem] text-ink-secondary lg:text-[1.3125rem];
+    line-height: 1.5;
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+  .ed-body {
+    @apply text-[1.0625rem] text-ink-secondary lg:text-[1.125rem];
+    line-height: 1.6;
+    max-width: 68ch;
+    text-wrap: pretty;
+  }
+  .ed-caption {
+    @apply text-[0.875rem] text-ink-muted;
+    line-height: 1.45;
+    max-width: 72ch;
+  }
+
   /* Column heads and field labels. */
   .label-mono {
     @apply font-mono text-[0.6875rem] font-semibold uppercase leading-[1.15] tracking-[0.05em] text-ink-muted;
@@ -593,22 +656,6 @@
   }
 }
 
-/* Landing-only scroll reveal (components/landing/Reveal.tsx). Content is
-   visible by default; .reveal-init is only ever added by JS (and never under
-   prefers-reduced-motion), so no-JS users never see hidden content. The
-   first intersection adds .reveal-in: a 280ms ease-out fade + 6px rise. */
-.reveal-init {
-  opacity: 0;
-  transform: translateY(6px);
-}
-.reveal-init.reveal-in {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 /* Reduced motion removes MOVEMENT, not all feedback.
    Flattening every duration to zero also kills the opacity fades, and a panel
    that teleports in is harder to follow than one that fades. So: transforms
@@ -626,12 +673,7 @@
 
   /* Travel is what causes trouble, so it is the thing that goes. */
   .drawer-right,
-  .drawer-scrim,
-  .reveal-init,
-  .reveal-init.reveal-in {
-    transform: none !important;
-  }
-  .drawer-right {
+  .drawer-scrim {
     animation: fade-in 140ms ease-out both !important;
   }
   .btn:active {
