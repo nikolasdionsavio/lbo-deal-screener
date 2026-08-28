@@ -35,15 +35,42 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build and deploy to Netlify (production)
+      # Deploy to a DRAFT first, never straight to production.
+      #
+      # Production has been broken twice by a deploy whose HTML referenced CSS
+      # and JS chunks that were not in the upload: every route returned 200
+      # while the site rendered unstyled, so an HTTP check passed and the
+      # breakage was invisible. deploy/verify_deploy.py fetches each route and
+      # then fetches every asset that route references, which is the only check
+      # that catches it. Nothing reaches the production URL until it passes.
+      - name: Build and deploy to Netlify (draft)
+        id: draft
         env:
           # The backend URL is baked into the client bundle at build time.
           NEXT_PUBLIC_API_URL: https://nikolasdion-lbo-screener-api.hf.space
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
         # Run from the repo root so netlify.toml (base = frontend) is picked up.
-        run: >-
-          npx --yes netlify-cli@17 deploy
-          --build
-          --prod
-          --site 5778be23-2f24-4ff1-b197-f73aa2ae8a2e
-          --message "CI deploy from ${GITHUB_SHA::7}"
+        run: |
+          set -o pipefail
+          npx --yes netlify-cli@17 deploy \
+            --build \
+            --site 5778be23-2f24-4ff1-b197-f73aa2ae8a2e \
+            --message "CI draft from ${GITHUB_SHA::7}" \
+            | tee deploy.log
+          URL=$(grep -oE 'https://[a-f0-9]+--[a-z0-9-]+\.netlify\.app' deploy.log | head -1)
+          test -n "$URL" || { echo "::error::could not read the draft URL"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "id=$(echo "$URL" | sed -E 's#https://([a-f0-9]+)--.*#\1#')" >> "$GITHUB_OUTPUT"
+
+      - name: Gate the draft on asset delivery
+        run: python3 deploy/verify_deploy.py "${{ steps.draft.outputs.url }}"
+
+      - name: Promote the verified draft to production
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          npx --yes netlify-cli@17 api restoreSiteDeploy --data \
+            '{"site_id":"5778be23-2f24-4ff1-b197-f73aa2ae8a2e","deploy_id":"${{ steps.draft.outputs.id }}"}'
+
+      - name: Re-check production
+        run: python3 deploy/verify_deploy.py https://nikolasproject.com
