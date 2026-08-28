@@ -40,7 +40,7 @@ export default function HomeScreenExample() {
   const coverage = data?.coverage;
 
   return (
-    <section className="mt-24 border-y border-line bg-surface py-14 lg:py-16">
+    <section className="glass-thin mt-24 border-y border-line py-14 lg:py-16">
       <Container>
         <div className="grid grid-cols-12 items-start gap-x-6 gap-y-8">
           <div className="col-span-12 lg:col-span-5">

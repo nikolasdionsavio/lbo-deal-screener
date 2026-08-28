@@ -88,7 +88,7 @@ export default function TopBar() {
   }, [inputRef]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 sm:gap-4 sm:px-6">
+    <header className="glass-chrome sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-line px-4 sm:gap-4 sm:px-6">
       <MobileNav />
       <Link
         href="/"
@@ -124,7 +124,7 @@ export default function TopBar() {
             aria-expanded={search.showDropdown}
             aria-controls="topbar-search-results"
             aria-autocomplete="list"
-            className="h-9 w-full rounded-md border border-line-strong bg-surface-raised pl-8 pr-3 text-sm text-ink transition-colors duration-150 placeholder:text-ink-muted hover:border-brand focus:border-brand focus:ring-2 focus:ring-brand-soft md:pr-8"
+            className="glass-thin h-9 w-full rounded-md border border-line-strong pl-8 pr-3 text-sm text-ink transition-colors duration-150 placeholder:text-ink-muted hover:border-brand focus:border-brand focus:ring-2 focus:ring-brand-soft md:pr-8"
             placeholder="Search companies"
             value={search.query}
             onChange={(event) => search.onQueryChange(event.target.value)}

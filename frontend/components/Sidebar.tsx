@@ -757,7 +757,7 @@ function MarketsNav({
             onMouseEnter={openNow}
             onMouseLeave={closeSoon}
             style={{ position: "fixed", top: coords.top, left: coords.left }}
-            className="z-50 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgba(15,23,42,0.14)]"
+            className="glass-thick z-50 w-64 rounded-xl border border-line p-1.5"
           >
             <MarketToolItems
               ticker={ticker}
@@ -839,8 +839,8 @@ export default function Sidebar({ variant = "desktop" }: SidebarProps) {
     <aside
       className={
         isDrawer
-          ? "flex h-full w-full flex-col overflow-y-auto overflow-x-hidden bg-bg"
-          : `sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-line bg-bg lg:flex ${
+          ? "glass-chrome flex h-full w-full flex-col overflow-y-auto overflow-x-hidden"
+          : `glass-chrome sticky top-0 hidden h-screen shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-line lg:flex ${
               collapsed ? "w-16" : "w-60"
             } ${restored ? "transition-[width] duration-200 ease-out" : ""}`
       }

@@ -47,7 +47,7 @@ export default function SearchBar({
 
   return (
     <div ref={search.containerRef} className={`relative ${className}`}>
-      <div className="flex h-[60px] items-center gap-3 rounded-[4px] border border-line-strong bg-surface-raised px-4 transition-colors duration-150 focus-within:border-ink-secondary focus-within:ring-2 focus-within:ring-inset focus-within:ring-accent">
+      <div className="glass flex h-[60px] items-center gap-3 rounded-[4px] border border-line-strong px-4 transition-colors duration-150 focus-within:border-ink-secondary focus-within:ring-2 focus-within:ring-inset focus-within:ring-accent">
         <span className="shrink-0 text-ink-muted">
           <SearchGlyph />
         </span>

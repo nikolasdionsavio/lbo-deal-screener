@@ -104,7 +104,7 @@ number. Red/green for direction (positive, negative, leverage bands) is separate
 still applies.
 
 **Banned:** bright cyan, neon green, black terminal backgrounds, cream + terracotta,
-gradients, colour blobs, frosted glass, glowing borders, coloured shadows, grain
+gradients, colour blobs, glowing borders, coloured shadows, grain
 overlays, fake paper textures. (Violet as a free-floating accent remains banned; the
 muted `--group-classify` slate-purple above is permitted **only** as the classification
 domain.)
@@ -213,6 +213,58 @@ the bordered surface and is reserved for content that really is its own interact
 surface, such as a sign-in form. The component previously drew a bordered, filled, rounded
 box at all 52 call sites, which is most of why the app sat near 2:1 rules to boxes rather
 than the 10:1 below.
+
+## Glass materials
+
+**Translucent glass is a primary surface style.** It is modelled on system
+materials, not on a blurred card, and three things separate the two.
+
+**Saturation.** A plain blur greys out what is behind it. The materials boost
+saturation as they blur, which is why colour behind glass stays alive instead
+of turning to fog. Every tier does `blur()` and `saturate()` together.
+
+**A specular edge.** Glass is a sheet, so it catches light on the edge facing
+the source and drops a shadow on the far side. The inset top highlight plus the
+outer shadow are what make it read as a sheet lying ON the page rather than a
+hole cut INTO it.
+
+**It needs something behind it.** Glass over a flat field of one colour is
+invisible. It goes on surfaces that genuinely float, and the canvas carries a
+fixed, composited luminance layer at a few percent so the material has
+something to refract.
+
+| Tier | Blur | Use |
+|---|---|---|
+| `.glass-thin` | 10px | Full-width bands in normal flow |
+| `.glass` | 20px | Panels and the search field |
+| `.glass-chrome` | 20px | Headers, sidebars, sticky rails |
+| `.glass-thick` | 32px | Drawers, menus, sheets, anything over live content |
+
+### The rules that keep it readable
+
+**Never on a data table.** Fifty rows of figures over a moving backdrop is
+unreadable, and a `backdrop-filter` per row would be a compositing layer per
+row. The workspace tables stay opaque.
+
+**Tint opacity is set by contrast, not by taste.** The tiers are not equally
+exposed: a band in normal flow only ever has the canvas behind it, while chrome
+and drawers have live content passing underneath. At 0.72 a muted label over a
+dark heading measured 3.05:1. Chrome and thick were raised to 0.84 and 0.93
+(0.86 / 0.94 on the negative) until the pessimistic worst case, glass over
+solid opposite-ink, clears AA on every ink that sits on them.
+
+**The weakest ink is promoted off moving backdrops.** Inside `.glass-chrome`
+and `.glass-thick`, `--ink-muted` resolves to `--ink-secondary`. Muted ink is
+the first thing to disappear when the surface under it stops being a known
+colour.
+
+### Degradation
+
+Three ways out, all of them opaque rather than unreadable: the OS
+`prefers-reduced-transparency` setting, `@supports` for no `backdrop-filter`,
+and print. Reduce Transparency is honoured because it exists for people who
+genuinely cannot read translucent surfaces over moving content, and the house
+style does not outrank that.
 
 ## Rules, not boxes (the governing device)
 
@@ -455,7 +507,7 @@ text or shape in addition to colour.
 **Rejected**
 - A row of oversized KPI cards; each metric in its own card
 - A circular score gauge, speedometer, ring chart, star rating, glowing number
-- Gradient text, glassmorphism, side-stripe accent borders, coloured shadows
+- Gradient text, side-stripe accent borders, coloured shadows
 - An eyebrow label on every section; numbered markers where there is no real sequence
 - Icon + heading + text cards repeated as the default section pattern
 - Decorative candlesticks, tickers, terminals, trading-floor imagery

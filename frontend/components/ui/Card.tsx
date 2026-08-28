@@ -28,7 +28,7 @@ export default function Card({
 }: CardProps) {
   if (variant === "panel") {
     return (
-      <div className={`rounded-lg border border-line bg-surface p-5 ${className}`}>
+      <div className={`glass rounded-lg border border-line p-5 ${className}`}>
         {children}
       </div>
     );

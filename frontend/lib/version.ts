@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.11.0";
+export const APP_VERSION = "1.12.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,17 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.12.0",
+    date: "12 August 2026",
+    title: "Glass",
+    changes: [
+      "Translucent glass is now the surface style for anything that floats: the header, the sidebar, drawers, menus, and the search field. Content blurs and brightens as it passes underneath, rather than sliding behind a flat panel.",
+      "Tables are deliberately excluded. Fifty rows of figures over a moving backdrop is unreadable, so the workspace tables stay opaque.",
+      "Text on glass keeps its contrast. The tint on the surfaces that have live content moving under them was set by measurement rather than by eye, and the quietest ink is promoted a step stronger on those surfaces so nothing important sits on an unknown background.",
+      "If your system has Reduce Transparency switched on, every glass surface falls back to a solid one. That setting exists for people who find translucency hard to read, and it overrides the house style.",
+    ],
+  },
   {
     version: "1.11.0",
     date: "12 August 2026",

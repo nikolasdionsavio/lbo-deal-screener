@@ -67,7 +67,7 @@ export default function PublicHeader() {
   const reduced = typeof window !== "undefined" && prefersReducedMotion();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-[2px]">
+    <header className="glass-chrome sticky top-0 z-30 border-b border-line">
       <Container>
         <div className="flex items-center justify-between gap-6 py-5">
           <Wordmark />

@@ -70,7 +70,7 @@ export default function HomeCoverage() {
   ];
 
   return (
-    <section className="mt-28 border-y border-line bg-surface-sunken py-16 lg:mt-36 lg:py-24">
+    <section className="glass-thin mt-28 border-y border-line py-16 lg:mt-36 lg:py-24">
       <Container>
         <div ref={ref} className="scrub">
           <div className="grid grid-cols-12 gap-x-6 gap-y-10">

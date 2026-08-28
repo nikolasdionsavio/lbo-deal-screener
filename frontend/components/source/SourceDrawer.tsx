@@ -137,7 +137,7 @@ export default function SourceDrawer({
       />
       <aside
         data-closing={closing}
-        className="drawer-right absolute right-0 top-0 flex h-full w-full max-w-[24rem] flex-col border-l border-line-strong bg-surface-raised shadow-pop">
+        className="glass-thick drawer-right absolute right-0 top-0 flex h-full w-full max-w-[24rem] flex-col border-l border-line-strong">
         <div className="flex items-center justify-between border-b border-line px-5 py-3">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-muted">
             Source record

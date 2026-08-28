@@ -27,10 +27,18 @@ numbers carry the emotion. Confidence through restraint, never through decoratio
 
 ## Anti-references
 
-- SaaS-cream landing pages, gradient text, glassmorphism, hero-metric templates.
+- SaaS-cream landing pages, gradient text, hero-metric templates.
 - Retail-investor apps (Robinhood confetti energy) and crypto-dashboard neon.
 - Anything that reads "AI-generated template": uniform card grids, eyebrow labels on
   every section, decorative emoji, hype copy.
+
+## Materials
+
+Translucent glass is a primary surface style (2026). It is the material for
+things that FLOAT: chrome, drawers, menus, sticky rails, the search field. It
+is not a decorative treatment applied to content blocks, and it never goes on a
+data table. See DESIGN.md "Glass materials" for the tiers and the rules that
+keep it readable.
 
 ## Design Principles
 

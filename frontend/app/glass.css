@@ -1,0 +1,213 @@
+/* ============================================================================
+   GLASS MATERIALS
+   ----------------------------------------------------------------------------
+   Translucent material as a primary surface style, modelled on how the system
+   materials actually behave rather than on "a blurred card".
+
+   Three things separate the real thing from the decorative version.
+
+   1. SATURATION. A plain blur greys out whatever is behind it. The system
+      materials boost saturation as they blur, which is why colour behind glass
+      stays alive instead of turning to fog. Every tier here does both.
+
+   2. A SPECULAR EDGE. Glass is a physical sheet, so it catches light on the
+      edge facing the light source and drops a shadow on the far side. The
+      inset top highlight and the outer shadow are what make it read as a
+      sheet lying ON the page rather than a hole cut INTO it.
+
+   3. IT NEEDS SOMETHING BEHIND IT. Glass over a flat field of one colour is
+      invisible; it only exists where content passes underneath. So it goes on
+      the surfaces that actually float (chrome, drawers, menus, sticky
+      headers), and the canvas carries a faint luminance gradient so there is
+      something for the material to modulate.
+
+   Tiers, by how much they need to hide:
+     thin     large surfaces that should barely separate from the page
+     regular  chrome: headers, sidebars, sticky rails
+     thick    drawers, menus, modals, anything that must obscure to be read
+   ========================================================================== */
+
+:root {
+  /* Blur radii. Larger than they look: below ~12px a backdrop blur reads as a
+     rendering artefact rather than as a material. */
+  --glass-blur-thin: 10px;
+  --glass-blur-regular: 20px;
+  --glass-blur-thick: 32px;
+  --glass-saturate: 180%;
+
+  /* Tints. Opacity is set by the contrast the text on top has to keep, not by
+     how much of the backdrop we would like to see.
+ 
+     The tiers are not equally exposed. A band in normal flow only ever has the
+     canvas behind it, so it can afford to be thin. Chrome and drawers have
+     live content moving underneath, and there the backdrop is whatever
+     happens to be passing: at 0.72 a muted label over a dark heading measured
+     3.05:1, well under the floor. Those two tiers were raised until the
+     realistic worst case clears AA, and the weakest ink is promoted off them
+     entirely (see below). */
+  --glass-tint-thin: rgba(246, 247, 248, 0.62);
+  --glass-tint-regular: rgba(244, 245, 247, 0.84);
+  --glass-tint-thick: rgba(246, 247, 248, 0.93);
+
+  /* The lit edge and the shadow it casts. */
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-hairline: rgba(11, 12, 14, 0.10);
+  --glass-shadow: 0 1px 2px rgba(11, 12, 14, 0.04), 0 8px 28px rgba(11, 12, 14, 0.08);
+  --glass-shadow-thick: 0 2px 6px rgba(11, 12, 14, 0.08), 0 24px 60px rgba(11, 12, 14, 0.16);
+}
+
+.dark {
+  /* On the negative the tint is darker than the canvas, not lighter: glass in
+     a dark room reads as smoked, and lightening it would make every panel
+     look like it was lit from inside. */
+  --glass-tint-thin: rgba(14, 16, 20, 0.62);
+  --glass-tint-regular: rgba(12, 14, 18, 0.86);
+  --glass-tint-thick: rgba(10, 12, 15, 0.94);
+  --glass-edge: rgba(255, 255, 255, 0.10);
+  --glass-hairline: rgba(255, 255, 255, 0.09);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 28px rgba(0, 0, 0, 0.45);
+  --glass-shadow-thick: 0 2px 6px rgba(0, 0, 0, 0.6), 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.glass,
+.glass-thin,
+.glass-thick {
+  position: relative;
+  background-color: var(--glass-tint-regular);
+  -webkit-backdrop-filter: blur(var(--glass-blur-regular)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-regular)) saturate(var(--glass-saturate));
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    var(--glass-shadow);
+}
+
+.glass-thin {
+  background-color: var(--glass-tint-thin);
+  -webkit-backdrop-filter: blur(var(--glass-blur-thin)) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur-thin)) saturate(140%);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+.glass-thick {
+  background-color: var(--glass-tint-thick);
+  -webkit-backdrop-filter: blur(var(--glass-blur-thick)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-thick)) saturate(var(--glass-saturate));
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    var(--glass-shadow-thick);
+}
+
+/* Chrome sits against the page rather than on top of it, so it takes the
+   hairline on the edge that meets content and no drop shadow: a shadow under
+   a full-width bar reads as a seam, not as depth. */
+.glass-chrome {
+  background-color: var(--glass-tint-regular);
+  -webkit-backdrop-filter: blur(var(--glass-blur-regular)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-regular)) saturate(var(--glass-saturate));
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* Ambient depth. Two very wide, very faint luminance pools at a few percent.
+   Without something behind it the material has nothing to refract and every
+   glass surface collapses to a flat tint. This is scenery for the glass, not
+   decoration: at this amplitude it is invisible on its own, which is the
+   point.
+
+   It lives on a fixed pseudo-element rather than on `body` with
+   `background-attachment: fixed`. Fixed background attachment forces the
+   background to repaint against the scroll position on every frame and is one
+   of the reliable ways to lose smooth scrolling on mobile. A fixed-position
+   layer is composited once and then left alone. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      120ch 80ch at 12% -10%,
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      100ch 70ch at 92% 8%,
+      rgba(11, 12, 14, 0.05),
+      rgba(11, 12, 14, 0) 60%
+    );
+}
+
+.dark body::before {
+  background-image:
+    radial-gradient(
+      120ch 80ch at 12% -10%,
+      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0) 60%
+    ),
+    radial-gradient(
+      100ch 70ch at 92% 8%,
+      rgba(0, 0, 0, 0.55),
+      rgba(0, 0, 0, 0) 60%
+    );
+}
+
+/* Text on a moving backdrop.
+ 
+   The muted ink exists for things that are deliberately quiet, and it is the
+   first thing to disappear when the surface under it stops being a known
+   colour. On the two tiers that have live content passing beneath, it is
+   promoted to the secondary ink, which is one step stronger and still reads as
+   subordinate. Nothing on chrome or in a drawer is set in the weakest ink.
+ 
+   This is scoped rather than global: on a band in normal flow the backdrop is
+   the canvas, the measurement holds, and the muted ink stays muted. */
+.glass-chrome,
+.glass-thick {
+  --ink-muted: var(--ink-secondary);
+}
+
+/* --- Guards ---------------------------------------------------------------
+   Three ways this has to degrade, and all three end opaque rather than
+   unreadable. */
+
+/* 1. The OS accessibility setting. Reduce Transparency exists because
+      translucency over moving content is genuinely hard to read for some
+      people; honouring it is not optional just because glass is the house
+      style. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-thin,
+  .glass-thick,
+  .glass-chrome {
+    background-color: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body::before {
+    display: none;
+  }
+}
+
+/* 2. No backdrop-filter support: fall back to the opaque surface rather than
+      to a washed-out translucent one with nothing blurring behind it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-thin,
+  .glass-thick,
+  .glass-chrome {
+    background-color: var(--surface);
+  }
+}
+
+/* 3. Print. */
+@media print {
+  .glass,
+  .glass-thin,
+  .glass-thick,
+  .glass-chrome {
+    background-color: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
