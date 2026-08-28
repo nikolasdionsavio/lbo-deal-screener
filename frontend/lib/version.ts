@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.10.1";
+export const APP_VERSION = "1.11.0";
 
 export interface Release {
   version: string;
@@ -14,6 +14,20 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.11.0",
+    date: "12 August 2026",
+    title: "A new look, and motion that means something",
+    changes: [
+      "The site has been redesigned. The canvas is a cool press stock with near-black ink, and the dark theme is now a true black that reads as the printed negative of it rather than as another dashboard. Gold stays, but only on data: headline figures, leverage bands, and the column you have sorted by. Anything you press is ink, so a control is never mistaken for a figure.",
+      "Light is now the default. An explicit choice is still remembered, and where there is none the site follows your operating system, which is what it always claimed to do.",
+      "Type sizes now scale continuously with the window instead of jumping at two breakpoints, so a 1100px window is no longer set at the tablet size.",
+      "Motion has been built as a system rather than added as decoration. Springs are derived from real mass, stiffness and damping, so a drawer does not move like a button and a badge does not move like a panel. Six different reveals are used according to what is arriving: a rule is drawn, an image is wiped open, a figure snaps into place, and a line of a heading rides up inside its own mask.",
+      "A new coverage band on the homepage fills as you scroll through it. It is not an effect: it is the live index, showing that roughly four in ten filers cannot have an EBITDA calculated because they do not disclose D&A separately.",
+      "The workspace was deliberately left quiet. Company pages and the deal screen get responsive buttons and state changes, and nothing that animates in front of a number you are trying to read.",
+      "Everything respects the reduced-motion setting: springs flatten, pointer effects never attach, and no content is ever hidden waiting for an animation that will not play.",
+    ],
+  },
   {
     version: "1.10.1",
     date: "11 August 2026",
