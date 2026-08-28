@@ -28,7 +28,7 @@ export default function ChangelogPage() {
           {RELEASES.map((release) => (
             <Reveal
               as="section"
-              variant="rise"
+              variant="lift"
               key={release.version}
               className="border-t border-line py-7 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-10"
             >

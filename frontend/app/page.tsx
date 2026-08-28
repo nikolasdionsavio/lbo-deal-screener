@@ -125,7 +125,7 @@ export default function LandingPage() {
           <div className="col-span-12 lg:col-span-6 xl:col-start-8 xl:col-span-5">
             {/* The search arrives before the supporting prose: it is the thing
                 to do next, and entrance order is the argument for importance. */}
-            <Reveal variant="rise" lead={400}>
+            <Reveal variant="lift" lead={400}>
               <SearchBar autoFocus />
             </Reveal>
 
@@ -221,7 +221,7 @@ export default function LandingPage() {
           <Reveal variant="rule">
             <p className="tape">How the work goes</p>
           </Reveal>
-          <Reveal variant="rise" lead={80}>
+          <Reveal variant="lift" lead={80}>
             <h2 className="ed-section mt-6 max-w-[18ch]">
               From a filing to a first view, in three passes
             </h2>

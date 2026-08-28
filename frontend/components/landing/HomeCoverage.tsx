@@ -78,7 +78,7 @@ export default function HomeCoverage() {
               <Reveal variant="rule">
                 <p className="tape">Index coverage</p>
               </Reveal>
-              <Reveal variant="rise" lead={80}>
+              <Reveal variant="lift" lead={80}>
                 <h2 className="ed-section mt-6">
                   Four in ten filers cannot have an EBITDA
                 </h2>

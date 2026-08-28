@@ -75,7 +75,7 @@ export default function MethodologyPage() {
     >
       <div className="space-y-10">
         {SECTIONS.map((section) => (
-          <Reveal as="section" variant="rise" key={section.title}>
+          <Reveal as="section" variant="lift" key={section.title}>
             <div className="hairline mb-4" />
             <h2 className="ed-sub">{section.title}</h2>
             <div className="mt-3 space-y-3">

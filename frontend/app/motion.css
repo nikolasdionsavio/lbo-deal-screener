@@ -343,3 +343,104 @@
     to { opacity: 1; }
   }
 }
+
+/* ============================================================================
+   DISCLOSURE
+   ----------------------------------------------------------------------------
+   Fluid height without measuring anything.
+
+   `height: auto` is not animatable, which is why disclosures are usually
+   either abrupt or driven by JS that measures scrollHeight and writes a pixel
+   height every frame. A grid whose single row goes from 0fr to 1fr animates to
+   the content's own height with no measurement, no JS, and no reflow loop when
+   the content changes.
+   ========================================================================== */
+.disclose {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows var(--spring-soft-ms) var(--spring-soft),
+    opacity var(--dur-fast) var(--ease-smooth);
+  opacity: 0;
+}
+.disclose > * {
+  /* The child must be able to collapse to nothing, or the row cannot. */
+  overflow: hidden;
+  min-height: 0;
+  /* A collapsed panel is zero pixels tall but its inputs are still in the tab
+     order, so keyboard focus lands on fields nobody can see. visibility takes
+     them out of it. The 0s transition is DELAYED by the collapse duration, so
+     the content stays visible while it is shrinking and disappears only once
+     it has arrived. */
+  visibility: hidden;
+  transition: visibility 0s linear var(--spring-soft-ms);
+}
+.disclose[data-open="true"] > * {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.disclose[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+/* ============================================================================
+   COPY BUTTON MORPH
+   ----------------------------------------------------------------------------
+   The link glyph and the tick occupy the same box and trade places: the
+   outgoing one scales down and rotates slightly out, the incoming one springs
+   in. A crossfade alone would read as two icons dissolving; the counter-
+   rotation is what makes it read as one object turning over.
+   ========================================================================== */
+.copy-glyph-link,
+.copy-glyph-tick {
+  transition:
+    opacity var(--dur-fast) var(--ease-smooth),
+    transform var(--spring-tight-ms) var(--spring-tight);
+}
+.copy-glyph-link[data-on="false"] {
+  opacity: 0;
+  transform: scale(0.6) rotate(-18deg);
+}
+.copy-glyph-tick[data-on="false"] {
+  opacity: 0;
+  transform: scale(0.6) rotate(18deg);
+}
+.copy-glyph-link[data-on="true"],
+.copy-glyph-tick[data-on="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Sort indicator. The caret does not swap glyph on direction change: it
+   rotates, so the column reads as one control changing state rather than two
+   different marks. */
+.sortable-glyph {
+  transition:
+    opacity var(--dur-fast) var(--ease-smooth),
+    transform var(--spring-tight-ms) var(--spring-tight);
+}
+.sortable-glyph[data-dir="asc"] {
+  transform: rotate(180deg);
+}
+
+/* Table row: a rule grows from the leading edge on hover, so the row under the
+   pointer is marked without repainting a fill behind fifty rows of figures. */
+.row-mark {
+  position: relative;
+}
+.row-mark::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--brand);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform var(--dur-fast) var(--ease-responsive);
+}
+.row-mark:hover::before {
+  transform: scaleY(1);
+}

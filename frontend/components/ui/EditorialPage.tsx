@@ -15,6 +15,7 @@
 
 import type { ReactNode } from "react";
 import Container from "@/components/ui/Container";
+import ScrollProgress from "@/components/ui/ScrollProgress";
 import { Reveal, SplitLines } from "@/lib/motion";
 
 export default function EditorialPage({
@@ -34,6 +35,7 @@ export default function EditorialPage({
 }) {
   return (
     <div className="py-14 lg:py-20">
+      <ScrollProgress />
       <Container>
         <div className="grid grid-cols-12 gap-x-6 gap-y-8">
           <header className="col-span-12 lg:col-span-4">

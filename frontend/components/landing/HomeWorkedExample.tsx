@@ -6,6 +6,7 @@
 // annotations carry provenance the way model notes would.
 
 import Link from "next/link";
+import { useTilt } from "@/lib/motion";
 import { getFinancials, getProfile, getScore } from "@/lib/api";
 import { fmtCurrency, fmtDate, fmtMultiple, fmtPercent } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
@@ -121,6 +122,10 @@ export default function HomeWorkedExample() {
   const first = marginPoints[0];
   const last = marginPoints[marginPoints.length - 1];
 
+  // One object on the page answers to the pointer in depth. The soft spring,
+  // not the tight one: a panel this size should lean, not flick.
+  const panel = useTilt<HTMLDivElement>({ max: 3 });
+
   return (
     <section className="mt-24 border-t border-line pt-10">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
@@ -137,7 +142,7 @@ export default function HomeWorkedExample() {
       </div>
 
       {/* Aligned figure strip on a faint paper surface. No card per metric. */}
-      <div className="mt-5 bg-surface px-4 py-4 sm:px-5">
+      <div ref={panel} className="glass mt-5 px-4 py-4 sm:px-5">
         {profile.loading ? (
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (

@@ -6,6 +6,7 @@
 // which would otherwise drift as new filings land.
 
 import Link from "next/link";
+import { Reveal } from "@/lib/motion";
 import Container from "@/components/ui/Container";
 import { leverageTone } from "@/components/screen/ScreenTable";
 import { getScreen } from "@/lib/api";
@@ -87,63 +88,67 @@ export default function HomeScreenExample() {
                   ))}
                 </div>
               ) : rows.length > 0 ? (
-                <table className="mt-3 w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-y border-line">
-                      <th className="py-1.5 font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
-                        Company
-                      </th>
-                      <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
-                        Revenue
-                      </th>
-                      <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
-                        EBITDA
-                      </th>
-                      <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
-                        Margin
-                      </th>
-                      <th className="py-1.5 pl-3 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
-                        Leverage
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={r.cik} className="border-b border-line">
-                        <td className="py-2 pr-3">
-                          <span className="font-mono text-[0.8125rem] text-link">
-                            {r.ticker ?? "—"}
-                          </span>
-                          <span className="ml-2 text-[0.8125rem] text-ink">
-                            {r.name.length > 26
-                              ? `${r.name.slice(0, 26)}…`
-                              : r.name}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap py-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink">
-                          {money(r.revenue)}
-                        </td>
-                        <td className="whitespace-nowrap py-2 pl-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink">
-                          {money(r.ebitda)}
-                        </td>
-                        <td className="whitespace-nowrap py-2 pl-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink-secondary">
-                          {r.ebitda_margin === null
-                            ? "—"
-                            : `${(r.ebitda_margin * 100).toFixed(1)}%`}
-                        </td>
-                        <td
-                          className={`whitespace-nowrap py-2 pl-3 text-right font-mono text-[0.8125rem] font-medium tabular-nums ${leverageTone(
-                            r.leverage,
-                          )}`}
-                        >
-                          {r.leverage === null || r.leverage === undefined
-                            ? "—"
-                            : `${r.leverage.toFixed(1)}x`}
-                        </td>
+                // A table of results is revealed, not moved: the frame opens
+                // left to right over figures that are already in position.
+                <Reveal variant="wipe" className="mt-3">
+                  <table className="w-full border-collapse text-left">
+                    <thead>
+                      <tr className="border-y border-line">
+                        <th className="py-1.5 font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                          Company
+                        </th>
+                        <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                          Revenue
+                        </th>
+                        <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                          EBITDA
+                        </th>
+                        <th className="py-1.5 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                          Margin
+                        </th>
+                        <th className="py-1.5 pl-3 text-right font-mono text-[10px] font-normal uppercase tracking-[0.04em] text-ink-muted">
+                          Leverage
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.cik} className="border-b border-line">
+                          <td className="py-2 pr-3">
+                            <span className="font-mono text-[0.8125rem] text-link">
+                              {r.ticker ?? "—"}
+                            </span>
+                            <span className="ml-2 text-[0.8125rem] text-ink">
+                              {r.name.length > 26
+                                ? `${r.name.slice(0, 26)}…`
+                                : r.name}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap py-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink">
+                            {money(r.revenue)}
+                          </td>
+                          <td className="whitespace-nowrap py-2 pl-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink">
+                            {money(r.ebitda)}
+                          </td>
+                          <td className="whitespace-nowrap py-2 pl-2 text-right font-mono text-[0.8125rem] tabular-nums text-ink-secondary">
+                            {r.ebitda_margin === null
+                              ? "—"
+                              : `${(r.ebitda_margin * 100).toFixed(1)}%`}
+                          </td>
+                          <td
+                            className={`whitespace-nowrap py-2 pl-3 text-right font-mono text-[0.8125rem] font-medium tabular-nums ${leverageTone(
+                              r.leverage,
+                            )}`}
+                          >
+                            {r.leverage === null || r.leverage === undefined
+                              ? "—"
+                              : `${r.leverage.toFixed(1)}x`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Reveal>
               ) : (
                 <p className="mt-4 text-[0.875rem] text-ink-secondary">
                   The screen is not returning results right now. The link below

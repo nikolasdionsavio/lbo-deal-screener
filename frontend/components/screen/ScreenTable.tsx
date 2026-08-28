@@ -170,12 +170,9 @@ export default function ScreenTable({
                             aria-hidden
                             className="sortable-glyph"
                             data-active={active ? "true" : "false"}
+                            data-dir={active ? direction : undefined}
                           >
-                            {active
-                              ? direction === "asc"
-                                ? " ↑"
-                                : " ↓"
-                              : " ↕"}
+                            {active ? " ↓" : " ↕"}
                           </span>
                         </button>
                       ) : (
@@ -196,7 +193,7 @@ export default function ScreenTable({
               {rows.map((row) => (
                 <tr
                   key={row.cik}
-                  className="border-b border-line align-baseline transition-colors hover:bg-surface"
+                  className="row-mark border-b border-line align-baseline transition-colors hover:bg-surface"
                 >
                   {columns.map((col, index) => (
                     <td

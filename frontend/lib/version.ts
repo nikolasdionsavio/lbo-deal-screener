@@ -2,7 +2,7 @@
 // Bump APP_VERSION and prepend a Release entry whenever a user-facing change
 // ships. The sidebar shows APP_VERSION; /whats-new renders RELEASES.
 
-export const APP_VERSION = "1.12.0";
+export const APP_VERSION = "1.12.1";
 
 export interface Release {
   version: string;
@@ -14,6 +14,19 @@ export interface Release {
 
 // Newest first. Keep entries factual: only changes that actually shipped.
 export const RELEASES: Release[] = [
+  {
+    version: "1.12.1",
+    date: "12 August 2026",
+    title: "Copy a screen, and more motion",
+    changes: [
+      "Every screen has always been a link, with the filters kept in the address bar. There is now a button that copies it, which was the one part of that feature the page never offered.",
+      "Filter groups open and close fluidly instead of snapping. They also keep what you typed when they are collapsed, which they previously threw away.",
+      "The sort indicator rotates between ascending and descending rather than swapping to a different arrow, so a column reads as one control changing state.",
+      "Hovering a result marks the row on its leading edge instead of repainting a fill behind fifty rows of figures.",
+      "Long reference pages carry a reading-progress rule at the top.",
+      "Glass no longer switches itself off when the system Reduce Transparency setting is on. The tints were already set so that text keeps its contrast either way.",
+    ],
+  },
   {
     version: "1.12.0",
     date: "12 August 2026",

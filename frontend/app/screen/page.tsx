@@ -27,6 +27,7 @@ import {
   type ScreenFilterState,
 } from "@/components/screen/filterSpec";
 import { buildRecord } from "@/components/screen/screenSource";
+import CopyLink from "@/components/ui/CopyLink";
 import ErrorState from "@/components/ui/ErrorState";
 import LoadingState from "@/components/ui/LoadingState";
 import { getScreen, getScreenFacets } from "@/lib/api";
@@ -334,7 +335,13 @@ export default function ScreenPage() {
                   </span>{" "}
                   {data.total === 1 ? "company" : "companies"} match
                 </p>
-                <p className="label-mono">{data.source}</p>
+                <span className="flex items-center gap-3">
+                  {/* The filters live in the address bar, which is the whole
+                      "every screen is a link" claim. Until now there was no
+                      way to act on it from the page. */}
+                  <CopyLink label="Copy this screen" />
+                  <p className="label-mono">{data.source}</p>
+                </span>
               </div>
 
               <ScreenTable

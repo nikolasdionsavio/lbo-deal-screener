@@ -22,7 +22,11 @@ import {
 import type { ScreenFacets } from "@/lib/types";
 
 /** Named screens. Origination usually starts from one of these, not a blank form. */
-const PRESETS: { label: string; note: string; apply: (s: ScreenFilterState) => ScreenFilterState }[] = [
+const PRESETS: {
+  label: string;
+  note: string;
+  apply: (s: ScreenFilterState) => ScreenFilterState;
+}[] = [
   {
     label: "Add-on targets",
     note: "$3-20m revenue, profitable at EBITDA",
@@ -122,10 +126,15 @@ function Group({
         aria-expanded={expanded}
         className="pressable disclosure -mx-1.5 flex w-full items-center gap-2 rounded px-1.5 py-1 text-left"
       >
-        <span aria-hidden className={`text-[0.6875rem] leading-none ${group.marker}`}>
+        <span
+          aria-hidden
+          className={`text-[0.6875rem] leading-none ${group.marker}`}
+        >
           ●
         </span>
-        <span className="label-mono flex-1 !text-ink-secondary">{group.label}</span>
+        <span className="label-mono flex-1 !text-ink-secondary">
+          {group.label}
+        </span>
         {active > 0 && (
           <span className="border border-accent px-1 font-mono text-[0.625rem] font-semibold leading-4 text-accent">
             {active}
@@ -136,89 +145,101 @@ function Group({
         </span>
       </button>
 
-      {expanded && (
-        <div className="mt-2.5 space-y-3">
-          {/* Toggles first: one click, no typing, so they carry the most
+      {/* Always rendered, collapsed by the grid row. Unmounting the panel
+          made opening and closing abrupt, and it also threw away anything
+          typed into a range box the moment a group was collapsed. */}
+      <div className="disclose" data-open={expanded}>
+        <div>
+          <div className="mt-2.5 space-y-3">
+            {/* Toggles first: one click, no typing, so they carry the most
               filtering per unit of effort. */}
-          {(group.toggles ?? []).map((toggle) => (
-            <label key={toggle.key} className="hit-target flex cursor-pointer items-start gap-2">
-              <input
-                type="checkbox"
-                className="mt-[0.2rem] h-3.5 w-3.5 accent-[var(--accent)]"
-                checked={state[toggle.key]}
-                onChange={(e) =>
-                  onChange({ ...state, [toggle.key]: e.target.checked })
-                }
-              />
-              <span>
-                <span className="text-[0.8125rem] font-medium text-ink">
-                  {toggle.label}
-                </span>
-                <span className="note-sm mt-0.5 block">{toggle.note}</span>
-              </span>
-            </label>
-          ))}
-
-          {(group.selects ?? []).map((select) => (
-            <label key={select.key} className="block">
-              <span className="text-[0.8125rem] font-medium text-ink">
-                {select.label}
-              </span>
-              <select
-                className={`${selectClass} mt-1`}
-                value={state[select.key]}
-                onChange={(e) =>
-                  onChange({ ...state, [select.key]: e.target.value })
-                }
+            {(group.toggles ?? []).map((toggle) => (
+              <label
+                key={toggle.key}
+                className="hit-target flex cursor-pointer items-start gap-2"
               >
-                <option value="">{select.anyLabel}</option>
-                {optionsFor(select).map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              {select.note && <p className="note-sm mt-1">{select.note}</p>}
-            </label>
-          ))}
-
-          {(group.fields ?? []).map((field) => {
-            const value = state.ranges[field.key] ?? { min: "", max: "" };
-            const suffix = UNIT_SUFFIX[field.unit];
-            return (
-              <div key={field.key}>
-                <div className="flex items-baseline justify-between gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-[0.2rem] h-3.5 w-3.5 accent-[var(--accent)]"
+                  checked={state[toggle.key]}
+                  onChange={(e) =>
+                    onChange({ ...state, [toggle.key]: e.target.checked })
+                  }
+                />
+                <span>
                   <span className="text-[0.8125rem] font-medium text-ink">
-                    {field.label}
+                    {toggle.label}
                   </span>
-                  <span className="font-mono text-[0.625rem] font-semibold text-ink-muted">
-                    {suffix}
-                  </span>
+                  <span className="note-sm mt-0.5 block">{toggle.note}</span>
+                </span>
+              </label>
+            ))}
+
+            {(group.selects ?? []).map((select) => (
+              <label key={select.key} className="block">
+                <span className="text-[0.8125rem] font-medium text-ink">
+                  {select.label}
+                </span>
+                <select
+                  className={`${selectClass} mt-1`}
+                  value={state[select.key]}
+                  onChange={(e) =>
+                    onChange({ ...state, [select.key]: e.target.value })
+                  }
+                >
+                  <option value="">{select.anyLabel}</option>
+                  {optionsFor(select).map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {select.note && <p className="note-sm mt-1">{select.note}</p>}
+              </label>
+            ))}
+
+            {(group.fields ?? []).map((field) => {
+              const value = state.ranges[field.key] ?? { min: "", max: "" };
+              const suffix = UNIT_SUFFIX[field.unit];
+              return (
+                <div key={field.key}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[0.8125rem] font-medium text-ink">
+                      {field.label}
+                    </span>
+                    <span className="font-mono text-[0.625rem] font-semibold text-ink-muted">
+                      {suffix}
+                    </span>
+                  </div>
+                  <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    <input
+                      className={inputClass}
+                      inputMode="decimal"
+                      placeholder={field.hint ? `min ${field.hint}` : "min"}
+                      aria-label={`Minimum ${field.label} in ${suffix}`}
+                      value={value.min}
+                      onChange={(e) =>
+                        setRange(field.key, "min", e.target.value)
+                      }
+                    />
+                    <input
+                      className={inputClass}
+                      inputMode="decimal"
+                      placeholder="max"
+                      aria-label={`Maximum ${field.label} in ${suffix}`}
+                      value={value.max}
+                      onChange={(e) =>
+                        setRange(field.key, "max", e.target.value)
+                      }
+                    />
+                  </div>
+                  {field.note && <p className="note-sm mt-1">{field.note}</p>}
                 </div>
-                <div className="mt-1 grid grid-cols-2 gap-1.5">
-                  <input
-                    className={inputClass}
-                    inputMode="decimal"
-                    placeholder={field.hint ? `min ${field.hint}` : "min"}
-                    aria-label={`Minimum ${field.label} in ${suffix}`}
-                    value={value.min}
-                    onChange={(e) => setRange(field.key, "min", e.target.value)}
-                  />
-                  <input
-                    className={inputClass}
-                    inputMode="decimal"
-                    placeholder="max"
-                    aria-label={`Maximum ${field.label} in ${suffix}`}
-                    value={value.max}
-                    onChange={(e) => setRange(field.key, "max", e.target.value)}
-                  />
-                </div>
-                {field.note && <p className="note-sm mt-1">{field.note}</p>}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

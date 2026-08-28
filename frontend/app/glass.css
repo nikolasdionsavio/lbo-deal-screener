@@ -170,23 +170,18 @@ body::before {
    Three ways this has to degrade, and all three end opaque rather than
    unreadable. */
 
-/* 1. The OS accessibility setting. Reduce Transparency exists because
-      translucency over moving content is genuinely hard to read for some
-      people; honouring it is not optional just because glass is the house
-      style. */
-@media (prefers-reduced-transparency: reduce) {
-  .glass,
-  .glass-thin,
-  .glass-thick,
-  .glass-chrome {
-    background-color: var(--surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-  body::before {
-    display: none;
-  }
-}
+/* 1. The OS "Reduce Transparency" setting is deliberately NOT honoured.
+      Glass is the house style by explicit instruction, and suppressing it
+      wherever that switch is on meant the effect was invisible on the
+      author's own machine (and on any visitor who has it enabled) with no way
+      to tell that from a bug.
+
+      What that trades away is real, so it is written down: readers who turn
+      that setting on do so because translucency over moving content is hard
+      for them to read, and they will now get it anyway. The mitigation is
+      that the tints on the exposed tiers are set high enough that the
+      pessimistic worst case still clears AA on every ink (see the tint
+      comment above), so this costs comfort rather than legibility.
 
 /* 2. No backdrop-filter support: fall back to the opaque surface rather than
       to a washed-out translucent one with nothing blurring behind it. */
