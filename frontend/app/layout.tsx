@@ -74,12 +74,15 @@ export const metadata: Metadata = {
   },
 };
 
-// Applies the persisted (or system) theme class before first paint so the
-// page never flashes the wrong theme. Must stay dependency-free and tiny.
-// Dark is the house style now: the war table is what the product looks like,
-// so it is what a first visit gets regardless of OS preference. Light remains
-// a deliberate choice and is remembered once made.
-const themeInitScript = `(function(){try{var t=localStorage.getItem("theme");document.documentElement.classList.toggle("dark",t!=="light");}catch(e){document.documentElement.classList.add("dark");}})();`;
+// Applies the theme class before first paint so the page never flashes the
+// wrong one. Must stay dependency-free and tiny.
+//
+// Press stock is the house style now, and an explicit stored choice still
+// wins. Where there is no stored choice this follows the operating system,
+// which is what ThemeProvider already claimed to do: the previous script
+// forced dark regardless, so the two disagreed and the OS preference was
+// silently ignored on first paint.
+const themeInitScript = `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
 
 export default function RootLayout({
   children,

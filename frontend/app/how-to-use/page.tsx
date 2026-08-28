@@ -78,6 +78,7 @@ function NoteIcon() {
 export default function HowToUsePage() {
   return (
     <EditorialPage
+      kicker="Guide"
       title="How to use"
       intro="Screen a public company as an LBO candidate, one page at a time. Every figure traces back to its source."
     >

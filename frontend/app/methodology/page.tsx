@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import Disclaimer from "@/components/ui/Disclaimer";
 import EditorialPage from "@/components/ui/EditorialPage";
+import { Reveal } from "@/lib/motion";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -68,15 +69,15 @@ const SECTIONS: { title: string; body: string[] }[] = [
 export default function MethodologyPage() {
   return (
     <EditorialPage
+      kicker="Reference"
       title="Methodology"
       intro="How filings become figures: sources, formulas and the models behind every page."
     >
       <div className="space-y-10">
         {SECTIONS.map((section) => (
-          <section key={section.title}>
-            <h2 className="ed-sub border-t border-line-strong pt-4">
-              {section.title}
-            </h2>
+          <Reveal as="section" variant="rise" key={section.title}>
+            <div className="hairline mb-4" />
+            <h2 className="ed-sub">{section.title}</h2>
             <div className="mt-3 space-y-3">
               {section.body.map((p, i) => (
                 <p
@@ -87,7 +88,7 @@ export default function MethodologyPage() {
                 </p>
               ))}
             </div>
-          </section>
+          </Reveal>
         ))}
       </div>
 

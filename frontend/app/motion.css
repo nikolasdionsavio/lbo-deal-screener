@@ -1,0 +1,345 @@
+/* ============================================================================
+   MOTION SYSTEM
+   ----------------------------------------------------------------------------
+   One place for every duration, easing and spring on the site. A component that
+   needs motion reaches for a token here; it does not invent a number.
+
+   The springs are not hand-drawn curves. They are the analytic solution of a
+   damped harmonic oscillator (x'' + (c/m)x' + (k/m)x = 0) sampled to CSS
+   linear(), so each preset has real mass, stiffness and damping and therefore a
+   real damping ratio and overshoot. Because they compile to an easing function
+   rather than a JS loop, they run on the compositor: no main-thread cost, no
+   library, and they compose with transform and opacity only.
+
+   Physical roles, deliberately different from each other:
+     tight       small controls under a finger. Snaps, 1.8% overshoot.
+     responsive  general UI. Arrives quickly, barely overshoots.
+     soft        panels and disclosures. More mass, settles without argument.
+     heavy       drawers and full sheets. No overshoot at all.
+     elastic     badges and small icons ONLY. Visible bounce, used sparingly.
+   ========================================================================== */
+
+:root {
+  /* --- Duration ladder ---------------------------------------------------
+     Five steps, each roughly 1.6x the last. Anything outside this ladder is a
+     mistake unless it is a spring, which carries its own settle time. */
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-standard: 260ms;
+  --dur-slow: 420ms;
+  --dur-cinematic: 720ms;
+
+  /* --- Easing families ---------------------------------------------------
+     responsive  sharp departure, immediate arrival. Pointer feedback.
+     smooth      symmetric. State changes with no direction.
+     decelerate  enters fast, lands gently. Things arriving on screen.
+     accelerate  leaves fast. Things being dismissed.
+     expressive  long tail. Signature moments only. */
+  --ease-responsive: cubic-bezier(0.2, 0, 0, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-expressive: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Springs (generated, see header) ----------------------------------- */
+/* tight: zeta=0.786 overshoot=1.8% settle=321ms */
+  --spring-tight: linear(0, 0.0289, 0.1008, 0.1974, 0.3054, 0.4151, 0.5199, 0.6158, 0.7007, 0.7735, 0.8343, 0.8839, 0.9233, 0.9537, 0.9765, 0.993, 1.0044, 1.0117, 1.016, 1.018, 1.0183, 1.0176, 1.0161, 1.0143, 1.0123, 1.0103, 1.0084, 1.0067, 1.0052, 1.0039, 1.0028, 1.0019, 1.0013, 1.0007, 1);
+  --spring-tight-ms: 321ms;
+/* responsive: zeta=0.839 overshoot=0.8% settle=500ms */
+  --spring-responsive: linear(0, 0.0299, 0.103, 0.2, 0.3069, 0.4142, 0.5159, 0.6082, 0.6894, 0.7589, 0.817, 0.8646, 0.9027, 0.9326, 0.9557, 0.9729, 0.9855, 0.9945, 1.0005, 1.0044, 1.0066, 1.0077, 1.0079, 1.0077, 1.0071, 1.0063, 1.0054, 1.0046, 1.0038, 1.0031, 1.0024, 1.0019, 1.0014, 1.001, 1);
+  --spring-responsive-ms: 500ms;
+/* soft: zeta=0.92 overshoot=0% settle=579ms */
+  --spring-soft: linear(0, 0.0174, 0.0618, 0.1235, 0.1951, 0.2713, 0.3481, 0.4229, 0.4938, 0.5596, 0.6198, 0.6741, 0.7225, 0.7652, 0.8026, 0.835, 0.863, 0.8869, 0.9072, 0.9243, 0.9387, 0.9507, 0.9607, 0.9689, 0.9756, 0.9811, 0.9855, 0.989, 0.9919, 0.9941, 0.9958, 0.9972, 0.9982, 0.999, 1);
+  --spring-soft-ms: 579ms;
+/* heavy: zeta=0.965 overshoot=0% settle=679ms */
+  --spring-heavy: linear(0, 0.0256, 0.0878, 0.1699, 0.2604, 0.352, 0.4399, 0.5213, 0.5948, 0.6598, 0.7166, 0.7654, 0.807, 0.8421, 0.8715, 0.8959, 0.9161, 0.9326, 0.9462, 0.9572, 0.966, 0.9732, 0.9789, 0.9835, 0.9872, 0.99, 0.9923, 0.9941, 0.9955, 0.9966, 0.9974, 0.998, 0.9985, 0.9989, 1);
+  --spring-heavy-ms: 679ms;
+/* elastic: zeta=0.512 overshoot=15.3% settle=467ms */
+  --spring-elastic: linear(0, 0.0358, 0.1286, 0.2577, 0.4053, 0.5565, 0.7002, 0.8283, 0.9361, 1.0213, 1.0836, 1.1246, 1.1469, 1.1535, 1.1479, 1.1337, 1.1138, 1.0912, 1.068, 1.0459, 1.0263, 1.0097, 0.9967, 0.9871, 0.9809, 0.9775, 0.9764, 0.9773, 0.9795, 0.9825, 0.986, 0.9896, 0.993, 0.996, 1);
+  --spring-elastic-ms: 467ms;
+}
+
+/* ============================================================================
+   REVEAL VOCABULARY
+   ----------------------------------------------------------------------------
+   Six ways to arrive, not one. The variant is chosen by WHAT is arriving, so a
+   rule does not enter like a paragraph and a number does not enter like an
+   image. Every variant animates transform, opacity or clip-path only.
+
+   Content is visible by default. JS adds [data-m] to opt an element in, and
+   never adds it under prefers-reduced-motion, so a headless renderer, a
+   crawler, a no-JS visitor and a reduced-motion visitor all get the finished
+   state rather than a blank page waiting for a transition that never fires.
+   ========================================================================== */
+
+/* Visible is the base state. The hidden state is an OVERRIDE that JS adds and
+   then removes, rather than the default that JS has to undo. That ordering
+   matters: if anything goes wrong (a failed hydration, a thrown effect, a
+   crawler, a headless renderer), the failure mode is "content is visible with
+   no animation" instead of "page is blank".
+
+   One attribute selects the variant and carries its transition. One class
+   carries the hidden state. Two selectors that both set opacity, one winning
+   on specificity, is how a reveal ends up stuck. */
+[data-m] {
+  will-change: transform, opacity;
+}
+
+/* Hidden. Higher specificity than the variant rules below, and removed in one
+   move to play the transition. */
+[data-m].m-off {
+  will-change: transform, opacity;
+}
+[data-m="rule"].m-off {
+  transform: scaleX(0);
+}
+[data-m="wipe"].m-off {
+  clip-path: inset(0 100% 0 0);
+}
+[data-m="rise"].m-off {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+}
+[data-m="lift"].m-off {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) scale(0.985);
+}
+[data-m="settle"].m-off {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+}
+[data-m="line"].m-off {
+  opacity: 0;
+  transform: translate3d(0, 105%, 0);
+}
+
+/* Resting geometry, and the transition each variant plays on its way here.
+   The transition lives on the variant, not on the hidden class, so it is
+   present in both directions. */
+[data-m="rule"] {
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease-decelerate);
+}
+/* An image or a table is revealed, not moved. The frame opens over it. */
+[data-m="wipe"] {
+  transition: clip-path var(--dur-cinematic) var(--ease-expressive);
+}
+/* Supporting prose: short travel, gentle landing, no overshoot. */
+[data-m="rise"] {
+  transition:
+    opacity var(--dur-standard) var(--ease-smooth),
+    transform var(--dur-slow) var(--ease-decelerate);
+}
+/* A block with visual weight travels further and carries a little scale, so it
+   reads as approaching rather than sliding. */
+[data-m="lift"] {
+  transition:
+    opacity var(--dur-standard) var(--ease-smooth),
+    transform var(--spring-soft-ms) var(--spring-soft);
+}
+/* A figure is small and precise. It snaps into its slot. */
+[data-m="settle"] {
+  transition:
+    opacity var(--dur-fast) var(--ease-smooth),
+    transform var(--spring-tight-ms) var(--spring-tight);
+}
+/* A line of type rides up inside its own mask. Nothing fades: the mask does
+   the work, which is why the letters stay crisp instead of ghosting. */
+[data-m="line"] {
+  transition:
+    opacity var(--dur-instant) linear,
+    transform var(--dur-cinematic) var(--ease-expressive);
+}
+
+/* The mask a line rides inside. */
+.m-line-mask {
+  display: block;
+  overflow: hidden;
+  /* Descenders must not be clipped by the mask that reveals the line. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+/* Stagger. Set --m-i on the child (its index) and --m-step on the container.
+   Delay is capped so a long list never leaves the reader waiting. */
+[data-m] {
+  transition-delay: calc(var(--m-delay, 0ms) + var(--m-lead, 0ms));
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ----------------------------------------------------------------------------
+   Reveals never initialise (JS checks the query), so nothing here has to undo
+   them. What remains is to strip travel and parallax from the motion that is
+   driven by state rather than by scroll, while KEEPING the feedback that tells
+   you something happened: colour, opacity and focus all survive.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-slow: 140ms;
+    --dur-cinematic: 160ms;
+    /* Springs collapse to a plain curve: no overshoot, no oscillation. */
+    --spring-tight: var(--ease-smooth);
+    --spring-responsive: var(--ease-smooth);
+    --spring-soft: var(--ease-smooth);
+    --spring-heavy: var(--ease-smooth);
+    --spring-elastic: var(--ease-smooth);
+    --spring-tight-ms: 140ms;
+    --spring-responsive-ms: 140ms;
+    --spring-soft-ms: 140ms;
+    --spring-heavy-ms: 160ms;
+    --spring-elastic-ms: 140ms;
+  }
+  /* Pointer-driven displacement is removed at the source: the hooks read this
+     same query and never attach. This is the belt to that braces. */
+  .m-magnetic,
+  .m-tilt,
+  .m-parallax {
+    transform: none !important;
+  }
+}
+
+/* ============================================================================
+   SCRUB
+   ----------------------------------------------------------------------------
+   Scroll-linked, not scroll-triggered: progress is a value, not an event, so
+   the drawing tracks the scrollbar in both directions. useScrollProgress
+   writes --p on .scrub once per frame and only while the section is near the
+   viewport.
+
+   Each segment has its own --from/--to window, so three segments fill one
+   after another off a single progress value. The default is the FINISHED
+   state, which is what a reduced-motion reader, a crawler and a no-JS visitor
+   see, because the hook simply never overwrites it for them.
+   ========================================================================== */
+.scrub {
+  --p: 1;
+}
+.scrub-seg {
+  transform-origin: left center;
+  transform: scaleX(
+    clamp(0, calc((var(--p) - var(--from)) / (var(--to) - var(--from))), 1)
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .scrub-seg {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   MICRO-INTERACTIONS
+   ----------------------------------------------------------------------------
+   Each one is tuned to the mass of the thing it belongs to. A link underline
+   is a drawn line and moves like one. A row is a wide, light object and slides
+   a short distance. A button is held under a finger, so it compresses fast and
+   releases on a spring.
+   ========================================================================== */
+
+/* Link: the rule is drawn from the leading edge rather than faded in, so it
+   reads as underlining rather than as a hover colour. Scale, not width, so it
+   never touches layout. */
+.link-slide {
+  position: relative;
+  text-decoration: none;
+  background-image: linear-gradient(var(--line-strong), var(--line-strong));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1px;
+  transition: background-size var(--dur-fast) var(--ease-responsive),
+    color var(--dur-fast) var(--ease-smooth);
+  padding-bottom: 2px;
+}
+.link-slide:hover,
+.link-slide:focus-visible {
+  background-image: linear-gradient(var(--link-hover), var(--link-hover));
+  background-size: 100% 2px;
+  color: var(--link-hover);
+}
+
+/* Row: shifts toward the reader by the width of its own gutter. The tint is
+   carried by the rule, not by a fill, so the row does not become a card. */
+.starter {
+  transition: transform var(--spring-responsive-ms) var(--spring-responsive),
+    border-color var(--dur-fast) var(--ease-smooth);
+}
+.starter:hover {
+  transform: translate3d(4px, 0, 0);
+  border-color: var(--line-strong);
+}
+
+/* Button: compression is instant because the finger is already there; the
+   release rides the tight spring so it comes back with a little snap. */
+.btn,
+.pressable {
+  transition:
+    transform var(--spring-tight-ms) var(--spring-tight),
+    background-color var(--dur-fast) var(--ease-smooth),
+    border-color var(--dur-fast) var(--ease-smooth),
+    color var(--dur-fast) var(--ease-smooth);
+}
+.btn:active,
+.pressable:active {
+  transform: scale(0.97);
+  transition-duration: var(--dur-instant);
+}
+
+/* An element under magnetic attraction must not also run a transform
+   transition: the hook writes a transform every frame, and a transition on top
+   of that fights it and produces lag. */
+.m-magnetic {
+  transition-property: background-color, border-color, color;
+}
+
+/* Focus is never animated away. */
+:focus-visible {
+  transition: none;
+}
+
+/* Navigation indicator. scaleX on a 1px-wide element, so travel and width are
+   both one compositor transform; animating `left`/`width` would put every
+   frame of this on the layout path. */
+.nav-rail {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 1px;
+  height: 2px;
+  background: var(--brand);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.nav-link {
+  position: relative;
+}
+
+/* ============================================================================
+   ROUTE TRANSITION
+   ----------------------------------------------------------------------------
+   Deliberately small. A page transition that makes you wait is a worse
+   experience than no transition, and this is a research tool where the next
+   page is the point. The outgoing page is not held: the incoming one lifts a
+   few pixels and settles while the browser is painting it anyway.
+   ========================================================================== */
+.route-enter {
+  animation: route-in var(--dur-standard) var(--ease-decelerate) both;
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-enter {
+    animation: route-fade var(--dur-fast) linear both;
+  }
+  @keyframes route-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
 import Container from "@/components/ui/Container";
+import { Reveal } from "@/lib/motion";
 import Image from "next/image";
 import Link from "next/link";
 import Disclaimer from "@/components/ui/Disclaimer";
@@ -40,15 +41,17 @@ export default function AboutPage() {
             is not a centred stack of everything. */}
         <div className="grid grid-cols-12 gap-x-6 gap-y-10">
           <div className="col-span-12 lg:col-span-4">
-            <div className="lg:sticky lg:top-8">
-              <Image
-                src={photo}
-                alt={name}
-                width={760}
-                height={950}
-                priority
-                className="w-28 rounded object-cover object-top lg:w-40"
-              />
+            <div className="lg:sticky lg:top-24">
+              <Reveal variant="wipe">
+                <Image
+                  src={photo}
+                  alt={name}
+                  width={760}
+                  height={950}
+                  priority
+                  className="w-28 rounded object-cover object-top lg:w-40"
+                />
+              </Reveal>
               <h1 className="ed-title mt-6 text-ink">{greeting}</h1>
               {/* The formal name in visible copy. The greeting is the voice of
                   the page and stays; this is the line that answers a search for
@@ -62,9 +65,16 @@ export default function AboutPage() {
           <div className="col-span-12 lg:col-span-7 lg:col-start-6">
             <div className="space-y-5">
               {bio.map((paragraph, index) => (
-                <p key={index} className="ed-body">
+                <Reveal
+                  as="p"
+                  key={index}
+                  variant="rise"
+                  index={index}
+                  step={70}
+                  className="ed-body"
+                >
                   {paragraph}
-                </p>
+                </Reveal>
               ))}
             </div>
 

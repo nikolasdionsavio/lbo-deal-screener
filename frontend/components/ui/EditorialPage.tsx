@@ -11,16 +11,22 @@
 // stays with you down a long document. Prose still wraps at ~68ch; the page is
 // no longer symmetrical about its own centre.
 
+"use client";
+
 import type { ReactNode } from "react";
 import Container from "@/components/ui/Container";
+import { Reveal, SplitLines } from "@/lib/motion";
 
 export default function EditorialPage({
   title,
+  kicker,
   intro,
   aside,
   children,
 }: {
   title: string;
+  /** Running head. Names the section of the site, not the page. */
+  kicker?: string;
   intro?: ReactNode;
   /** Optional extra under the title: source note, contents, last-updated. */
   aside?: ReactNode;
@@ -33,13 +39,24 @@ export default function EditorialPage({
           <header className="col-span-12 lg:col-span-4">
             {/* Sticky only where there is room for it, and only on the pages
                 that are long enough to lose your place in. */}
-            <div className="lg:sticky lg:top-8">
-              <h1 className="ed-title text-ink">{title}</h1>
+            <div className="lg:sticky lg:top-24">
+              {kicker !== undefined && (
+                <Reveal variant="rule" className="mb-6">
+                  <p className="tape">{kicker}</p>
+                </Reveal>
+              )}
+              <h1 className="ed-title text-ink">
+                <SplitLines text={title} lead={60} step={80} />
+              </h1>
               {intro !== undefined && intro !== null && (
-                <p className="ed-intro mt-5 max-w-[38ch]">{intro}</p>
+                <Reveal variant="rise" lead={260}>
+                  <p className="ed-intro mt-6 max-w-[38ch]">{intro}</p>
+                </Reveal>
               )}
               {aside !== undefined && aside !== null && (
-                <div className="mt-6">{aside}</div>
+                <Reveal variant="rise" lead={340}>
+                  <div className="mt-6">{aside}</div>
+                </Reveal>
               )}
             </div>
           </header>

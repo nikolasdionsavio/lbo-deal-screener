@@ -130,14 +130,19 @@ const config: Config = {
       // `rounded-circle`, which makes the intent visible at the call site
       // instead of looking like another stray pill.
       borderRadius: {
-        DEFAULT: "3px",
-        sm: "3px",
-        md: "5px",
-        lg: "6px",
-        xl: "6px",
-        "2xl": "6px",
-        "3xl": "6px",
-        full: "6px",
+        /* Press stock is cut, not moulded. The old scale ran 3-6px, which is
+           the soft default every component library ships with; at this size a
+           radius reads as timidity rather than as a decision. Corners are now
+           square by default, with 2px reserved for controls that need to feel
+           held. `circle` stays an explicit opt-in for genuinely round things. */
+        DEFAULT: "0px",
+        sm: "0px",
+        md: "2px",
+        lg: "2px",
+        xl: "2px",
+        "2xl": "2px",
+        "3xl": "2px",
+        full: "2px",
         circle: "9999px",
       },
       boxShadow: {

@@ -3,6 +3,7 @@
 
 import type { Metadata } from "next";
 import Container from "@/components/ui/Container";
+import { Reveal } from "@/lib/motion";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { RELEASES } from "@/lib/version";
 
@@ -16,6 +17,7 @@ export default function ChangelogPage() {
   return (
     <div className="py-14 lg:py-20">
       <Container>
+        <p className="tape mb-6">Reference</p>
         <h1 className="ed-title text-ink">Changelog</h1>
         <p className="ed-intro mt-5">
           What has changed, most recent first. Data-mapping and methodology
@@ -24,7 +26,9 @@ export default function ChangelogPage() {
 
         <div className="mt-12">
           {RELEASES.map((release) => (
-            <section
+            <Reveal
+              as="section"
+              variant="rise"
               key={release.version}
               className="border-t border-line py-7 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-10"
             >
@@ -47,7 +51,7 @@ export default function ChangelogPage() {
                   ))}
                 </ul>
               </div>
-            </section>
+            </Reveal>
           ))}
         </div>
 

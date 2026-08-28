@@ -1,3 +1,4 @@
+@import "./motion.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,47 +26,47 @@
 
   color-scheme: light;
 
-  --bg: #f3f2ed; /* canvas */
-  --surface: #fcfbf7; /* paper */
+  --bg: #eaebed; /* canvas */
+  --surface: #f6f7f8; /* paper */
   --surface-raised: #ffffff; /* paper-raised */
-  --surface-sunken: #ebeae3;
+  --surface-sunken: #dcdee2;
 
-  --ink: #19201e;
-  --ink-secondary: #59635f;
+  --ink: #0b0c0e;
+  --ink-secondary: #434952;
   /* Was #7a827f at 3.52:1, below the 4.5:1 AA floor for the small labels it
      carries. Darkened along its own hue to 4.66:1. */
-  --ink-muted: #676e6c;
+  --ink-muted: #5b6068;
 
   /* Rules carry the structure of every table and panel here, so they have to
      be seen. The originals sat at 1.30:1 and 1.88:1, which read as a faint
      smudge and made the whole interface look thin. Raised to 2.0:1 for row
      rules and 3.5:1 for structural boundaries, hue unchanged. */
-  --line: #afad9f; /* rule */
-  --line-strong: #79837c; /* rule-strong */
+  --line: #c6c9ce; /* rule */
+  --line-strong: #8f949c; /* rule-strong */
 
-  --brand: #215b52;
-  --brand-hover: #194a43;
-  --brand-text: #194a43;
-  --brand-soft: #e2ece8;
+  --brand: #8a6300;
+  --brand-hover: #6f4f00;
+  --brand-text: #7a5700;
+  --brand-soft: #f0e6cd;
 
-  --accent: #215b52;
-  --accent-soft: #e2ece8;
+  --accent: #8a6300;
+  --accent-soft: #f0e6cd;
 
   /* Action = the colour of a thing you press. Green on paper, blue on the war
      table, so a control is never mistaken for a figure. */
-  --action: #215b52;
-  --action-hover: #194a43;
+  --action: #111317;
+  --action-hover: #000000;
   --action-ink: #ffffff;
 
   /* Paper catches light too, just far less. A bright top edge and a faint
      settled bottom give a panel the same material cue the war table gets from
      its gilt edge, without pretending paper is metal. */
-  --glint-top: rgba(255, 255, 255, 0.8);
-  --glint-bottom: rgba(25, 32, 30, 0.07);
+  --glint-top: rgba(255, 255, 255, 0.9);
+  --glint-bottom: rgba(11, 12, 14, 0.06);
 
   /* Source / document links are blue. Nothing else is. */
-  --link: #315f82;
-  --link-hover: #244a67;
+  --link: #1a4fa0;
+  --link-hover: #123a7a;
 
   --positive-text: #3d6d51;
   --positive-soft: #e5eee7;
@@ -76,18 +77,18 @@
   --negative-soft: #f5e5e1;
 
   /* Editable assumptions only. Nudged to clear 4.5:1 (was 4.48:1). */
-  --assumption: #8b6725;
+  --assumption: #78581c;
   --assumption-soft: #f4ebd6;
   --warn: #8d6926;
   --warn-text: #7a5b21;
   --warn-soft: #f4ebd6;
 
   /* Filed figures are just ink; the marker system carries provenance. */
-  --filed: #59635f;
+  --filed: #434952;
 
   /* Shadows only for things above the page (menus, tooltips, drawers). */
   --shadow-card: none;
-  --shadow-pop: 0 6px 24px rgba(25, 32, 30, 0.1), 0 1px 3px rgba(25, 32, 30, 0.08);
+  --shadow-pop: 0 8px 30px rgba(11, 12, 14, 0.14), 0 1px 2px rgba(11, 12, 14, 0.10);
   --shadow-card-hover: none;
 
   /* Sensitivity matrix: muted sequential tints, never a red-green heatmap. */
@@ -104,7 +105,7 @@
   --metric-profit: #215b52;
   --metric-profit-soft: #e2ece8;
   --lev-low: #215b52; /* under 3.0x */
-  --lev-mid: #8b6725; /* 3.0x to 5.0x */
+  --lev-mid: #78581c; /* 3.0x to 5.0x */
   --lev-high: #a34738; /* above 5.0x */
   --lev-low-soft: #e2ece8;
   --lev-mid-soft: #f4ebd6;
@@ -115,7 +116,7 @@
      disclosure. All clear AA as text on both canvases. */
   --group-size: #3f5f7a;
   --group-profit: #215b52;
-  --group-balance: #8b6725;
+  --group-balance: #78581c;
   --group-classify: #6b5a7d;
   --group-quality: #7a5348;
   /* Backgrounds and badges: the hue mixed into paper at 12%. */
@@ -142,35 +143,35 @@
      sit at 1.14-1.89:1 and 4.17:1, which is the same faintness this interface
      was already corrected for. Lifted along their own hue to 2.0:1, 3.5:1 and
      4.6:1. The blackletter display face is deliberately not adopted. */
-  --bg: #060a10;
-  --surface: #0a1220;
-  --surface-raised: #0e1520;
-  --surface-sunken: #04070c;
+  --bg: #0a0b0d;
+  --surface: #131519;
+  --surface-raised: #1a1d22;
+  --surface-sunken: #050608;
 
-  --ink: #e2e8f0;
-  --ink-secondary: #94a3b8;
-  --ink-muted: #6a7b94;
+  --ink: #f2f3f4;
+  --ink-secondary: #a7adb6;
+  --ink-muted: #7f868f;
 
-  --line: #234081;
-  --line-strong: #44689c;
+  --line: #2b2f36;
+  --line-strong: #4a505a;
 
   /* Gilt is the identity: headings and headline figures only, never body. */
-  --brand: #f8b700;
-  --brand-hover: #ffc927;
-  --brand-text: #f8b700;
-  --brand-soft: #2a1a08;
+  --brand: #f5b301;
+  --brand-hover: #ffc633;
+  --brand-text: #f5b301;
+  --brand-soft: #241a05;
 
-  --accent: #f8b700;
-  --accent-soft: #2a1a08;
+  --accent: #f5b301;
+  --accent-soft: #241a05;
 
   /* Action stays blue, as it does on the war table, so a thing you can press
      never looks like a number you can read. */
-  --action: #024fcb;
-  --action-hover: #0a5fe0;
-  --action-ink: #eaf2ff;
+  --action: #f2f3f4;
+  --action-hover: #ffffff;
+  --action-ink: #0a0b0d;
 
-  --link: #3a88e8;
-  --link-hover: #6aa8f2;
+  --link: #7fb0ff;
+  --link-hover: #a3c7ff;
 
   --positive-text: #00cc88;
   --positive-soft: #071f1a;
@@ -186,13 +187,13 @@
   --warn-text: #fbbf24;
   --warn-soft: #2a1a08;
 
-  --filed: #94a3b8;
+  --filed: #a7adb6;
 
   /* The glint: a lit top edge and a shadowed bottom, so a panel reads as a
      forged plate catching light. This is the one piece of Aetherforge's
      ornament worth keeping; the shields and scrollwork are not. */
-  --glint-top: rgba(184, 216, 248, 0.10);
-  --glint-bottom: rgba(0, 0, 0, 0.5);
+  --glint-top: rgba(255, 255, 255, 0.07);
+  --glint-bottom: rgba(0, 0, 0, 0.6);
 
   --shadow-card: none;
   --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.6);
@@ -332,58 +333,88 @@
   }
 
   /* --- Editorial scale (public pages) ---------------------------------
-     DESIGN.md gives the public pages their own scale: statement 54-64,
-     page title 38-46, section 25-30, intro 19-21, body 17-18, caption
-     13-14. The homepage was using the two ends and none of the middle:
-     its section headings rendered at 13px, SMALLER than the 14px body
-     they introduced, so the page had one large moment at the top and
-     then went flat for four sections. Hierarchy was inverted, not quiet.
+     Fluid, not stepped. The previous scale jumped at two breakpoints and sat
+     flat between them, so a 1100px window got the tablet size and a 1600px
+     window got the same size as a 1280px one. These interpolate against the
+     viewport, so the page is set for the window it is actually in.
 
-     Each step pairs size with the weight, tracking and leading that size
-     needs, so a heading cannot be half-applied at a call site. */
+     Ceilings are deliberate: the statement tops out at 5.5rem (88px), under
+     the 96px above which a page is shouting rather than designing, and
+     tracking never goes below -0.035em, past which letters start to touch. */
   .ed-statement {
-    @apply font-display text-[2.625rem] font-normal sm:text-[3.375rem] lg:text-[3.75rem];
-    letter-spacing: -0.024em;
-    line-height: 1.03;
+    @apply font-display font-normal;
+    font-size: clamp(2.75rem, 1.6rem + 5.1vw, 5.5rem);
+    letter-spacing: -0.032em;
+    line-height: 0.96;
     text-wrap: balance;
   }
   .ed-title {
-    @apply font-display text-[2rem] font-normal sm:text-[2.375rem] lg:text-[2.75rem];
-    letter-spacing: -0.02em;
-    line-height: 1.08;
+    @apply font-display font-normal;
+    font-size: clamp(2.125rem, 1.5rem + 2.8vw, 3.5rem);
+    letter-spacing: -0.026em;
+    line-height: 1.02;
     text-wrap: balance;
   }
-  /* The step that was missing. Sans, not Charter: DESIGN.md reserves the
-     serif for authored editorial (the statement, Nikolas's notes), and a
-     page of serif section heads would read as a magazine, which the same
-     file rules out. */
+  /* Sans, not Charter: the serif is reserved for authored editorial, and a
+     page of serif section heads reads as a magazine. */
   .ed-section {
-    @apply text-[1.5rem] font-semibold text-ink lg:text-[1.75rem];
-    letter-spacing: -0.014em;
-    line-height: 1.18;
+    @apply font-semibold text-ink;
+    font-size: clamp(1.5rem, 1.15rem + 1.1vw, 2.125rem);
+    letter-spacing: -0.018em;
+    line-height: 1.12;
     text-wrap: balance;
   }
   .ed-sub {
-    @apply text-[1.0625rem] font-semibold text-ink lg:text-[1.125rem];
-    letter-spacing: -0.006em;
-    line-height: 1.3;
+    @apply font-semibold text-ink;
+    font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
+    letter-spacing: -0.008em;
+    line-height: 1.28;
   }
   .ed-intro {
-    @apply text-[1.1875rem] text-ink-secondary lg:text-[1.3125rem];
-    line-height: 1.5;
-    max-width: 62ch;
+    @apply text-ink-secondary;
+    font-size: clamp(1.125rem, 1.05rem + 0.45vw, 1.4375rem);
+    line-height: 1.46;
+    max-width: 60ch;
     text-wrap: pretty;
   }
   .ed-body {
-    @apply text-[1.0625rem] text-ink-secondary lg:text-[1.125rem];
-    line-height: 1.6;
+    @apply text-ink-secondary;
+    font-size: clamp(1rem, 0.97rem + 0.2vw, 1.125rem);
+    line-height: 1.62;
     max-width: 68ch;
     text-wrap: pretty;
   }
   .ed-caption {
-    @apply text-[0.875rem] text-ink-muted;
+    @apply text-ink-muted;
+    font-size: 0.875rem;
     line-height: 1.45;
     max-width: 72ch;
+  }
+
+  /* --- Tape ------------------------------------------------------------
+     The structural motif. A mono running head with a rule that runs out to
+     the end of its column, so a section announces itself the way a line of
+     ticker tape does rather than with a decorative eyebrow. The rule is what
+     makes it structure: it is a grid line the section actually sits on.
+
+     This replaces the tracked-uppercase kicker, which is the saturated AI
+     scaffold. The difference is that the rule carries information (where the
+     column begins and ends) and appears once per section, not above every
+     heading. */
+  .tape {
+    @apply flex items-center gap-3 font-mono text-[0.6875rem] font-semibold uppercase leading-none tracking-[0.08em] text-ink-muted;
+  }
+  .tape::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* A hairline that can be drawn. Paired with [data-m="rule"]. */
+  .hairline {
+    height: 1px;
+    background: var(--line-strong);
   }
 
   /* Column heads and field labels. */
@@ -576,17 +607,6 @@
 /* Route-change entrance (app/template.tsx): 180ms fade + 4px rise on the
    route content. Pure CSS, so content is visible by default without JS;
    the reduced-motion rule below zeroes it. No per-element choreography. */
-.route-enter {
-  animation: route-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes route-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
 /* Mobile nav drawer (components/chrome/MobileNav.tsx): 200ms ease-out
    slide-in over a fading scrim. Mounted only while open; close is an
    unmount. Reduced motion zeroes both animations (instant). */

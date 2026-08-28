@@ -31,50 +31,52 @@ Same colours, type families, rules and link treatment across both. The public pa
 
 ## Colour tokens
 
-**Dark is the default.** The house style is the war table: a deep navy-black canvas
-(`#060A10`), gilt figures, and blue for anything you press. Light remains the paper
-workbook below and is a deliberate, remembered choice.
+**Press stock is the default; the negative is the companion.** The house style
+is a cool neutral paper with near-black ink, and a true near-black canvas for
+anyone who wants it. An explicit stored choice always wins; with none, the
+operating system decides.
 
-**The war table (dark).** Adapted from the Aetherforge palette. Gold `#F8B700` carries
-headings and headline figures at 11.11:1; body is `#94A3B8` at 7.74:1; action is
-`#024FCB` with near-white ink at 7.04:1. Gilt and action are kept apart on purpose, so a
-number you read never looks like a control you press. Two things were deliberately NOT
-taken: the blackletter display face, and the source palette's rules and muted text, which
-sit at 1.14-1.89:1 and 4.17:1. Those were lifted along their own hue to 2.0:1, 3.5:1 and
-4.6:1, the same floors the light theme already meets. The only ornament kept is the
-glint, an inset lit top edge and shadowed bottom, so a panel reads as plate catching
-light. No shields, no scrollwork, no glass.
+Two things were deliberately abandoned in the 2026 redesign.
 
-Light is the paper theme. The palette is mostly neutral: the warm canvas carries the
-character, colour carries meaning. Tokens hold full colours (never use Tailwind opacity
-modifiers on them); soft tints are their own variables.
+The old light theme was a warm cream (`#F3F2ED`). The whole warm-neutral band
+reads as paper/parchment and is the single most saturated default in generated
+design; naming a token `--paper` does not make it a decision. The canvas is now
+`#EAEBED`, a cool neutral at effectively zero chroma.
 
-| Token | Light | Role |
-|---|---|---|
-| `--bg` | `#F3F2ED` | canvas |
-| `--surface` | `#FCFBF7` | paper |
-| `--surface-raised` | `#FFFFFF` | paper raised (fields, drawer) |
-| `--surface-sunken` | `#EBEAE3` | wells |
-| `--ink` | `#19201E` | primary text |
-| `--ink-secondary` | `#59635F` | secondary text |
-| `--ink-muted` | `#7A827F` | muted / missing |
-| `--line` | `#D7D6CF` | rule |
-| `--line-strong` | `#AEB4B0` | strong rule |
-| `--brand` / `--accent` | `#215B52` | nav, selection, active research actions |
-| `--brand-hover` | `#194A43` | |
-| `--brand-soft` | `#E2ECE8` | faint selection wash |
-| `--link` | `#315F82` | **source links and external documents only** |
-| `--link-hover` | `#244A67` | |
-| `--assumption` | `#8D6926` | **editable assumptions only** |
-| `--assumption-soft` | `#F4EBD6` | editable cell background |
-| `--negative` | `#A34738` | errors, material warnings, true negatives |
-| `--negative-soft` | `#F5E5E1` | |
-| `--positive-text` | `#3D6D51` | true positives |
-| `--positive-soft` | `#E5EEE7` | |
+The old dark theme was navy-and-gold. Navy-and-gold is the first thing anyone
+reaches for in finance, and terminal-dark is the second. The canvas is now a
+true `#0A0B0D`, which reads as the printed negative of the light theme rather
+than as a dashboard.
 
-**Colour rules.** Green = navigation, selection, active actions. Blue = source links.
-Ochre = editable assumptions. Red = errors / material warnings / negative values where
-colour adds meaning.
+**Gilt survives, because it was earned.** `#F5B301` on the negative and
+`#78581C` on press stock is the same signal at two exposures, and it stays on
+data: headline figures, leverage bands, the sort indicator. It is never an
+action.
+
+**Action is ink, not colour.** Near-black fill with white text on press stock,
+white fill with black text on the negative. A black button on paper is the most
+emphatic control available and owes nothing to the SaaS blue.
+
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `--bg` | `#EAEBED` | `#0A0B0D` | canvas |
+| `--surface` | `#F6F7F8` | `#131519` | raised ground, bands |
+| `--surface-sunken` | `#DCDEE2` | `#050608` | wells |
+| `--ink` | `#0B0C0E` | `#F2F3F4` | primary text |
+| `--ink-secondary` | `#434952` | `#A7ADB6` | secondary |
+| `--ink-muted` | `#5B6068` | `#7F868F` | muted / missing |
+| `--line` | `#C6C9CE` | `#2B2F36` | rule |
+| `--line-strong` | `#8F949C` | `#4A505A` | structural rule |
+| `--brand` / `--accent` | `#78581C` | `#F5B301` | gilt, data only |
+| `--action` | `#111317` | `#F2F3F4` | the thing you press |
+| `--link` | `#1A4FA0` | `#7FB0FF` | source / document links |
+
+Every token is verified against the surface it actually sits on, not just
+against `--bg`. `--ink-muted` and the shared amber both had to move when the
+canvas got lighter: at the old values they measured 4.43:1 and 4.33:1 against
+`#EAEBED`, under the AA floor, and the amber also failed on the sunken
+surface. Tokens hold full colours (never use Tailwind opacity modifiers on
+them); soft tints are their own variables.
 
 ## Domain colours
 
@@ -186,9 +188,11 @@ Headings, table labels, charts, source notes and side commentary share grid line
 
 ## Radius system
 
-Controls 3px · search field 4px · drawers/menus 6px · chart/image frames 6px.
-Nothing larger as a general pattern. **No pill buttons.** Tailwind radii are capped at 6px
-so untouched components inherit the discipline.
+**Square by default.** Press stock is cut, not moulded. `DEFAULT`/`sm` are 0px;
+2px is reserved for controls that should feel held. The old 3-6px scale was the
+soft default every component library ships with, and at that size a radius
+reads as timidity rather than as a decision. **No pill buttons.**
+`rounded-circle` remains an explicit opt-in for genuinely round things.
 
 `rounded-full` is capped at 6px too. It was the one key left uncapped, so it fell through
 to Tailwind's 9999px and twenty-four pills accumulated behind the rule that bans them.
@@ -298,21 +302,87 @@ rounded chart cards. Every chart answers one stated question.
 
 ## Motion rules
 
-Fast state 100ms · standard 150ms · drawer/panel 180–220ms. Motion only for: search
-results opening, source drawer, row selection, assumption updates, navigation, loading
-completion.
+**Motion is a design system here, not a polish pass.** It is defined in
+`app/motion.css` (tokens, reveal vocabulary) and `lib/motion.tsx` (runtime).
+Nothing invents a duration or an easing at a call site.
 
-**Banned:** scroll entrance animations, staggered reveals, parallax, floating elements,
-animated backgrounds, cursor effects, pulsing buttons, continuous tickers, spring motion,
-number-count animations. `prefers-reduced-motion` is honoured everywhere.
+### Tokens
 
-The landing scroll-reveal component predated that ban and outlived it as dead code,
-imported nowhere. It has been deleted along with its CSS, so the rule and the codebase
-now agree.
+Durations: `--dur-instant` 90ms · `--dur-fast` 160 · `--dur-standard` 260 ·
+`--dur-slow` 420 · `--dur-cinematic` 720. Each step is roughly 1.6x the last.
 
-Durations are tokens (`--dur-fast` 100ms, `--dur-base` 150ms, `--dur-panel` 200ms,
-`--ease-out`). The values are unchanged; naming them stops a 150ms system drifting into
-120/160/200 with no reason for any of it.
+Easing families: `--ease-responsive` (pointer feedback) · `--ease-smooth`
+(directionless state) · `--ease-decelerate` (arriving) · `--ease-accelerate`
+(leaving) · `--ease-expressive` (signature moments only).
+
+### Springs
+
+Five presets, generated from the damped-oscillator solution and sampled to CSS
+`linear()`, so each has a real damping ratio and a real overshoot and runs on
+the compositor rather than the main thread.
+
+| Preset | ζ | Overshoot | Settle | Role |
+|---|---|---|---|---|
+| `tight` | 0.79 | 1.8% | 321ms | small controls under a finger |
+| `responsive` | 0.84 | 0.8% | 500ms | general UI, nav indicator |
+| `soft` | 0.92 | 0% | 579ms | panels, weighted blocks |
+| `heavy` | 0.97 | 0% | 679ms | drawers and full sheets |
+| `elastic` | 0.51 | 15.3% | 467ms | badges and small icons ONLY |
+
+A tooltip does not move like a drawer. If two things of different mass share a
+spring, one of them is wrong.
+
+### Reveal vocabulary
+
+Six ways to arrive, chosen by what is arriving, never one applied to
+everything: `rule` (a drawn line, leads a section) · `wipe` (clip-path, for
+images and tables, which are revealed rather than moved) · `rise` (supporting
+prose) · `lift` (blocks with visual weight, on the soft spring) · `settle`
+(figures, on the tight spring) · `line` (a line of type riding up inside its
+own mask, no fade, so letters stay crisp).
+
+### Choreography
+
+Sequences are authored, not staggered by a uniform interval. The hero runs
+rule → masked statement lines → search → supporting prose → secondary link,
+because entrance order is the argument for importance. Stagger within a list is
+capped at 480ms total so the last item never waits.
+
+### Motion hierarchy
+
+Ambient: none. Stillness is what makes the rest legible.
+Micro: 90-160ms, spring-backed, on press and hover.
+Section: 260-420ms, revealed once on approach.
+Signature: the scroll-scrubbed coverage sequence, and the hero.
+
+**Still banned:** parallax for its own sake, animated backgrounds, cursor
+followers, pulsing buttons, continuous tickers, number-count animation,
+scroll-jacking, and any reveal that re-fires when a section is scrolled back
+into view.
+
+**The workspace is deliberately quieter than the public pages.** Company
+pages and the deal screen get micro-interactions and state motion only. An
+analyst reading a table of figures is in a task, and choreography in front of
+a number is an obstacle. This is the motion hierarchy applied, not an
+oversight.
+
+### Content is never gated behind motion
+
+Visible is the base state in CSS. The hidden state is a class that JS adds and
+then removes, so a crawler, a no-JS reader, a reduced-motion reader and a
+headless renderer all get the finished page. Three independent paths end in
+"visible": the observer, a two-frame entrance for anything already on screen,
+and a 1.6s watchdog for the cases where neither `IntersectionObserver` nor
+`requestAnimationFrame` runs. The first build of this system shipped a blank
+homepage for exactly that reason.
+
+### Reduced motion
+
+`prefers-reduced-motion` collapses every spring to a plain curve, shortens the
+long durations, and disables pointer displacement at the source: the magnetic,
+tilt and scrub hooks read the query and never attach. State feedback (colour,
+opacity, focus) survives, because removing it would make the interface harder
+to follow rather than calmer.
 
 ## Controls
 

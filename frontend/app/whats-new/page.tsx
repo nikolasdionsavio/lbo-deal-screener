@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 export default function WhatsNewPage() {
   return (
     <EditorialPage
+      kicker="Release notes"
       title="What's New"
       intro={`Release notes for the platform. Currently on v${APP_VERSION}.`}
     >
